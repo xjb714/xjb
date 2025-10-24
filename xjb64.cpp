@@ -674,5 +674,3 @@ void xjb64(uint64_t ieee_significand, uint64_t ieee_exponent, uint64_t* sig_dec,
     *sig_dec = d;
     *exp_dec = k;
 }
-
-

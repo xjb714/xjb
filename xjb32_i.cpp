@@ -6,16 +6,9 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
     unsigned int sig = vi & ((1ull<<23) - 1);
     unsigned int exp = (vi>>23) & 255;
 
-    // auto r = xjb32(sig,exp);
-    // *dec = r.digits;
-    // *e10 = r.exponent;
-
     typedef __uint128_t u128;
     typedef uint64_t u64;
     typedef uint32_t u32;
-
-    u32 ieee_significand = sig;
-    u32 ieee_exponent = exp;
 
     // size = 77*8 = 616 byte
     const u64 pow10_table[(44 - (-32) + 1)] = {
@@ -98,17 +91,17 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
         0x8f7e32ce7bea5c70, // 44
     };
     int exp_bin, k;
-    u64 sig_bin, regular = ieee_significand;
-    u64 even = (ieee_significand + 1) & 1;
-    if (ieee_exponent) [[likely]] // branch
+    u64 sig_bin, regular = sig;
+    u64 even = (sig + 1) & 1;
+    if (exp) [[likely]] // branch
     {
-        exp_bin = ieee_exponent - 150; //-127-23
-        sig_bin = ieee_significand | (1 << 23);
+        exp_bin = exp - 150; //-127-23
+        sig_bin = sig | (1 << 23);
     }
     else
     {
         exp_bin = 1 - 150;
-        sig_bin = ieee_significand;
+        sig_bin = sig;
     }
     if (regular) [[likely]] // branch
         k = (exp_bin * 315653) >> 20;
@@ -132,8 +125,9 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
     else
     {
         one = (half_ulp / 2 > dot_one_36bit) ? 0 : one;
-        one = (half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
         one += (exp_bin == 31 - 150) + (exp_bin == 214 - 150) + (exp_bin == 217 - 150);// more fast
+        one = (half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
+        //one = (half_ulp + even> (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one; // apple M1 may better than above
     }
     *dec = (uint32_t)(ten + one);
     *e10 = k;
