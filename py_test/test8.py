@@ -1,5 +1,5 @@
 import math
-def find_best_rational_approximation_below_and_above(a, b, c):
+def find_best_rational_approximation_below_and_above(a, b, c ,low_num=0,low_den=1,high_num=1,high_den=0 ):
     """
     纯整数运算实现的分母不超过a的最佳有理逼近b/c
     
@@ -67,7 +67,7 @@ def find_best_rational_approximation_below_and_above(a, b, c):
             
             # 更新右边界 
             high_num, high_den = med_num, med_den
-        print("left: ", low_num, low_den,(low_den * P) % Q , "right: ", high_num, high_den,(high_den * P) % Q )
+        #print("left: ", low_num, low_den,((low_den * P) % Q) / Q , "right: ", high_num, high_den,(high_den * P) % Q )
     return best_below, best_above
 
 def max_fraction(num1, den1, num2, den2):
@@ -131,11 +131,21 @@ def find_n_max_min_Q(a,b):
 # max_Q=find_n_max_min_Q(MAX_r[0],MAX_r[1])
 # print("float : min_r =",MIN_r[0]," / ",MIN_r[1],"= ",MIN_r[0]/MIN_r[1],"> 2**(" , -min_Q ,")", "; max_r =",MAX_r[0]," / ",MAX_r[1],"= ",MAX_r[0]/MAX_r[1],"< 1 - 2**(",-max_Q,")")
 
+c_min = 2**52 
+c_max = 2**53 - 1 
+def vaild_double(c,q):
+    # check c,q vaild for double  : check c*2**q is a valid double subnormal/normal number
+    if(q==-1074): # contain subnormal number
+        return 1 <= c and c <= c_max
+    else:# normal number
+        return c_min <= c and c <= c_max
+
 
 MIN_r=(1,1)
 MAX_r=(0,1)
-for q in (-866,-865,-864,164,165,166,549,550,917):
-    print("checking q =",q)
+for q in (-866,-865,-864,164,165,166,549,917):
+#for q in range(-1074, 972): 
+    #print("checking q =",q)
     k = math.floor(q * math.log10(2))
     A = q - k + 1
     B = k
@@ -152,6 +162,7 @@ for q in (-866,-865,-864,164,165,166,549,550,917):
     # find best rational approximation of P/Q with den <= 2**53 - 1
     C = 2**53 - 1
     #print("res = ", (5592117679628511 * P) % Q , "r = ", ((5592117679628511 * P) % Q) / Q)
+    
     if(Q <= C):
         pass
     else:
@@ -162,13 +173,31 @@ for q in (-866,-865,-864,164,165,166,549,550,917):
         max_q = find_n_max_min_Q(max_r[0],max_r[1])
         MIN_r = min_fraction(MIN_r[0],MIN_r[1],min_r[0],min_r[1])
         MAX_r = max_fraction(MAX_r[0],MAX_r[1],max_r[0],max_r[1])
-        #print(q," : min_r =",min_r[0]," / ",min_r[1],"= ",min_r[0]/min_r[1],"> 2**(" , -min_q ,")", "; max_r =",max_r[0]," / ",max_r[1],"= ",max_r[0]/max_r[1],"< 1 - 2**(",-max_q,")")
-        if(20*min_r[1] <= min_r[0]*2**64):
+        #print(q," : min_r =",min_r[0]," / ",min_r[1],"= ",min_r[0]/min_r[1],"> 2**(" , -min_q ,")", "; max_r =",max_r[0]," / ",max_r[1],"= ",max_r[0]/max_r[1],"< 1 - 2**(",-max_q,")","above_den=",above_den,"q=",q,"vaild=",vaild_double(above_den,q),"A=",A,"B=",B)
+        if(15*min_r[1] <= min_r[0]*2**64):
             pass
             #print(q," : min_r ","> 2**(" , -min_q ,")", "; max_r ","< 1 - 2**(",-max_q,")")
         else:
-            #print(q,below_den)
-            #print(q,"error : min_r ","> 2**(" , -min_q ,")", "; max_r ","< 1 - 2**(",-max_q,") **********")
+            #print("c=",below_den,"q=",q)
+            #print(below_den,",",q)
+            #print(vaild_double(below_den,q))
+            #print(q," : min_r =",min_r[0]," / ",min_r[1],"= ",min_r[0]/min_r[1],"> 2**(" , -min_q ,")", "; max_r =",max_r[0]," / ",max_r[1],"= ",max_r[0]/max_r[1],"< 1 - 2**(",-max_q,")","above_den=",above_den,"q=",q,"vaild=",vaild_double(above_den,q),"A=",A,"B=",B)
+            # down = (c_min * P )//Q
+            # up = (c_max * P )//Q
+
+            (below_num2, below_den2), (above_num2, above_den2) = find_best_rational_approximation_below_and_above( below_den - 1, P, Q)
+            down2 = ((below_den2 * P)  % Q ) / Q
+            print(below_den2,below_den,down2,c_max - below_den)
+
+            (below_num3, below_den3), (above_num3, above_den3) = find_best_rational_approximation_below_and_above(C, P, Q,low_num=above_num,low_den=above_den)
+            down3 = ((below_den3 * P)  % Q ) / Q
+            print(below_den3,below_den,down3,c_max - below_den)
+
+            #print("valid c range : ",down," to ",up, "up-down=",up - down)
+            double_num = below_den * 2**q
+            #print("double num:",double_num)
+            double_hex = (q + 1075) * 2**52 + below_den - 2**52
+            print(q,"error : min_r ","> 2**(" , -min_q ,")", "; max_r ","< 1 - 2**(",-max_q,") **********","c=",below_den,vaild_double(below_den,q),hex(double_hex))
             pass
 min_Q=find_n_min_min_Q(MIN_r[0],MIN_r[1])
 max_Q=find_n_max_min_Q(MAX_r[0],MAX_r[1])
