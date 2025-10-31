@@ -1,8 +1,8 @@
 # xjb
 xjb : a fast float to string algorithm.
 
-xjb32 : for float (IEEE754-binary32) ; xjb32_i.cpp;  https://godbolt.org/z/eT57sW9q1
-xjb64 : for double(IEEE754-binary64) ; xjb64_i.cpp;  https://godbolt.org/z/oG7eW9jEj
+xjb32 : for float (IEEE754-binary32) ; xjb32_i.cpp;  https://godbolt.org/z/eT57sW9q1  
+xjb64 : for double(IEEE754-binary64) ; xjb64_i.cpp;  https://godbolt.org/z/oG7eW9jEj  
 
 demo link: https://onlinegdb.com/OPKdOpikG
 
