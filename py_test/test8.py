@@ -67,7 +67,7 @@ def find_best_rational_approximation_below_and_above(a, b, c ,low_num=0,low_den=
             
             # 更新右边界 
             high_num, high_den = med_num, med_den
-        #print("left: ", low_num, low_den,((low_den * P) % Q) / Q , "right: ", high_num, high_den,(high_den * P) % Q )
+        #print("left: ", low_num, low_den,((low_den * P) % Q) / Q , "right: ", high_num, high_den, "1 - ", (Q - (high_den * P) % Q) / Q )
     return best_below, best_above
 
 def max_fraction(num1, den1, num2, den2):
@@ -143,12 +143,20 @@ def vaild_double(c,q):
 
 MIN_r=(1,1)
 MAX_r=(0,1)
-#for q in (-866,-865,-864,164,165,166,549,917):
+#for q in (-866,-865,164,165,166,549): # low
+#for q in range(479, 491): # high
 for q in range(-1074, 972): 
     #print("checking q =",q)
     k = math.floor(q * math.log10(2))
+    
+    # c * 2**q * 10**(-k-1) = m+n
+    #A = q - k - 1
+    #B = k + 1
+    
+    # c* 2**(q+1) * 10**(-k) = 20m+20n
     A = q - k + 1
     B = k
+    
     # x = target = 2**A * 5**-B
     P = Q = 1
     if(A>=0):
@@ -174,7 +182,7 @@ for q in range(-1074, 972):
         MIN_r = min_fraction(MIN_r[0],MIN_r[1],min_r[0],min_r[1])
         MAX_r = max_fraction(MAX_r[0],MAX_r[1],max_r[0],max_r[1])
         #print(q," : min_r =",min_r[0]," / ",min_r[1],"= ",min_r[0]/min_r[1],"> 2**(" , -min_q ,")", "; max_r =",max_r[0]," / ",max_r[1],"= ",max_r[0]/max_r[1],"< 1 - 2**(",-max_q,")","above_den=",above_den,"q=",q,"vaild=",vaild_double(above_den,q),"A=",A,"B=",B)
-        if(15*min_r[1] <= min_r[0]*2**64):
+        if(8*min_r[1] <= min_r[0]*2**64):
             pass
             #print(q," : min_r ","> 2**(" , -min_q ,")", "; max_r ","< 1 - 2**(",-max_q,")")
         else:
@@ -185,12 +193,12 @@ for q in range(-1074, 972):
             # down = (c_min * P )//Q
             # up = (c_max * P )//Q
 
-            (below_num2, below_den2), (above_num2, above_den2) = find_best_rational_approximation_below_and_above( below_den - 1, P, Q)
-            down2 = ((below_den2 * P)  % Q ) / Q
+            # (below_num2, below_den2), (above_num2, above_den2) = find_best_rational_approximation_below_and_above( below_den - 1, P, Q)
+            # down2 = ((below_den2 * P)  % Q ) / Q
             #print(below_den2,below_den,down2,c_max - below_den)
 
-            (below_num3, below_den3), (above_num3, above_den3) = find_best_rational_approximation_below_and_above(C, P, Q,low_num=above_num,low_den=above_den)
-            down3 = ((below_den3 * P)  % Q ) / Q
+            # (below_num3, below_den3), (above_num3, above_den3) = find_best_rational_approximation_below_and_above(C, P, Q,low_num=above_num,low_den=above_den)
+            # down3 = ((below_den3 * P)  % Q ) / Q
             #print(below_den3,below_den,down3,c_max - below_den)
 
             #print("valid c range : ",down," to ",up, "up-down=",up - down)
@@ -199,7 +207,8 @@ for q in range(-1074, 972):
             double_hex = (q + 1075) * 2**52 + below_den - 2**52
             #print(q,"error : min_r ","> 2**(" , -min_q ,")", "; max_r ","< 1 - 2**(",-max_q,") **********","c=",below_den,vaild_double(below_den,q),hex(double_hex))
             pass
-        if(2**74*max_r[0] < (2**74-20-8*2**10)*max_r[1] ):
+
+        if(2**74*max_r[0] < (2**74 - 20 - 12 * 2**10)*max_r[1] ):
             pass
         else:
             #print("c=",above_den,"q=",q)
@@ -208,10 +217,12 @@ for q in range(-1074, 972):
             double_hex = (q + 1075) * 2**52 + above_den - 2**52
             print(q," : max_r =",max_r[0]," / ",max_r[1],"= ",max_r[0]/max_r[1],"< 1 - 2**(",-max_q,")","above_den=",above_den,"q=",q,"vaild=",vaild_double(above_den,q),"A=",A,"B=",B,hex(double_hex))
             pass
+
+
 min_Q=find_n_min_min_Q(MIN_r[0],MIN_r[1])
 max_Q=find_n_max_min_Q(MAX_r[0],MAX_r[1])
 
-print("double : min_r =",MIN_r[0]," / ",MIN_r[1],"= ",MIN_r[0]/MIN_r[1],"> 2**(" , -min_Q ,")", "; max_r =",MAX_r[0]," / ",MAX_r[1],"< 1 - 2**(",-max_Q,")")
+print("double : min_r =",MIN_r[0]," / ",MIN_r[1],"= ",MIN_r[0]/MIN_r[1],"= 2**(",math.log2(MIN_r[0]/MIN_r[1]), ") > 2**(" , -min_Q ,")", "; max_r =",MAX_r[0]," / ",MAX_r[1],"= 1-2**(",math.log2((MAX_r[1]-MAX_r[0])/MAX_r[1]) ,")< 1 - 2**(",-max_Q,")")
 # if __name__== "__main__":
 #     import time
 #     start = time.time()
