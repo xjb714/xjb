@@ -674,7 +674,7 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
         //u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) >= 0x7ffffffffffffffaull) - (dot_one == (u64)1 << 62) ;
         //u64 one = ((dot_one * (u128)10 + (1ull<<63) + 4) >> 64) - (dot_one == (u64)1 << 62) ;
 #ifdef __amd64__
-        u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 5 ;
+        u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 4 ;
         u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
         if(regular) [[likely]]
         {
@@ -692,8 +692,8 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
         //one = (half_ulp  > ~0 - dot_one) ? 10 : one;
         one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
 #else
-        //u64 offset_num = ((bitarray_irregular[exp/64]>>(exp%64)) & !regular) ? ~0 : (1ull<<63) + 5 ;
-        u64 offset_num = (((bitarray_irregular[exp/64]>>(exp%64)) & !regular)<<62) + (1ull<<63) + 5 ;
+        //u64 offset_num = ((bitarray_irregular[exp/64]>>(exp%64)) & !regular) ? ~0 : (1ull<<63) + 4 ;
+        u64 offset_num = (((bitarray_irregular[exp/64]>>(exp%64)) & !regular)<<62) + (1ull<<63) + 4 ;
         offset_num = (dot_one == (1ull << 62)) ? 0 : offset_num ;
         u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
         one = ((half_ulp >> !regular) > dot_one) ? 0 : one;
