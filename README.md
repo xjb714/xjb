@@ -7,7 +7,15 @@ xjb64 : for double(IEEE754-binary64) ; xjb64_i.cpp;  https://godbolt.org/z/oG7eW
 demo link: https://onlinegdb.com/OPKdOpikG
 
 This algorithm is based on the schubfach algorithm.
+This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and grisu.
 
+The latest benchmark results:
+![alt text](image.png)
+
+
+
+
+**Outdated experimental results.**
 
 https://github.com/xjb714/f2dec_bench benchmark result:  
 Generate 1e7 random numbers without 0, NaN and Inf. Measure the time spent converting a floating-point number to a decimal result. We conducted tests on the following two processors.  
