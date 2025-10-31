@@ -143,8 +143,8 @@ def vaild_double(c,q):
 
 MIN_r=(1,1)
 MAX_r=(0,1)
-for q in (-866,-865,-864,164,165,166,549,917):
-#for q in range(-1074, 972): 
+#for q in (-866,-865,-864,164,165,166,549,917):
+for q in range(-1074, 972): 
     #print("checking q =",q)
     k = math.floor(q * math.log10(2))
     A = q - k + 1
@@ -187,17 +187,26 @@ for q in (-866,-865,-864,164,165,166,549,917):
 
             (below_num2, below_den2), (above_num2, above_den2) = find_best_rational_approximation_below_and_above( below_den - 1, P, Q)
             down2 = ((below_den2 * P)  % Q ) / Q
-            print(below_den2,below_den,down2,c_max - below_den)
+            #print(below_den2,below_den,down2,c_max - below_den)
 
             (below_num3, below_den3), (above_num3, above_den3) = find_best_rational_approximation_below_and_above(C, P, Q,low_num=above_num,low_den=above_den)
             down3 = ((below_den3 * P)  % Q ) / Q
-            print(below_den3,below_den,down3,c_max - below_den)
+            #print(below_den3,below_den,down3,c_max - below_den)
 
             #print("valid c range : ",down," to ",up, "up-down=",up - down)
             double_num = below_den * 2**q
             #print("double num:",double_num)
             double_hex = (q + 1075) * 2**52 + below_den - 2**52
-            print(q,"error : min_r ","> 2**(" , -min_q ,")", "; max_r ","< 1 - 2**(",-max_q,") **********","c=",below_den,vaild_double(below_den,q),hex(double_hex))
+            #print(q,"error : min_r ","> 2**(" , -min_q ,")", "; max_r ","< 1 - 2**(",-max_q,") **********","c=",below_den,vaild_double(below_den,q),hex(double_hex))
+            pass
+        if(2**74*max_r[0] < (2**74-20-8*2**10)*max_r[1] ):
+            pass
+        else:
+            #print("c=",above_den,"q=",q)
+            #print(above_den,",",q)
+            #print(vaild_double(above_den,q))
+            double_hex = (q + 1075) * 2**52 + above_den - 2**52
+            print(q," : max_r =",max_r[0]," / ",max_r[1],"= ",max_r[0]/max_r[1],"< 1 - 2**(",-max_q,")","above_den=",above_den,"q=",q,"vaild=",vaild_double(above_den,q),"A=",A,"B=",B,hex(double_hex))
             pass
 min_Q=find_n_min_min_Q(MIN_r[0],MIN_r[1])
 max_Q=find_n_max_min_Q(MAX_r[0],MAX_r[1])
