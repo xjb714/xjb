@@ -5,7 +5,8 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
     typedef uint32_t u32;
     unsigned int vi = *(unsigned int*)&v;
     unsigned int ieee_significand = vi & ((1u<<23) - 1);
-    unsigned int ieee_exponent = ((vi >> 23) & 255);
+    //unsigned int ieee_exponent = ((vi >> 23) & 255);
+    unsigned int ieee_exponent = ((vi & (255u<<23) ) >> 23);
     // size = 77*8 = 616 byte
     const u64 pow10_table[(44 - (-32) + 1)] = {
         0xcfb11ead453994bb, // -32
@@ -88,7 +89,7 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
     };
     int exp_bin, k;
     u64 sig_bin, regular = ieee_significand > 0;
-    
+    u64 irregular = (ieee_significand == 0);
     if (ieee_exponent > 0) [[likely]] // branch
     {
         exp_bin = ieee_exponent - 150; //-127-23
@@ -99,10 +100,14 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
         exp_bin = 1 - 150;
         sig_bin = ieee_significand;
     }
+#ifdef __amd64__
     if (regular) [[likely]] // branch
         k = (exp_bin * 315653) >> 20;
     else
         k = (exp_bin * 315653 - 131237) >> 20;
+#else
+    k = (exp_bin * 315653 - (irregular ?  131237 : 0 ))>>20;
+#endif
     int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
     const u64 *pow10 = &pow10_table[32];
     u64 pow10_hi = pow10[(-1 - k)];
@@ -127,13 +132,13 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
         one += (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150);// more fast
         one = (half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
     }
-#else //arm64
+#else 
     u64 offset_num  = (((u64)1 << BIT) - 7) + ((sig_hi >> (BIT - 4)) & 0xF);
     u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
-    one = ( ((half_ulp + even) >> !regular) > dot_one_36bit) ? 0 : one;
+    one = ( ((half_ulp + even) >> irregular) > dot_one_36bit) ? 0 : one;
     one = (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
-    if(!regular)[[unlikely]]{
-        if( (exp_bin == 31 - 150) || (exp_bin == 214 - 150) || (exp_bin == 217 - 150) )
+    if(irregular)[[unlikely]]{
+        if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
             one+=1;
     }
 #endif

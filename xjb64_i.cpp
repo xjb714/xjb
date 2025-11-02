@@ -15,7 +15,8 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
 
     unsigned long long vi = *(unsigned  long long*)&v;
     unsigned long long sig = vi & ((1ull<<52) - 1);
-    unsigned long long exp = (vi>>52) & 2047;
+    //unsigned long long exp = (vi>>52) & 2047;
+    unsigned long long exp = (vi & (2047ull<<52) ) >> 52;
 
     typedef __uint128_t u128;
     typedef uint64_t u64;
@@ -24,19 +25,34 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
     u64 ieee_significand = sig;
     u64 ieee_exponent = exp;
 
-    if (ieee_exponent != 0) [[likely]] // branch
+#ifdef __amd64__    
+    if (ieee_exponent > 0) [[likely]] // branch
     {
         c = (1ull<<52) | ieee_significand;// 53 bit
-        q = (ieee_exponent) - 1075;// 
+        q = ieee_exponent - 1075;
     }
     else
     {
         c = ieee_significand;
         q = 1 - 1075; // -1074
     }
+#else
+    c = (ieee_exponent > 0) ? ( (1ull<<52) | ieee_significand) : ieee_significand;
+    q = (ieee_exponent > 0) ? (ieee_exponent - 1075) : 1-1075;
+#endif
+
+    // v = c * 2**q 
+    // c * 2**q * 10**(-k-1) = m + n
+    // m = floor( c * 2**q * 10**(-k-1) )
+    // n = fractional part
+    // convert c * 2**q  to d * 10**k
+    // ten = 10m
+    // select  from  {ten + 0, ten + floor(10n) , ten + floor(10n) + 1 , ten + 10}
+
     int k;
     const int offset = 6; // [5,10] ; 5 + 64 >= 69    6+64=70 >=69
     u64 regular = ieee_significand > 0;
+    u64 irregular = (ieee_significand == 0);
     static const u64 g[(323 - (-293) + 1) * 2] = {
         0xcc5fc196fefd7d0c, 0x1e53ed49a96272c9, // -293
         0xff77b1fcbebcdc4f, 0x25e8e89c13bb0f7b, // -292
@@ -658,22 +674,28 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
     };
     const u64 *pow10_ptr = g + 293 * 2;
     {
+#ifdef __amd64__
         if (regular) [[likely]] // branch
             k = (q * 315653) >> 20;
         else
             k = (q * 315653 - 131237) >> 20;
+#else
+        // use this branchless code for apple M1, better performance
+        // when ieee_exponent == 1 or 0 ; k=-324
+        // so we can use (ieee_exponent - 1075) to replace q
+        k = ((ieee_exponent - 1075) * 315653 - (irregular ?  131237 : 0 ))>>20;
+#endif
         int h = q + (((-1 - k) * 217707) >> 16);
         u64 *p10 = (u64 *)&pow10_ptr[(-1 - k) * 2];
-        u128 cb = c << (h + 1 + offset);                    // h1 = h+1+offset = [0,3]+offset ; offset <= h1 <= offset+3;
+        u128 cb = c << (h + 1 + offset);                    
         u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64)); // p10[0] : high 64bit ; p10[1] : low 64bit
-        u64 hi64 = hi128 >> 64;
-        u64 dot_one = hi128 >> offset;   // == floor(2**64*n)    ; slow instruction : add + shift
+        u64 dot_one = hi128 >> offset;   // == floor(2**64*n)    ; slow instruction
         u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
-        // select  from  {ten + 0, ten + floor(10n) , ten + floor(10n) + 1 , ten + 10}
-        u64 ten = (hi64 >> offset) * 10; // == 10*m
+        u64 ten = (hi128 >> (offset + 64) ) * 10; // == 10*m
         //u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) >= 0x7ffffffffffffffaull) - (dot_one == (u64)1 << 62) ;
-        //u64 one = ((dot_one * (u128)10 + (1ull<<63) + 4) >> 64) - (dot_one == (u64)1 << 62) ;
+        //u64 one = ((dot_one * (u128)10 + (1ull<<63) + 6) >> 64) - (dot_one == (u64)1 << 62) ;
 #ifdef __amd64__
+        // (dot_one == (1ull << 62)) equal to (n==0.25)
         u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
         u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
         if(regular) [[likely]]
@@ -692,11 +714,14 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
         //one = (half_ulp  > ~0 - dot_one) ? 10 : one;
         one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
 #else
-        //u64 offset_num = ((bitarray_irregular[exp/64]>>(exp%64)) & !regular) ? ~0 : (1ull<<63) + 4 ;
-        u64 offset_num = (((bitarray_irregular[exp/64]>>(exp%64)) & !regular)<<62) + (1ull<<63) + 6 ;
-        offset_num = (dot_one == (1ull << 62)) ? 0 : offset_num ;
-        u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
-        one = ((half_ulp >> !regular) > dot_one) ? 0 : one;
+        // u64 offset_num = ((bitarray_irregular[exp/64]>>(exp%64)) & irregular) ? ~0 : (1ull<<63) + 6 ;
+        // u64 offset_num = (((bitarray_irregular[exp/64]>>(exp%64)) & irregular)<<62) + (1ull<<63) + 6 ;
+        // offset_num = (dot_one == (1ull << 62)) ? 0 : offset_num ;
+        // u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
+        
+        u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
+        if(irregular)[[unlikely]] one += (bitarray_irregular[exp/64]>>(exp%64)) & irregular;//
+        one = ((half_ulp >> irregular) > dot_one) ? 0 : one;
         one = (half_ulp  > ~0 - dot_one) ? 10 : one;
         //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
 #endif
