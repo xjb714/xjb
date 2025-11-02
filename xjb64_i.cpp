@@ -683,7 +683,7 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
         // use this branchless code for apple M1, better performance
         // when ieee_exponent == 1 or 0 ; k=-324
         // so we can use (ieee_exponent - 1075) to replace q
-        k = ((ieee_exponent - 1075) * 315653 - (irregular ?  131237 : 0 ))>>20;
+        k = ((ieee_exponent - 1075) * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
         int h = q + (((-1 - k) * 217707) >> 16);
         u64 *p10 = (u64 *)&pow10_ptr[(-1 - k) * 2];
@@ -711,8 +711,8 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
             //     one = (((dot_one >> 4) * 5) >> 59) + 1;
             one = (half_ulp / 2 > dot_one) ? 0 : one;
         }
-        //one = (half_ulp  > ~0 - dot_one) ? 10 : one;
-        one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
+        one = (half_ulp  > ~0 - dot_one) ? 10 : one;
+        //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
 #else
         // u64 offset_num = ((bitarray_irregular[exp/64]>>(exp%64)) & irregular) ? ~0 : (1ull<<63) + 6 ;
         // u64 offset_num = (((bitarray_irregular[exp/64]>>(exp%64)) & irregular)<<62) + (1ull<<63) + 6 ;
@@ -720,8 +720,12 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
         // u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
         
         u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
-        if(irregular)[[unlikely]] one += (bitarray_irregular[exp/64]>>(exp%64)) & irregular;//
-        one = ((half_ulp >> irregular) > dot_one) ? 0 : one;
+        if(regular)[[likely]] {
+            one = (half_ulp > dot_one) ? 0 : one;
+        }else{
+            one += (bitarray_irregular[exp/64]>>(exp%64)) & 1;
+            one = (half_ulp / 2 > dot_one) ? 0 : one;
+        }
         one = (half_ulp  > ~0 - dot_one) ? 10 : one;
         //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
 #endif
