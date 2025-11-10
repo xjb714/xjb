@@ -768,6 +768,7 @@ char* dtoa_xjb64(double v,char* buf){
         u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
         u64 ten = (hi128 >> (offset + 64) ) * 10; // == 10*m
         m = (hi128 >> (offset + 64) ) + (half_ulp  > ~0 - dot_one);//
+        m = (m >= (u64)1e15) ? m : m * 10;
         //tz = encode_16digit(m,&hi,&lo);
         const u64 ZERO = 0x30303030ull + (0x30303030ull << 32);
         u64 aabbccdd = m / 100000000;
@@ -778,6 +779,7 @@ char* dtoa_xjb64(double v,char* buf){
         u64 ee_ff_gg_hh_merge = (eeff_gghh_merge << 16) - ((100ull<<16) - 1) * (((eeff_gghh_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
         u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
         u64 eeffgghh_BCD = (ee_ff_gg_hh_merge << 8) - ((10ull<<8) - 1) * (((ee_ff_gg_hh_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        
         u64 aabbccdd_tz = __builtin_clzll(aabbccdd_BCD);//aabbccdd_BCD != 0
         u64 eeffgghh_tz = __builtin_clzll(eeffgghh_BCD);
         tz = (eeffgghh_BCD == 0) ? 64 | aabbccdd_tz : eeffgghh_tz;
@@ -818,10 +820,12 @@ char* dtoa_xjb64(double v,char* buf){
         // when -3<=e10 && e10<=15 ; we use %lf format print float number
         const int e10_DN = -3;//do not change this value
         const int e10_UP = 15;//do not change this value
-        tz = (one > 0) ? 0 : tz + 1;// tz has 17 possible value : [0,16]
-        dec_sig_len = 16 + D17 - tz;// dec_sig_len has 17 possible value : [1,17]
+        //tz = (one > 0) ? 0 : tz + 1;// tz has 17 possible value : [0,16]
+        //dec_sig_len = 16 + D17 - tz;// dec_sig_len has 17 possible value : [1,17]
+        dec_sig_len = one ? 17 : 16-tz;
         one_ASCII = one + (u64)('0' + '0' * 256);// 1 => "10"; 2 => "20"
-        u64 hi_r = D17 ? hi : (hi>>8);//remove left zero
+        //u64 hi_r = D17 ? hi : (hi>>8);//remove left zero
+        u64 hi_r = hi;
         // precompute all possible data : size = 20*20 = 400 byte
         static const unsigned char e10_variable_data[e10_UP-(e10_DN) + 1 + 1][20]={
 4,1,1,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,// e10=-3
@@ -856,7 +860,7 @@ char* dtoa_xjb64(double v,char* buf){
         char * buf_origin = buf;
         buf += first_sig_pos ;
         *(u64*)&buf[0] = hi_r;//write 7 or 8 byte
-        *(u64*)&buf[7+D17] = lo;//write 8 byte 
+        *(u64*)&buf[7+1] = lo;//write 8 byte 
         *(u64*)&buf[15+D17] = one_ASCII;//write 2 byte
         byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos max = 16; require 32 byte buffer
         buf_origin[dot_pos] = '.';
