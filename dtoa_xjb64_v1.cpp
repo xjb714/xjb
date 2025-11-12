@@ -1,7 +1,6 @@
 #include <stdint.h>
 
-
-//check if the cpu has neon or sse2
+// check cpu has neon or sse2 ; most all CPU has neon or sse2;
 
 #if defined(__aarch64__) && defined(__ARM_NEON__)
     #include <arm_neon.h>
@@ -60,7 +59,7 @@
     In the x64 platform, dtoa_xjb64 uses the sse2 instruction to accelerate the conversion.
     If the cpu not contains neon or sse2, dtoa_xjb64 performances will be poor.
 
-    On the x86 platform, the performance of this code may not be optimal when compiled by the gcc compiler or the clang compiler. 
+    On the x64 platform, the performance of this code may not be optimal when compiled by the gcc compiler or the clang compiler. 
     Under the gcc compiler, due to certain conditional move statements being compiled into branch instructions, 
     a large number of branch prediction failures occur, which seriously affects performance. 
     Under the clang compiler, the performance is very poor, and the cause is still under investigation. 
@@ -68,8 +67,32 @@
     I don't know how to force the conditional move statement to be compiled into the cmov instruction.
     The incorrect optimization of the compiler has led to performance not meeting expectations. If you know how to solve it, please provide feedback.
 
-    __builtin_clzll  are used to count the number of leading zeros of a 64-bit integer.
-    MSVC compiler does not support these built-in functions. If you use MSVC compiler, you need to implement these functions yourself.
+    here are the performance test results on the x64 platform AMD R7-7840H and Ubuntu 24.04 :
+    compiler options          : -O3 -march=native  // enable sse4.1
+                icpx 2025.0.4 : 9.7-10.2ns  37.5-38.5cycle ipc=3.48  branch-miss=0.13%
+                clang 18.1.3  : 16.2-17ns   61.6-62.5cycle ipc=2.13  branch-miss=0.15%
+                gcc 13.3      : 12.2-13.1ns 46.7-50cycle   ipc=3.28  branch-miss=0.7%-1.22%
+
+    compiler options          : -O3 
+                icpx 2025.0.4 : 10.5-10.8ns 39.5-41.5cycle ipc=3.57  branch-miss=0.15%
+                clang 18.1.3  : 16.8-17.5ns 63.4-66cycle   ipc=2.25  branch-miss=0.15%
+                gcc 13.3      : 11.6-12.5ns 45.2-47cycle   ipc=3.56  branch-miss=0.7%-1.16%
+    
+    for clang compiler, the performance is very poor, the ipc value is very low.
+    for gcc compiler, the performance is poor, and the branch-miss rate is high.
+    only icpx compiler has good performance, and the ipc value is high(the instruction-level parallelism is high), and the branch-miss rate is low.
+    
+    The icpx compiler generates the best code : (1)lower instructions, (2)higher ipc, (3)low branch-miss rate.
+
+    In summary, the performance of this code is not optimal, and the cause is still under investigation.
+
+    In fact , this code can use AVX512F instruction to accelerate the conversion, but the performance is only 3-5% faster than the current implementation.
+    So , I don't write the AVX512F code in this code.
+
+    This code can be used as a reference implementation for the Steele & White algorithm, and can be further optimized for better performance.
+    Steele & White algorithm satisfies the following requirements: (1) lossless (2)shortness (3)correct round.
+
+    If you have any questions or suggestions, please feel free to contact me.
 
     note : dtoa_xjb64 is a 64-bit version of xjb, which is a 32-bit version not completed.
 
@@ -219,6 +242,14 @@
 #   if defined(_M_AMD64)
 #       define MSC_HAS_UMUL128 1
 #       pragma intrinsic(_umul128)
+#   if (defined(_M_IX86_FP) && _M_IX86_FP == 2) || defined(_M_X64)
+#           ifndef HAS_NEON_OR_SSE2
+#               define HAS_NEON_OR_SSE2 1
+#           endif
+#           ifndef HAS_SSE2
+#               define HAS_SSE2 1
+#           endif
+#       endif
 #   endif
 #endif
 
@@ -365,6 +396,31 @@ u32 u64_lz_bits(u64 v) {
         return table[(v * ((0x03F79D71ull << 32) + 0xB4CB0A89ull)) >> 58];
     #endif
 }
+u32 u32_lz_bits(u32 v) {
+    #if GCC_HAS_CLZLL
+        return (u32)__builtin_clz(v);
+    #elif MSC_HAS_BIT_SCAN
+        unsigned long lz;
+        _BitScanReverse(&lz, (u32)v);
+        return (u32)lz;
+    #else
+        /* branchless, use de Bruijn sequences */
+        const u8 table[64] = {
+            63, 16, 62,  7, 15, 36, 61,  3,  6, 14, 22, 26, 35, 47, 60,  2,
+             9,  5, 28, 11, 13, 21, 42, 19, 25, 31, 34, 40, 46, 52, 59,  1,
+            17,  8, 37,  4, 23, 27, 48, 10, 29, 12, 43, 20, 32, 41, 53, 18,
+            38, 24, 49, 30, 44, 33, 54, 39, 50, 45, 55, 51, 56, 57, 58,  0
+        };
+        v |= v >> 1;
+        v |= v >> 2;
+        v |= v >> 4;
+        v |= v >> 8;
+        v |= v >> 16;
+        v |= v >> 32;
+        u32 lz = table[(v * ((0x03F79D71ull << 32) + 0xB4CB0A89ull)) >> 58];
+        return lz - 32;
+    #endif
+}
 
 #if HAS_NEON_OR_SSE2
     #if HAS_NEON
@@ -380,7 +436,7 @@ u32 u64_lz_bits(u64 v) {
             uint64x2_t merge8 = vcombine_u64(vld1_u64(&aabbccdd), vld1_u64(&eeffgghh));
             uint64x2_t merge_aabb_eeff = vcombine_u64(vld1_u64(&aabb), vld1_u64(&eeff));
             uint64x2_t merge4 = vorrq_u8(vshlq_n_u64(vmlsq_n_u32(merge8,merge_aabb_eeff,10000),32),merge_aabb_eeff);
-            uint64x2_t merge2 = vmlsq_n_u32(vshlq_n_u32(merge4,16), vshrq_n_u32(vmulq_n_u32(merge4,10486),20) , ((100<<16) - 1) );//(a,b,c) a-c*b
+            uint64x2_t merge2 = vmlsq_n_u32(vshlq_n_u32(merge4,16), vshrq_n_u32(vmulq_n_u32(merge4,10486),20) , ((100<<16) - 1) );
             uint64x2_t merge = vmlsq_n_u16(vshlq_n_u16(merge2,8), vshrq_n_u16(vmulq_n_u16(merge2,103),10) , ((10<<8) - 1) );
             const u64 ZERO_2[2] = {ZERO,ZERO};
             uint64x2_t ASCII_16 = vorrq_u8(merge,vld1q_u64((uint64_t*)ZERO_2));
@@ -389,37 +445,134 @@ u32 u64_lz_bits(u64 v) {
             u64 eeffgghh_BCD = vgetq_lane_u64(merge, 1);
             u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
             u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
-            u64 tz = (eeffgghh_BCD == 0) ? 64 | aabbccdd_tz : eeffgghh_tz;//when eeffgghh_BCD is zero, aabbccdd_tz is the not-zero value ; because of v > 5e-324 ; m!=0
+            u64 tz = (eeffgghh_BCD == 0) ? 64 | aabbccdd_tz : eeffgghh_tz;//when eeffgghh_BCD is zero, aabbccdd_tz is the not-zero value ; because of v > 5e-324 ; x!=0
             tz = tz / 8;
             return tz;
         }
-    #endif
+    #endif // endif HAS_NEON
+
     #if HAS_SSE2
-    u64 endcode_16digit_fast(const u64 x,byte16_reg* x_ASCII)
+    u64 endcode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
-    //     //require x > 0;
-    // const u64 ZERO = 0x30303030ull + (0x30303030ull << 32);
-    // u64 aabbccdd = x / 100000000;
-    // u64 eeffgghh = x - aabbccdd * 100000000;
-    // u64 aabb = ((aabbccdd * 109951163) >> 40);
-    // u64 eeff = ((eeffgghh * 109951163) >> 40);
-    // uint64x2_t merge8 = vcombine_u64(vld1_u64(&aabbccdd), vld1_u64(&eeffgghh));
-    // uint64x2_t merge_aabb_eeff = vcombine_u64(vld1_u64(&aabb), vld1_u64(&eeff));
-    // uint64x2_t merge4 = vorrq_u8(vshlq_n_u64(vmlsq_n_u32(merge8,merge_aabb_eeff,10000),32),merge_aabb_eeff);
-    // uint64x2_t merge2 = vmlsq_n_u32(vshlq_n_u32(merge4,16), vshrq_n_u32(vmulq_n_u32(merge4,10486),20) , ((100<<16) - 1) );//(a,b,c) a-c*b
-    // uint64x2_t merge = vmlsq_n_u16(vshlq_n_u16(merge2,8), vshrq_n_u16(vmulq_n_u16(merge2,103),10) , ((10<<8) - 1) );
-    // const u64 ZERO_2[2] = {ZERO,ZERO};
-    // uint64x2_t ASCII_16 = vorrq_u8(merge,vld1q_u64((uint64_t*)ZERO_2));
-    // u64 aabbccdd_BCD = vgetq_lane_u64(merge, 0);
-    // u64 eeffgghh_BCD = vgetq_lane_u64(merge, 1);
-    // u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
-    // u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
-    // u64 tz = (eeffgghh_BCD == 0) ? 64 | aabbccdd_tz : eeffgghh_tz;//when eeffgghh_BCD is zero, aabbccdd_tz is the not-zero value ; because of v > 5e-324 ; m!=0
-    // tz = tz / 8;
-    // return tz;
-    }
-    #endif
+
+// magic numbers for 16-bit division
+#define DIV_10		0x199a	// shift = 0 + 16
+#define DIV_100		0x147b	// shift = 3 + 16
+// magic number for 32-bit division
+#define DIV_10000	0xd1b71759		// shift = 13 + 32
+
+    // v is 16-digit number = abcdefghijklmnop
+
+    const __m128i div_10000 = _mm_set1_epi32(DIV_10000);//sse2
+    const __m128i mul_10000 = _mm_set1_epi32(10000);
+    const int div_10000_shift = 45;
+
+    const __m128i div_100   = _mm_set1_epi16(DIV_100);//sse2
+    const __m128i mul_100   = _mm_set1_epi16(100);
+    const int div_100_shift = 3;
+
+    const __m128i div_10    = _mm_set1_epi16(DIV_10);//sse2
+    const __m128i mul_10    = _mm_set1_epi16(10);
+
+    const __m128i ascii0    = _mm_set1_epi8('0');//sse2
+
+	// can't be easliy done in SSE
+	const uint32_t a = v / 100000000; // 8-digit number: abcdefgh
+	const uint32_t b = v - a * 100000000; // 8-digit number: ijklmnop
+
+    //                [ 3 | 2 | 1 | 0 | 3 | 2 | 1 | 0 | 3 | 2 | 1 | 0 | 3 | 2 | 1 | 0 ]
+    // x            = [       0       |      ijklmnop |       0       |      abcdefgh ]
+    __m128i x = _mm_set_epi64x(b, a);//sse2
+
+	// x div 10^4   = [       0       |          ijkl |       0       |          abcd ]
+    __m128i x_div_10000;
+    x_div_10000 = _mm_mul_epu32(x, div_10000);//sse2
+    x_div_10000 = _mm_srli_epi64(x_div_10000, div_10000_shift);//sse2
+
+    // x mod 10^4   = [       0       |          mnop |       0       |          efgh ]
+    __m128i x_mod_10000;
+    x_mod_10000 = _mm_mul_epu32(x_div_10000, mul_10000);
+    x_mod_10000 = _mm_sub_epi32(x, x_mod_10000);
+
+    // y            = [          mnop |          ijkl |          efgh |          abcd ]
+    __m128i y = _mm_or_si128(x_div_10000, _mm_slli_epi64(x_mod_10000, 32));
+
+#if defined(__SSE4_1__) // __GNUC__ : gcc icpx clang  ; for MSVC how to check cpu support sse4.1
+    __m128i z = _mm_sub_epi32( _mm_slli_epi32(y,16) , _mm_mullo_epi32( _mm_set1_epi32((100<<16)-1) , _mm_srli_epi32( _mm_mulhi_epi16(y,_mm_set1_epi32(10486)),4)));
+#else   
+    // y_div_100    = [   0   |    mn |   0   |    ij |   0   |    ef |   0   |    ab ]
+    __m128i y_div_100;
+    y_div_100 = _mm_mulhi_epu16(y, div_100);
+    y_div_100 = _mm_srli_epi16(y_div_100, div_100_shift);
+
+    // y_mod_100    = [   0   |    op |   0   |    kl |   0   |    gh |   0   |    cd ]
+    __m128i y_mod_100;
+    y_mod_100 = _mm_mullo_epi16(y_div_100, mul_100);
+    y_mod_100 = _mm_sub_epi16(y, y_mod_100);
+
+    // z            = [    mn |    op |    ij |    kl |    ef |    gh |    ab |    cd ]
+    __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
 #endif
+    
+
+    // z_div_10     = [ 0 | m | 0 | o | 0 | i | 0 | k | 0 | e | 0 | g | 0 | a | 0 | c ]
+    __m128i z_div_10 = _mm_mulhi_epu16(z, div_10);
+    //(z<<8) - 2559 * z/10;
+    __m128i tmp = _mm_sub_epi16(_mm_slli_epi16(z,8) , _mm_mullo_epi16(_mm_set1_epi16(2559) , z_div_10));
+
+    unsigned int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(tmp, _mm_setzero_si128()));
+
+    //u32 tz = __builtin_clz( mask ) - 16 ;
+    u32 tz = u64_lz_bits(mask) - 48;
+
+    tmp = _mm_add_epi8(tmp, ascii0);
+
+    *ASCII = tmp;
+    
+    return tz;
+
+    }
+    #endif // endif HAS_SSE2
+#endif // endif HAS_NEON_OR_SSE2
+
+// u64 encode_16digit_avx512(u64 x, __m128i *out)
+// {
+//     // need AVX512F,AVX512CD,AVX512BW,AVX512BW,AVX,sse4.1
+
+//     u64 aabbccdd = x / 100000000;
+//     u64 eeffgghh = x % 100000000;
+
+//     __m256i l8_4r = _mm256_set1_epi64x(eeffgghh); // AVX
+//     __m512i h8_4r = _mm512_castsi256_si512(_mm256_set1_epi64x(aabbccdd));
+//     __m512i n8r = _mm512_inserti64x4(h8_4r, l8_4r, 1); // AVX512F
+//     const u64 m8 = 180143986;                          //>>> 2**54/1e8
+//     const u64 m6 = 18014398510;                        //>>> 2**54/1e6
+//     const u64 m4 = 1801439850949;                      //>>> 2**54/1e4
+//     const u64 m2 = 180143985094820;                    //>>> 2**54/1e2
+//     const __m512i mr = _mm512_set_epi64(m8, m6, m4, m2, m8, m6, m4, m2);
+//     const __m512i M54_8_all = _mm512_set1_epi64(((u64)1 << 54) - 1);
+//     const __m512i M8_8_2 = _mm512_set1_epi64(0xff00);
+//     const __m512i t10r = _mm512_set1_epi64(10);
+//     __m512i tmp_8_0 = _mm512_mullo_epi64(n8r, mr);          // AVX512DQ
+//     __m512i tmp_8_1 = _mm512_and_epi64(tmp_8_0, M54_8_all); // AVX512F
+//     __m512i tmp_8_2 = _mm512_mullo_epi64(tmp_8_1, t10r);
+//     __m512i tmp_8_3_t = _mm512_and_epi64(tmp_8_2, M54_8_all);
+//     __m512i tmp_8_3 = _mm512_mullo_epi64(tmp_8_3_t, t10r);
+//     __m512i tmp_8_1_print = _mm512_srli_epi64(tmp_8_2, 54);
+//     __m512i tmp_8_2_print = _mm512_and_epi64(_mm512_srli_epi64(tmp_8_3, (54 - 8)), M8_8_2);
+//     __m512i BCD = tmp_8_1_print | tmp_8_2_print;
+//     const short idx[8] = {12, 8, 4, 0, 28, 24, 20, 16}; // 16byte
+//     const __m512i idxr_epi16 = _mm512_castsi128_si512(_mm_loadu_epi64(idx));
+//     BCD = _mm512_permutexvar_epi16(idxr_epi16, BCD); // AVX512BW
+//     __m512i ASCII = _mm512_set1_epi64((0x30303030ull << 32) + 0x30303030ull) | BCD;
+//     __m512i tz = _mm512_srli_epi64(_mm512_lzcnt_epi64(BCD), 3); // AVX512CD  , lzcnt(0)=64
+//     *out = _mm512_extracti32x4_epi32(ASCII, 0);                 // xmm register ; no operation on zmm register
+//     __m128i tz2 = _mm512_extracti32x4_epi32(tz, 0);             // xmm register
+//     u64 tz0 = _mm_extract_epi64(tz2, 0);                        // sse4.1
+//     u64 tz1 = _mm_extract_epi64(tz2, 1);
+//     return tz1 == 8 ? 8 + tz0 : tz1;
+// }
+
 
 // u64 calc_f64_exp(int e10){
 //     // example : e+123 , e-123 , e+20, e-04;
@@ -476,6 +629,22 @@ u64 encode_16digit(const u64 x, u64* hi,u64* lo){
     *lo = eeffgghh_ASCII;
     return tz;
 }
+u64 encode_8digit(const u64 x, u64* ASCII){
+    // this code convert 8 digit number to 8 digit ASCII number; 
+    // require x in [1 , 1e8 - 1] = [1 , 99999999]
+    // return tail zero count of x in base 10 , range [0,7]
+
+    // 12345678 => "12345678" 
+    const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
+    u64 aabbccdd = x;
+    u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
+    u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+    u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+    u64 tz = u64_lz_bits(aabbccdd_BCD) / 8;
+    u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
+    *ASCII = aabbccdd_ASCII;
+    return tz;
+}
 void byte_move_16(void * dst,const void* src){
     // move 16byte from src to dst;
 #if HAS_NEON
@@ -491,16 +660,14 @@ void byte_move_16(void * dst,const void* src){
     *(((u64*)dst) + 1) = lo;
 #endif
 }
-// #if HAS_NEON_OR_SSE2
-//     void 
-// #endif
 
 void byte_move_8(void * dst,const void* src){
     // move 8byte from src to dst;
     *(((u64*)dst) + 0) = *(((u64*)src) + 0);
 }
-extern "C"
-char* dtoa_xjb64(double v,char* buf){
+//extern "C"
+char* xjb64(double v,char* buf)
+{
     u64 vi = *(u64*)&v;
     u64 sign = vi>>63;
     buf[0]='-';
@@ -529,8 +696,8 @@ char* dtoa_xjb64(double v,char* buf){
     //if( (vi << 1) < 3 || (vi << 1) >= (2047ull<<53)  )[[unlikely]]
     if  ( (vi<<1) - 3 >= (2047ull<<53) - 3 )[[unlikely]]
     {
-        *(u64*)buf = ((vi << 1) < 3) ? ((vi << 1) ? *(u64*)"5e-324" : *(u32*)"0.0")
-                                     : (vi << 1) == (2047ull<<53) ? *(u64*)"Inf" : *(u64*)"NaN";//end with '\0'
+        *(u64*)buf = ((vi << 1) < 3) ? ((vi << 1) ? *(u64*)"5e-324\0" : *(u32*)"0.0")
+                                     : (vi << 1) == (2047ull<<53) ? *(u32*)"Inf" : *(u32*)"NaN";//end with '\0'
         return buf + ((vi << 1) - 3 == (u64)-1 ? 6 : 3);
     }
     *(u64*)buf = *(u64*)"0.00000";
@@ -557,7 +724,7 @@ char* dtoa_xjb64(double v,char* buf){
     const int offset = 6; // [5,10] ; 5 + 64 >= 69    6+64=70 >=69
     u64 regular = ieee_significand > 0;
     u64 irregular = (ieee_significand == 0);
-    const u64 exp_result_precalc[324 + 308 + 1]={
+    static const u64 exp_result_precalc[324 + 308 + 1]={
 0x500003432332d65, // e10=-324
 0x500003332332d65, // e10=-323
 0x500003232332d65, // e10=-322
@@ -1192,7 +1359,7 @@ char* dtoa_xjb64(double v,char* buf){
 0x500003730332b65, // e10=307
 0x500003830332b65, // e10=308
     };
-    static uint64_t bitarray_irregular[32] = {
+    static const u64 bitarray_irregular[32] = {
         0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000, 
         0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000, 
         0x0000000000400000, 0x0000000000000000, 0x0000000000020000, 0x0000000000800000, 
@@ -1820,7 +1987,7 @@ char* dtoa_xjb64(double v,char* buf){
         0xca5e89b18b602368, 0x385bb19cb14bdfc5, // 322
         0xfcf62c1dee382c42, 0x46729e03dd9ed7b6, // 323
     };
-    const u64 *pow10_ptr = g + 293 * 2; 
+    static const u64 *pow10_ptr = g + 293 * 2; 
 #ifdef __amd64__
         if (regular) [[likely]] // branch
             k = (q * 315653) >> 20;
@@ -1854,30 +2021,44 @@ char* dtoa_xjb64(double v,char* buf){
 #endif
         // in fact : dec_sig_len = (one > 0) ? 16 + D17 : 16 - tz; add 2 for calc the offset in the array.
         e10 = k + 15 + D17;
+
+// calc one and determine one is 0 or not
 #ifdef __amd64__
         // (dot_one == (1ull << 62)) equal to (n==0.25)
         u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
         u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
         if(regular) [[likely]]
         {
-            //one = (half_ulp > dot_one) ? 0 : one;
+#if !HAS_NEON_OR_SSE2
+            one = (half_ulp > dot_one) ? 0 : one;
+#endif
         }
         else
         {
             // 10n - floor(10n) > 2**(q-2) * 10^(-k-1) * 10
-            if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
+#if yy_is_real_gcc //  for gcc compiler , better performance
+            one += (bitarray_irregular[exp/64]>>(exp%64)) & 1; // gcc
+#else// intel compiler icpx better performance
+            if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5))) //icpx 
                 one = (((dot_one >> 4) * 10) >> 60) + 1;
+#endif
             // if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
             //     one = (((dot_one >> 4) * 5) >> 59) + 1;
             //one = (half_ulp / 2 > dot_one) ? 0 : one;
 #if HAS_NEON_OR_SSE2
             dec_sig_len_ofs = ((half_ulp / 2 > dot_one) + (half_ulp  > ~0 - dot_one))  ?  2+16 - tz : 2+16 + D17;
 #else
-            dec_sig_len_ofs = (((half_ulp / 2 > dot_one) + (half_ulp  > ~0 - dot_one))  ?  2+15 - tz : 2+16) + D17;
+            one = (half_ulp / 2 > dot_one) ? 0 : one;
+            //dec_sig_len_ofs = (((half_ulp / 2 > dot_one) + (half_ulp  > ~0 - dot_one))  ?  2+15 - tz : 2+16) + D17;
 #endif
         }
-        //one = (half_ulp  > ~0 - dot_one) ? 0 : one;
-#else
+
+#if !HAS_NEON_OR_SSE2
+        one = (half_ulp  > ~0 - dot_one) ? 0 : one;
+#endif
+
+#else // not AMD64 CPU : for ARM64 better performance, such as apple M1
+
         u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
         if(regular)[[likely]] {
 #if !HAS_NEON_OR_SSE2
@@ -1894,7 +2075,7 @@ char* dtoa_xjb64(double v,char* buf){
 #endif
         }
 #if !HAS_NEON_OR_SSE2
-        one = (half_ulp  > ~0 - dot_one) ? 0 : one;//d= ten + 10 = 10m + 10
+        one = (half_ulp  > ~0 - dot_one) ? 0 : one;
 #endif
 
 #endif
@@ -1906,7 +2087,6 @@ char* dtoa_xjb64(double v,char* buf){
         dec_sig_len_ofs = 2 + 16 + D17 - tz;// dec_sig_len has 17 possible value : [1,17]
         u64 hi_r = D17 ? hi : (hi>>8);//remove left zero
 #endif
-        //dec_sig_len_ofs = one ? 2+16 + D17 :2+ 16 - tz;//remove left zero
         one_ASCII = one | (u64)('0' + '0' * 256);// 1 => "10"; 2 => "20"
         // precompute all possible data : size = 20*20 = 400 byte
         static const unsigned char e10_variable_data[e10_UP-(e10_DN) + 1 + 1][20]={
@@ -1946,9 +2126,7 @@ char* dtoa_xjb64(double v,char* buf){
         u64 move_pos = e10_variable_data[e10_data_ofs][2];
         u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs];
         char * buf_origin = buf;
-        buf += first_sig_pos ;
-        //*(u64*)&buf[0] = hi_r;//write 7 or 8 byte
-        //*(u64*)&buf[7+D17] = lo;//write 8 byte 
+        buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
     #if HAS_NEON
         vst1q_u64((uint64_t*)buf, ASCII_16);
@@ -1963,23 +2141,24 @@ char* dtoa_xjb64(double v,char* buf){
         *(u64*)&buf[15+D17] = one_ASCII;//write 2 byte
         byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos max = 16; require 32 byte buffer
         buf_origin[dot_pos] = '.';
-        
+
+//process the some special case : subnormal number 
         if(m < (u64)1e14 ) [[unlikely]]
         {
-            // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)]
+            // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
             u64 lz = 0;
-            while(buf[2+lz]=='0')lz++;
-            lz+=2;
+            while(buf[2+lz] == '0')lz++;
+            lz += 2;
             e10 -= lz - 1;
             buf[0] = buf[lz];
-            byte_move_16(&buf[2],&buf[lz+1]);
+            byte_move_16(&buf[2], &buf[lz+1]);
             //if(lz<8)byte_move_16(&buf[2],&buf[lz+1]);// lz+1 max = 7 + 1 = 8  ; 8+16=24  ; lz+1 min = 1 + 1 = 2  ; 2+16 = 18
             //else byte_move_8(&buf[2],&buf[lz+1]);// lz+1 max = 16 + 1 = 17 ; 17+8=25  ; lz+1 min = 9 + 1 = 10  ; 10+8 = 18;
             exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
         }
-        // write exponent
+// write exponent , set 0 to use lookup table to get exp_result , set 1 to use next code to calc exp_result 
 #if 0
-        u32 neg = e10<0;
+        u32 neg = e10 < 0;
         u32 e10_abs = neg ? -e10 : e10;
         u64 e = neg ? ('e' + '-' * 256) : ('e' + '+' * 256) ;
         u32 a = (e10_abs * 656) >> 16; /* e10_abs / 100 */
@@ -1987,13 +2166,185 @@ char* dtoa_xjb64(double v,char* buf){
         u64 bc_ASCII = bc * 256u - (256 * 10 - 1) * ((bc * 103u) >> 10) + (u64)('0' + '0' * 256 + (4ull << 40) + (4ull << 32)); // 12 => "12"
         u64 exp_result = e | ( ( (e10_abs > 99u) ? a | ('0' | (1ull << 40)) | (bc_ASCII << 8) : bc_ASCII) << 16);
         exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : exp_result;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
-#else   // use lookup table to get exp_result maybe faster than above code
-        const u64 *exp_ptr = (u64*)&exp_result_precalc[324];
+#else   // use lookup table to get exp_result maybe faster than above code , but need 5064byte lookup table ;
+        static const u64 *exp_ptr = (u64*)&exp_result_precalc[324];
         u64 exp_result = exp_ptr[e10];
 #endif
         buf += exp_pos;
         *(u64*)buf = exp_result;
         //u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 | (e10_abs > 99u) ) ;// "e+20" "e+308" : 4 or 5
-        u64 exp_len = exp_result >> 56; // 0 or 4 or 5 ; equal to (e10_abs > 99u) ? 5 : 4
-        return buf + exp_len;// return the end of buffer
+        u64 exp_len = exp_result >> 56; // 0 or 4 or 5 ; equal to above code
+        return buf + exp_len;// return the end of buffer with '\0' , buf[exp_len+1] must be '\0'
 }
+
+#if 1
+char* ftoa_xjb32(float v,char* buf)
+{
+    // not completed. 
+    buf[0]='-';
+    u32 vi = *(u32*)&v;
+    u32 sign = vi>>31;
+    buf+=sign;
+
+    u32 dec,m;
+    int e10;
+    u32 tz;// tail zero
+    u64 ASCII;// 7 or 8digit
+    u64 one_ASCII;// last digit
+    u64 dec_sig_len;// decimal length
+    u64 dec_sig_len_ofs;// = dec_sig_len + 2
+    u64 D9;// 1:9 digits 0:8 digits
+    u32 sig = vi & ((1ull<<23) - 1);
+    u32 exp = (vi << 1 ) >> 24;
+
+    if  ( (vi<<1) - 3 >= (255ull<<24) - 3 )[[unlikely]]
+    {
+        *(u64*)buf = ((vi << 1) < 3) ? ((vi << 1) ? *(u64*)"1e-45" : *(u32*)"0.0")
+                                     : (vi << 1) == (255ull<<24) ? *(u64*)"Inf" : *(u64*)"NaN";//end with '\0'
+        return buf + ((vi << 1) - 3 == (u64)-1 ? 5 : 3);
+    }
+    *(u64*)buf = *(u64*)"0.00000";
+
+    // size = 77*8 = 616 byte
+    const u64 pow10_table[(44 - (-32) + 1)] = {
+        0xcfb11ead453994bb, // -32
+        0x81ceb32c4b43fcf5, // -31
+        0xa2425ff75e14fc32, // -30
+        0xcad2f7f5359a3b3f, // -29
+        0xfd87b5f28300ca0e, // -28
+        0x9e74d1b791e07e49, // -27
+        0xc612062576589ddb, // -26
+        0xf79687aed3eec552, // -25
+        0x9abe14cd44753b53, // -24
+        0xc16d9a0095928a28, // -23
+        0xf1c90080baf72cb2, // -22
+        0x971da05074da7bef, // -21
+        0xbce5086492111aeb, // -20
+        0xec1e4a7db69561a6, // -19
+        0x9392ee8e921d5d08, // -18
+        0xb877aa3236a4b44a, // -17
+        0xe69594bec44de15c, // -16
+        0x901d7cf73ab0acda, // -15
+        0xb424dc35095cd810, // -14
+        0xe12e13424bb40e14, // -13
+        0x8cbccc096f5088cc, // -12
+        0xafebff0bcb24aaff, // -11
+        0xdbe6fecebdedd5bf, // -10
+        0x89705f4136b4a598, // -9
+        0xabcc77118461cefd, // -8
+        0xd6bf94d5e57a42bd, // -7
+        0x8637bd05af6c69b6, // -6
+        0xa7c5ac471b478424, // -5
+        0xd1b71758e219652c, // -4
+        0x83126e978d4fdf3c, // -3
+        0xa3d70a3d70a3d70b, // -2
+        0xcccccccccccccccd, // -1
+        0x8000000000000000, // 0
+        0xa000000000000000, // 1
+        0xc800000000000000, // 2
+        0xfa00000000000000, // 3
+        0x9c40000000000000, // 4
+        0xc350000000000000, // 5
+        0xf424000000000000, // 6
+        0x9896800000000000, // 7
+        0xbebc200000000000, // 8
+        0xee6b280000000000, // 9
+        0x9502f90000000000, // 10
+        0xba43b74000000000, // 11
+        0xe8d4a51000000000, // 12
+        0x9184e72a00000000, // 13
+        0xb5e620f480000000, // 14
+        0xe35fa931a0000000, // 15
+        0x8e1bc9bf04000000, // 16
+        0xb1a2bc2ec5000000, // 17
+        0xde0b6b3a76400000, // 18
+        0x8ac7230489e80000, // 19
+        0xad78ebc5ac620000, // 20
+        0xd8d726b7177a8000, // 21
+        0x878678326eac9000, // 22
+        0xa968163f0a57b400, // 23
+        0xd3c21bcecceda100, // 24
+        0x84595161401484a0, // 25
+        0xa56fa5b99019a5c8, // 26
+        0xcecb8f27f4200f3a, // 27
+        0x813f3978f8940985, // 28
+        0xa18f07d736b90be6, // 29
+        0xc9f2c9cd04674edf, // 30
+        0xfc6f7c4045812297, // 31
+        0x9dc5ada82b70b59e, // 32
+        0xc5371912364ce306, // 33
+        0xf684df56c3e01bc7, // 34
+        0x9a130b963a6c115d, // 35
+        0xc097ce7bc90715b4, // 36
+        0xf0bdc21abb48db21, // 37
+        0x96769950b50d88f5, // 38
+        0xbc143fa4e250eb32, // 39
+        0xeb194f8e1ae525fe, // 40
+        0x92efd1b8d0cf37bf, // 41
+        0xb7abc627050305ae, // 42
+        0xe596b7b0c643c71a, // 43
+        0x8f7e32ce7bea5c70, // 44
+    };
+    int exp_bin, k;
+    u64 sig_bin, regular = sig > 0;
+    u64 irregular = (sig == 0);
+    if (exp > 0) [[likely]] // branch
+    {
+        exp_bin = exp - 150; //-127-23
+        sig_bin = sig | (1 << 23);
+    }
+    else
+    {
+        exp_bin = 1 - 150;
+        sig_bin = sig;
+    }
+#ifdef __amd64__
+    if (regular) [[likely]] // branch
+        k = (exp_bin * 315653) >> 20;
+    else
+        k = (exp_bin * 315653 - 131237) >> 20;
+#else
+    k = (exp_bin * 315653 - (irregular ?  131237 : 0 ))>>20;
+#endif
+    int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
+    const u64 *pow10 = &pow10_table[32];
+    u64 pow10_hi = pow10[(-1 - k)];
+    u64 even = ((sig + 1) & 1);
+    const int BIT = 36; // [33,36] all right
+    u64 cb = sig_bin << (h + 1 + BIT);
+    u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64; // one mulxq instruction on x86
+    u64 ten = (sig_hi >> BIT) * 10;
+    u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
+    u64 half_ulp = pow10_hi >> ((64 - BIT) - h);
+    m = (sig_hi >> BIT) + (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit);
+    D9 = m >= (u32)1e7;
+    e10 = k + 7 + D9;
+    tz = encode_8digit(m,&ASCII);
+#ifdef __amd64__
+    u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+    if (regular) [[likely]] // branch
+    {
+        one = (half_ulp + even > dot_one_36bit) ? 0 : one;
+        one = (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 0 : one;
+    }
+    else
+    {
+        one = (half_ulp / 2 > dot_one_36bit) ? 0 : one;
+        one += (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150);// more fast
+        one = (half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 0 : one;
+    }
+#else 
+    u64 offset_num  = (((u64)1 << BIT) - 7) + ((sig_hi >> (BIT - 4)) & 0xF);
+    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+    one = ( ((half_ulp + even) >> irregular) > dot_one_36bit) ? 0 : one;
+    one = (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
+    if(irregular)[[unlikely]]{
+        if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
+            one+=1;
+    }
+#endif
+    dec_sig_len = one ? 8 + D9 : 7 + D9 - tz;
+    
+}
+#endif
