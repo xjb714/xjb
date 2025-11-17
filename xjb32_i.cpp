@@ -8,7 +8,7 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
     //unsigned int ieee_exponent = ((vi >> 23) & 255);
     unsigned int ieee_exponent = ((vi & (255u<<23) ) >> 23);
     // size = 77*8 = 616 byte
-    const u64 pow10_table[(44 - (-32) + 1)] = {
+    static const u64 pow10_table[(44 - (-32) + 1)] = {
         0xcfb11ead453994bb, // -32
         0x81ceb32c4b43fcf5, // -31
         0xa2425ff75e14fc32, // -30

@@ -2284,8 +2284,8 @@ char* xjb32(float v,char* buf)
     u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64; // one mulxq instruction on x86 , need BMI2
     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
     u64 half_ulp = (pow10_hi >> ((64 - BIT) - h)) + even;
-    u64 up = (half_ulp  > (((u64)1 << BIT) - 1) - dot_one_36bit);
-    //u64 up = (half_ulp + dot_one_36bit) >> BIT;
+    //u64 up = (half_ulp  > (((u64)1 << BIT) - 1) - dot_one_36bit);
+    u64 up = (half_ulp + dot_one_36bit) >> BIT;
     u64 down =  ((half_ulp >> (1 - regular)) > dot_one_36bit);
     u64 up_down = up + down;
     m = (sig_hi >> BIT) + up;
