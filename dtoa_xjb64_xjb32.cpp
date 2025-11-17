@@ -633,10 +633,12 @@ u64 encode_8digit(const u64 x, u64* ASCII){
 
     // 12345678 => "12345678" 
     const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
+    u64 D9 = x >= (u64)1e7;
     u64 aabbccdd = x;
     u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
     u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
     u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+    aabbccdd_BCD = D9 ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
     u64 tz = u64_lz_bits(aabbccdd_BCD) / 8;
     u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
     *ASCII = aabbccdd_ASCII;
@@ -2282,13 +2284,13 @@ char* xjb32(float v,char* buf)
     u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64; // one mulxq instruction on x86 , need BMI2
     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
     u64 half_ulp = (pow10_hi >> ((64 - BIT) - h)) + even;
-    //u64 up = (half_ulp  > (((u64)1 << BIT) - 1) - dot_one_36bit);
-    u64 up = (half_ulp + dot_one_36bit) >> BIT;
+    u64 up = (half_ulp  > (((u64)1 << BIT) - 1) - dot_one_36bit);
+    //u64 up = (half_ulp + dot_one_36bit) >> BIT;
     u64 down =  ((half_ulp >> (1 - regular)) > dot_one_36bit);
     u64 up_down = up + down;
     m = (sig_hi >> BIT) + up;
     D9 = m >= (u32)1e7;
-    u64 mr = D9 ? m : m * 10;//remove left zero
+    //u64 mr = D9 ? m : m * 10;//remove left zero
     u64 ASCII_8;
     tz = encode_8digit(m,&ASCII_8);
     //dec_sig_len = up_down ? 8 - tz : 8 + D9;
