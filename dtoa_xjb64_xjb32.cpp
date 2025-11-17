@@ -2033,16 +2033,15 @@ char* xjb64(double v,char* buf)
 #ifdef __amd64__
         // (dot_one == (1ull << 62)) equal to (n==0.25)
         u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
-        u64 one = (dot_one * (u128)10 + offset_num ) >> 64;
+        u64 one = ((dot_one * (u128)10 + offset_num ) >> 64) + + (u64)('0' + '0' * 256);
         if(!regular)[[unlikely]]
             if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
-                 one = (((dot_one >> 4) * 10) >> 60) + 1;
+                 one = (((dot_one >> 4) * 10) >> 60) + 1 + (u64)('0' + '0' * 256);
 #else // for apple M1 , better performance
-        u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
+        u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) + (u64)('0' + '0' * 256);
         if(!regular)[[unlikely]]
             one += (bitarray_irregular[ieee_exponent/64]>>(ieee_exponent%64)) & 1;
 #endif
-        one += (u64)('0' + '0' * 256);//12336
 
         // when -3<=e10 && e10 <= 15 ; we use %lf format print float number
         const int e10_DN = -3;//do not change this value
