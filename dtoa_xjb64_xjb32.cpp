@@ -205,6 +205,13 @@
 #   endif
 #endif
 
+#ifndef is_intel_compiler
+#   if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
+        (defined(__INTEL_COMPILER) || defined(__ICC))
+#       define is_intel_compiler 1
+#   endif 
+#endif
+
 /*
  Compiler barriers for single variable.
  
@@ -2101,7 +2108,8 @@ char* xjb64(double v,char* buf)
         *(u64*)&buf[15+D17] = one;//write 2 byte
         byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos max = 16; require 32 byte buffer
         buf_origin[dot_pos] = '.';
-
+        static const u64 *exp_ptr = (u64*)&exp_result_precalc[324];
+        u64 exp_result = exp_ptr[e10];
 //process the some special case : subnormal number 
         if(m < (u64)1e14 ) [[unlikely]]
         {
@@ -2113,6 +2121,12 @@ char* xjb64(double v,char* buf)
             buf[0] = buf[lz];
             byte_move_16(&buf[2], &buf[lz+1]);
             exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
+#if is_intel_compiler
+            buf += exp_pos;
+            u64 exp_result = exp_ptr[e10];
+            *(u64*)buf = exp_result;
+            return buf + 5;// return the end of buffer with '\0';
+#endif
         }
 // write exponent , set 0 to use lookup table to get exp_result , set 1 to use next code to calc exp_result 
 #if 0
@@ -2125,8 +2139,7 @@ char* xjb64(double v,char* buf)
         u64 exp_result = e | ( ( (e10_abs > 99u) ? a | ('0' | (1ull << 40)) | (bc_ASCII << 8) : bc_ASCII) << 16);
         exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : exp_result;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
 #else   // use lookup table to get exp_result maybe faster than above code , but need 5064byte lookup table ;
-        static const u64 *exp_ptr = (u64*)&exp_result_precalc[324];
-        u64 exp_result = exp_ptr[e10];
+        
 #endif
         buf += exp_pos;
         *(u64*)buf = exp_result;
