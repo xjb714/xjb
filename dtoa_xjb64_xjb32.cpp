@@ -2109,7 +2109,7 @@ char* xjb64(double v,char* buf)
         byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos max = 16; require 32 byte buffer
         buf_origin[dot_pos] = '.';
         static const u64 *exp_ptr = (u64*)&exp_result_precalc[324];
-        u64 exp_result = exp_ptr[e10];
+        
 //process the some special case : subnormal number 
         if(m < (u64)1e14 ) [[unlikely]]
         {
@@ -2139,7 +2139,7 @@ char* xjb64(double v,char* buf)
         u64 exp_result = e | ( ( (e10_abs > 99u) ? a | ('0' | (1ull << 40)) | (bc_ASCII << 8) : bc_ASCII) << 16);
         exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : exp_result;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
 #else   // use lookup table to get exp_result maybe faster than above code , but need 5064byte lookup table ;
-        
+        u64 exp_result = exp_ptr[e10];
 #endif
         buf += exp_pos;
         *(u64*)buf = exp_result;
