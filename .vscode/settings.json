@@ -4,6 +4,7 @@
         "compare": "cpp",
         "cmath": "cpp",
         "type_traits": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "initializer_list": "cpp"
     }
 }

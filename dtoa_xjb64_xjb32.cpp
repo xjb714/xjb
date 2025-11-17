@@ -360,10 +360,14 @@ typedef uint8_t u8;
 #if HAS_NEON_OR_SSE2
     #if HAS_NEON
         typedef uint64x2_t byte16_reg; // 128 bit register for neon
-    #endif
-    #if HAS_SSE2
+    #elif HAS_SSE2
         typedef __m128i byte16_reg; // 128 bit register for sse2
     #endif
+#else
+    typedef struct{
+            u64 hi;
+            u64 lo;
+        }byte16_reg;
 #endif
 
 u32 u64_lz_bits(u64 v) {
@@ -523,7 +527,8 @@ u32 u32_lz_bits(u32 v) {
     unsigned int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(tmp, _mm_setzero_si128()));
 
     //u32 tz = __builtin_clz( mask ) - 16 ;
-    u32 tz = u64_lz_bits(mask) - 48;
+    //u32 tz = u64_lz_bits(mask) - 48;
+    u32 tz = u32_lz_bits(mask);
 
     tmp = _mm_add_epi8(tmp, ascii0);
 
@@ -533,6 +538,28 @@ u32 u32_lz_bits(u32 v) {
 
     }
     #endif // endif HAS_SSE2
+#else
+    u64 endcode_16digit_fast(const u64 v,byte16_reg* ASCII)
+    {
+        const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
+        u64 aabbccdd = v / 100000000;
+        u64 eeffgghh = v - aabbccdd * 100000000;
+        u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
+        u64 eeff_gghh_merge = (eeffgghh << 32) - ((10000ull<<32) - 1) * ((eeffgghh * 109951163) >> 40);
+        u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        u64 ee_ff_gg_hh_merge = (eeff_gghh_merge << 16) - ((100ull<<16) - 1) * (((eeff_gghh_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        u64 eeffgghh_BCD = (ee_ff_gg_hh_merge << 8) - ((10ull<<8) - 1) * (((ee_ff_gg_hh_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
+        u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
+        u64 tz = (eeffgghh_BCD == 0) ? 64 | aabbccdd_tz : eeffgghh_tz;
+        tz = tz / 8;
+        u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
+        u64 eeffgghh_ASCII = eeffgghh_BCD | ZERO;
+        (*ASCII).hi = aabbccdd_ASCII;
+        (*ASCII).lo = eeffgghh_ASCII;
+        return tz;
+    }
 #endif // endif HAS_NEON_OR_SSE2
 
 // u64 encode_16digit_avx512(u64 x, __m128i *out)
@@ -574,36 +601,6 @@ u32 u32_lz_bits(u32 v) {
 // }
 
 
-// u64 calc_f64_exp(int e10){
-//     // example : e+123 , e-123 , e+20, e-04;
-//     // we use lookup table may faster; but need huge table;// (324+308+1)*8 = 5064 bytes ; (324+308+1)*4 = 2532 bytes
-//     u32 a,bc,b,c;
-//     u32 neg = e10<0;
-//     u32 e10_abs = neg ? -e10 : e10;
-//     u64 e = neg ? ('e' + '-' * 256) : ('e' + '+' * 256) ;
-//     a = (e10_abs * 656) >> 16; /* e10_abs / 100 */
-//     bc = e10_abs - a * 100;    /* e10_abs % 100 */
-//     u64 bc_ASCII = bc * 256u - 2559u * ((bc * 103u) >> 10) + (u32)('0'+ '0' * 256); // 12 => "12"
-//     u64 exp_result = e | ( ( (e10_abs>99u) ? a | '0' | (bc_ASCII << 8) : bc_ASCII) << 16);
-//     return exp_result;
-// }
-// char* write_f64_exp(char* buf,int e10){
-//     // example : e+123 , e-123 , e+20, e-04;
-//     // we use lookup table may faster; but need huge table;// (324+308+1)*8 = 5064 bytes ; (324+308+1)*4 = 2532 bytes
-//     const int e10_DN = -3;//do not change
-//     const int e10_UP = 15;//do not change
-//     u32 a,bc,b,c;
-//     u32 neg = e10<0;
-//     u32 e10_abs = neg ? -e10 : e10;
-//     u64 e = neg ? ('e' + '-' * 256) : ('e' + '+' * 256) ;
-//     a = (e10_abs * 656) >> 16; /* e10_abs / 100 */
-//     bc = e10_abs - a * 100;    /* e10_abs % 100 */
-//     u64 bc_ASCII = bc * 256u - 2559u * ((bc * 103u) >> 10) + (u32)('0'+ '0' * 256); // 12 => "12"
-//     u64 exp_result = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : e | ( ( (e10_abs>99u) ? a | '0' | (bc_ASCII << 8) : bc_ASCII) << 16);
-//     u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 | (e10_abs>99u)) ;
-//     *(u64*)buf = exp_result;
-//     return buf + exp_len;
-// }
 u64 encode_16digit(const u64 x, u64* hi,u64* lo){
     // this code convert 16 digit number to 16 digit ASCII number; 
     // require x in [1 , 1e16 - 1] = [1 , 99999999*1e8 + 99999999]
@@ -681,8 +678,8 @@ char* xjb64(double v,char* buf)
     u64 dec_sig_len;// decimal length
     u64 dec_sig_len_ofs;// = dec_sig_len + 2
     u64 D17;// 1:17 digits 0:16 digits
-    u64 sig = vi & ((1ull<<52) - 1);
-    u64 exp = (vi << 1 ) >> 53;
+    u64 ieee_significand = vi & ((1ull<<52) - 1);
+    u64 ieee_exponent = (vi << 1 ) >> 53;
     // if(exp == 2047)[[unlikely]]
     // {
     //     *(u32*)buf = sig ? *(u32*)"NaN" : *(u32*)"Inf";//end with '\0'
@@ -703,8 +700,6 @@ char* xjb64(double v,char* buf)
     *(u64*)buf = *(u64*)"0.00000";
     u64 c;
     int32_t q;
-    u64 ieee_significand = sig;
-    u64 ieee_exponent = exp;
 #ifdef __amd64__    
     if (ieee_exponent > 0) [[likely]] // branch
     {
@@ -2001,93 +1996,57 @@ char* xjb64(double v,char* buf)
 #endif
         int h = q + (((-1 - k) * 217707) >> 16);
         u64 *p10 = (u64 *)&pow10_ptr[(-1 - k) * 2];
-        u128 cb = c << (h + 1 + offset);                    
+        u128 cb = c << (h + 1 + offset);
         u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64)); // p10[0] : high 64bit ; p10[1] : low 64bit
-        u64 dot_one = hi128 >> offset;   // == floor(2**64*n)    ; slow instruction
-        u64 half_ulp = (p10[0] >> (-h)) + 1 - ((c) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
-        m = (hi128 >> (offset + 64) ) + (half_ulp  > ~0 - dot_one);
-        D17 = (m > (u64)1e15 - 1);
-#if HAS_NEON_OR_SSE2
-        // use neon or sse2 to accelerate the encoding process
+        u64 dot_one = hi128 >> offset;   // == floor(2**64*n)
+        u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
+        u64 up = (half_ulp  > ~0 - dot_one);
+        u64 down = ( (half_ulp >> (1 - regular )) > dot_one );
+        m = (hi128 >> (offset + 64)) + up;
+        u64 up_down = up + down;
+        D17 = (m >= (u64)1e15);
         byte16_reg ASCII_16;
-        u64 m_r = D17 ? m : m * 10;//remove left zero
-        tz = endcode_16digit_fast(m_r,&ASCII_16);
-        dec_sig_len_ofs = (( (half_ulp) > dot_one) + (half_ulp  > ~0 - dot_one))  ?  2+16 - tz : 2+16 + D17;
-        //dec_sig_len = (( (half_ulp) > dot_one) + (half_ulp  > ~0 - dot_one))  ?  16 - tz : 16 + D17;
+        u64 mr = D17 ? m : m * 10;//remove left zero
+        tz = endcode_16digit_fast(mr,&ASCII_16);// convert mr to ASCII , and return tail zero number.
+#if yy_is_real_gcc //  for gcc compiler , prevent branch instruction 
+
+#if HAS_SSE2 // when use sse2,the return value equal to (tail zero number + 16);
+        dec_sig_len_ofs = ( ( (2+16+16)*256 + 2+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
 #else
-        // use the slow method to encode the number
-        tz = encode_16digit(m, &hi, &lo);// not remove left zero
-        //dec_sig_len_ofs = (((half_ulp > dot_one) + (half_ulp  > ~0 - dot_one))  ?  2+15 - tz : 2+16) + D17;
+        dec_sig_len_ofs = ( ( (2+16)*256 + 2+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
+#endif
+
+#else
+
+#if HAS_SSE2 // when use sse2,the return value equal to (tail zero number + 16);
+        dec_sig_len_ofs = up_down  ?  2+16+16 - tz : 2+16 + D17;
+#else
+        dec_sig_len_ofs = up_down  ?  2+16 - tz : 2+16 + D17;
+#endif
+
 #endif
         // in fact : dec_sig_len = (one > 0) ? 16 + D17 : 16 - tz; add 2 for calc the offset in the array.
-        e10 = k + 15 + D17;
+        k += 15 + D17;
+        e10 = k;
 
 // calc one and determine one is 0 or not
 #ifdef __amd64__
         // (dot_one == (1ull << 62)) equal to (n==0.25)
         u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
-        u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
-        if(regular) [[likely]]
-        {
-#if !HAS_NEON_OR_SSE2
-            one = (half_ulp > dot_one) ? 0 : one;
-#endif
-        }
-        else
-        {
-            // 10n - floor(10n) > 2**(q-2) * 10^(-k-1) * 10
-#if yy_is_real_gcc //  for gcc compiler , better performance
-            one += (bitarray_irregular[exp/64]>>(exp%64)) & 1; // gcc
-#else// intel compiler icpx better performance
-            if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5))) //icpx 
-                one = (((dot_one >> 4) * 10) >> 60) + 1;
-#endif
-            // if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
-            //     one = (((dot_one >> 4) * 5) >> 59) + 1;
-            //one = (half_ulp / 2 > dot_one) ? 0 : one;
-#if HAS_NEON_OR_SSE2
-            dec_sig_len_ofs = ((half_ulp / 2 > dot_one) + (half_ulp  > ~0 - dot_one))  ?  2+16 - tz : 2+16 + D17;
-#else
-            one = (half_ulp / 2 > dot_one) ? 0 : one;
-            //dec_sig_len_ofs = (((half_ulp / 2 > dot_one) + (half_ulp  > ~0 - dot_one))  ?  2+15 - tz : 2+16) + D17;
-#endif
-        }
-
-#if !HAS_NEON_OR_SSE2
-        one = (half_ulp  > ~0 - dot_one) ? 0 : one;
-#endif
-
-#else // not AMD64 CPU : for ARM64 better performance, such as apple M1
-
+        u64 one = (dot_one * (u128)10 + offset_num ) >> 64;
+        if(!regular)[[unlikely]]
+            if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
+                 one = (((dot_one >> 4) * 10) >> 60) + 1;
+#else // for apple M1 , better performance
         u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
-        if(regular)[[likely]] {
-#if !HAS_NEON_OR_SSE2
-            one = (half_ulp > dot_one) ? 0 : one;
+        if(!regular)[[unlikely]]
+            one += (bitarray_irregular[ieee_exponent/64]>>(ieee_exponent%64)) & 1;
 #endif
-        }else{
-            one += (bitarray_irregular[exp/64]>>(exp%64)) & 1;
-#if HAS_NEON_OR_SSE2
-            dec_sig_len_ofs = ((half_ulp / 2 > dot_one) + (half_ulp  > ~0 - dot_one))  ?  2+16 - tz : 2+16 + D17;
-            //dec_sig_len = ((half_ulp / 2 > dot_one) + (half_ulp  > ~0 - dot_one))  ?  16 - tz : 16 + D17;
-#else
-            one = (half_ulp / 2 > dot_one) ? 0 : one;
-            //dec_sig_len_ofs = (((half_ulp / 2 > dot_one) + (half_ulp  > ~0 - dot_one))  ?  2+15 - tz : 2+16) + D17;
-#endif
-        }
-#if !HAS_NEON_OR_SSE2
-        one = (half_ulp  > ~0 - dot_one) ? 0 : one;
-#endif
+        one += (u64)('0' + '0' * 256);//12336
 
-#endif
         // when -3<=e10 && e10 <= 15 ; we use %lf format print float number
         const int e10_DN = -3;//do not change this value
         const int e10_UP = 15;//do not change this value
-#if !HAS_NEON_OR_SSE2
-        tz = (one > 0) ? 0 : tz + 1;// tz has 17 possible value : [0,16]
-        dec_sig_len_ofs = 2 + 16 + D17 - tz;// dec_sig_len has 17 possible value : [1,17]
-        u64 hi_r = D17 ? hi : (hi>>8);//remove left zero
-#endif
-        one_ASCII = one | (u64)('0' + '0' * 256);// 1 => "10"; 2 => "20"
         // precompute all possible data : size = 20*20 = 400 byte
         static const unsigned char e10_variable_data[e10_UP-(e10_DN) + 1 + 1][20]={
 4,1,1,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,// e10=-3
@@ -2121,7 +2080,7 @@ char* xjb64(double v,char* buf)
         //         dec_sig_len - (dec_sig_len == 1)
         //     )
         // ) ) + 1;
-        u64 first_sig_pos = e10_variable_data[e10_data_ofs][0];  // we use lookup table to get first_sig_pos
+        u64 first_sig_pos = e10_variable_data[e10_data_ofs][0];
         u64 dot_pos = e10_variable_data[e10_data_ofs][1];
         u64 move_pos = e10_variable_data[e10_data_ofs][2];
         u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs];
@@ -2135,10 +2094,10 @@ char* xjb64(double v,char* buf)
         _mm_storeu_si128((__m128i*)buf, ASCII_16);
     #endif
 #else
-        *(u64*)&buf[0] = hi_r;//write 7 or 8 byte
-        *(u64*)&buf[7+D17] = lo;//write 8 byte 
+        *(u64*)&buf[0] = ASCII_16.hi;
+        *(u64*)&buf[8] = ASCII_16.lo;
 #endif
-        *(u64*)&buf[15+D17] = one_ASCII;//write 2 byte
+        *(u64*)&buf[15+D17] = one;//write 2 byte
         byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos max = 16; require 32 byte buffer
         buf_origin[dot_pos] = '.';
 
@@ -2152,17 +2111,15 @@ char* xjb64(double v,char* buf)
             e10 -= lz - 1;
             buf[0] = buf[lz];
             byte_move_16(&buf[2], &buf[lz+1]);
-            //if(lz<8)byte_move_16(&buf[2],&buf[lz+1]);// lz+1 max = 7 + 1 = 8  ; 8+16=24  ; lz+1 min = 1 + 1 = 2  ; 2+16 = 18
-            //else byte_move_8(&buf[2],&buf[lz+1]);// lz+1 max = 16 + 1 = 17 ; 17+8=25  ; lz+1 min = 9 + 1 = 10  ; 10+8 = 18;
             exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
         }
 // write exponent , set 0 to use lookup table to get exp_result , set 1 to use next code to calc exp_result 
 #if 0
-        u32 neg = e10 < 0;
-        u32 e10_abs = neg ? -e10 : e10;
+        u64 neg = e10 < 0;
+        u64 e10_abs = neg ? -e10 : e10;
         u64 e = neg ? ('e' + '-' * 256) : ('e' + '+' * 256) ;
-        u32 a = (e10_abs * 656) >> 16; /* e10_abs / 100 */
-        u32 bc = e10_abs - a * 100;    /* e10_abs % 100 */
+        u64 a = (e10_abs * 656) >> 16; /* e10_abs / 100 */
+        u64 bc = e10_abs - a * 100;    /* e10_abs % 100 */
         u64 bc_ASCII = bc * 256u - (256 * 10 - 1) * ((bc * 103u) >> 10) + (u64)('0' + '0' * 256 + (4ull << 40) + (4ull << 32)); // 12 => "12"
         u64 exp_result = e | ( ( (e10_abs > 99u) ? a | ('0' | (1ull << 40)) | (bc_ASCII << 8) : bc_ASCII) << 16);
         exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : exp_result;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
@@ -2174,39 +2131,48 @@ char* xjb64(double v,char* buf)
         *(u64*)buf = exp_result;
         //u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 | (e10_abs > 99u) ) ;// "e+20" "e+308" : 4 or 5
         u64 exp_len = exp_result >> 56; // 0 or 4 or 5 ; equal to above code
-        return buf + exp_len;// return the end of buffer with '\0' , buf[exp_len+1] must be '\0'
+        return buf + exp_len;// return the end of buffer with '\0';
 }
 
 #if 1
-char* ftoa_xjb32(float v,char* buf)
+char* xjb32(float v,char* buf)
 {
-    // not completed. 
-    buf[0]='-';
+    // recommend buf size >= 24byte;
+
+    // benchmark result on AMD R7-7840H
+    // clang  : 33-34 cycle
+    // icpx   : 33-34 cycle
+    // g++    : 35-36 cycle 
+
     u32 vi = *(u32*)&v;
+
+    buf[0]='-';
     u32 sign = vi>>31;
     buf+=sign;
 
     u32 dec,m;
     int e10;
     u32 tz;// tail zero
-    u64 ASCII;// 7 or 8digit
-    u64 one_ASCII;// last digit
-    u64 dec_sig_len;// decimal length
-    u64 dec_sig_len_ofs;// = dec_sig_len + 2
-    u64 D9;// 1:9 digits 0:8 digits
-    u32 sig = vi & ((1ull<<23) - 1);
+    //u32 dec_sig_len;// decimal length
+    u32 dec_sig_len_ofs;// = dec_sig_len + 2
+    u32 D9;// 1:9 digits 0:8 digits
+    u32 sig = vi & ((1<<23) - 1);
     u32 exp = (vi << 1 ) >> 24;
 
-    if  ( (vi<<1) - 3 >= (255ull<<24) - 3 )[[unlikely]]
+    if( (vi << 1) == 0 )[[unlikely]]
     {
-        *(u64*)buf = ((vi << 1) < 3) ? ((vi << 1) ? *(u64*)"1e-45" : *(u32*)"0.0")
-                                     : (vi << 1) == (255ull<<24) ? *(u64*)"Inf" : *(u64*)"NaN";//end with '\0'
-        return buf + ((vi << 1) - 3 == (u64)-1 ? 5 : 3);
+        *(u32*)buf = *(u32*)"0.0";//end with '\0'
+        return buf + 3;
+    }
+    if(exp == 255)[[unlikely]]
+    {
+        *(u32*)buf = sig ? *(u32*)"NaN" : *(u32*)"Inf";//end with '\0'
+        return buf + 3;
     }
     *(u64*)buf = *(u64*)"0.00000";
 
     // size = 77*8 = 616 byte
-    const u64 pow10_table[(44 - (-32) + 1)] = {
+    static const u64 pow10_table[(44 - (-32) + 1)] = {
         0xcfb11ead453994bb, // -32
         0x81ceb32c4b43fcf5, // -31
         0xa2425ff75e14fc32, // -30
@@ -2291,7 +2257,7 @@ char* ftoa_xjb32(float v,char* buf)
     if (exp > 0) [[likely]] // branch
     {
         exp_bin = exp - 150; //-127-23
-        sig_bin = sig | (1 << 23);
+        sig_bin = sig | (1u << 23);
     }
     else
     {
@@ -2304,47 +2270,205 @@ char* ftoa_xjb32(float v,char* buf)
     else
         k = (exp_bin * 315653 - 131237) >> 20;
 #else
-    k = (exp_bin * 315653 - (irregular ?  131237 : 0 ))>>20;
+    //k = (exp_bin * 315653 - (irregular ? 131237 : 0 ))>>20;
+    k = (exp_bin * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
     int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
-    const u64 *pow10 = &pow10_table[32];
-    u64 pow10_hi = pow10[(-1 - k)];
-    u64 even = ((sig + 1) & 1);
+    // static const u64 *pow10 = &pow10_table[32];
+    // u64 pow10_hi = pow10[(-1 - k)];
+    u64 pow10_hi = pow10_table[(-1-k)+32];
+    u64 even = ((sig_bin + 1) & 1);
     const int BIT = 36; // [33,36] all right
     u64 cb = sig_bin << (h + 1 + BIT);
-    u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64; // one mulxq instruction on x86
-    u64 ten = (sig_hi >> BIT) * 10;
+    u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64; // one mulxq instruction on x86 , need BMI2
     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
-    u64 half_ulp = pow10_hi >> ((64 - BIT) - h);
-    m = (sig_hi >> BIT) + (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit);
+    u64 half_ulp = (pow10_hi >> ((64 - BIT) - h)) + even;
+    //u64 up = (half_ulp  > (((u64)1 << BIT) - 1) - dot_one_36bit);
+    u64 up = (half_ulp + dot_one_36bit) >> BIT;
+    u64 down =  ((half_ulp >> (1 - regular)) > dot_one_36bit);
+    u64 up_down = up + down;
+    m = (sig_hi >> BIT) + up;
     D9 = m >= (u32)1e7;
-    e10 = k + 7 + D9;
-    tz = encode_8digit(m,&ASCII);
-#ifdef __amd64__
+    u64 mr = D9 ? m : m * 10;//remove left zero
+    u64 ASCII_8;
+    tz = encode_8digit(m,&ASCII_8);
+    //dec_sig_len = up_down ? 8 - tz : 8 + D9;
+#if yy_is_real_gcc 
+    // use this code to prevent gcc compiler generate branch instructions
+    //dec_sig_len_ofs = ( ( ((2+8 - tz)*256) + 2+8 + D9 ) >> (up_down ? 8 : 0)) & 0xff;
+    dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
+#else
+    // icpx clang use this code to generate cmov instructions
+    dec_sig_len_ofs = up_down ? 2+8 - tz : 2+8 + D9;// when mr = 0, up_down = 0, so can avoid use tz
+#endif
+    k += 7 + D9;
+    e10 = k;// euqal to e10 = k+7+D9
+
     u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
-    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
-    if (regular) [[likely]] // branch
-    {
-        one = (half_ulp + even > dot_one_36bit) ? 0 : one;
-        one = (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 0 : one;
-    }
-    else
-    {
-        one = (half_ulp / 2 > dot_one_36bit) ? 0 : one;
-        one += (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150);// more fast
-        one = (half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 0 : one;
-    }
-#else 
-    u64 offset_num  = (((u64)1 << BIT) - 7) + ((sig_hi >> (BIT - 4)) & 0xF);
-    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
-    one = ( ((half_ulp + even) >> irregular) > dot_one_36bit) ? 0 : one;
-    one = (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
-    if(irregular)[[unlikely]]{
+    u64 one = ((dot_one_36bit * 20 + offset_num) >> (BIT + 1))  + (u64)('0' + '0' * 256);
+    if(!regular)[[unlikely]]{ // branch
         if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
             one+=1;
     }
-#endif
-    dec_sig_len = one ? 8 + D9 : 7 + D9 - tz;
+
+    const int e10_DN = -3;
+    const int e10_UP = 7;
+    static const u8 e10_variable_data[e10_UP-(e10_DN) + 1 + 1][3+9]={
+4,1,1,1,2,3,4,5,6,7,8,9,// e10=-3
+3,1,1,1,2,3,4,5,6,7,8,9,// e10=-2
+2,1,1,1,2,3,4,5,6,7,8,9,// e10=-1
+0,1,2,3,3,4,5,6,7,8,9,10,// e10=0
+0,2,3,4,4,4,5,6,7,8,9,10,// e10=1
+0,3,4,5,5,5,5,6,7,8,9,10,// e10=2
+0,4,5,6,6,6,6,6,7,8,9,10,// e10=3
+0,5,6,7,7,7,7,7,7,8,9,10,// e10=4
+0,6,7,8,8,8,8,8,8,8,9,10,// e10=5
+0,7,8,9,9,9,9,9,9,9,9,10,// e10=6
+0,8,9,10,10,10,10,10,10,10,10,10,// e10=7
+0,1,2,1,3,4,5,6,7,8,9,10// e10=other
+        };
+    u64 e10_3 = e10 + (-e10_DN);//convert to unsigned number 
+    u64 e10_data_ofs = e10_3 < e10_UP-e10_DN+1 ? e10_3 : e10_UP-e10_DN+1;//compute offset 
+    u64 first_sig_pos = e10_variable_data[e10_data_ofs][0];  // we use lookup table to get first_sig_pos
+    u64 dot_pos = e10_variable_data[e10_data_ofs][1];
+    u64 move_pos = e10_variable_data[e10_data_ofs][2];
+    u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs];
+    // u64 first_sig_pos = (e10_DN<=e10 && e10<=-1) ? 1 - e10 : 0 ;
+    // u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1 ;
+    // u64 move_pos = dot_pos + (!(e10_DN<=e10 && e10<=-1) );
+    // u64 exp_pos = ((e10_DN <= e10 && e10 <= -1) ? dec_sig_len - 1 : (
+    //         (0<=e10 && e10<= e10_UP) ? (e10+2 > dec_sig_len ? e10+2: dec_sig_len ) : (
+    //             dec_sig_len - (dec_sig_len == 1)
+    //         )
+    //     ) ) + 1;
+    char* buf_origin = (char*)buf;
+    buf += first_sig_pos;
+    byte_move_8(buf,&ASCII_8);//7 or 8 byte
+    *(u64*)&buf[7+D9] = one;// use u32 , gcc may cause error when v = 1e-45 , why?
+    byte_move_8(&buf[move_pos],&buf[dot_pos]);
+    buf_origin[dot_pos] = '.';
     
+    // -45 -> 38
+    static const u32 exp_result_precalc[45 + 38 + 1]={
+0x35342d65, // e10 = -45
+0x34342d65, // e10 = -44
+0x33342d65, // e10 = -43
+0x32342d65, // e10 = -42
+0x31342d65, // e10 = -41
+0x30342d65, // e10 = -40
+0x39332d65, // e10 = -39
+0x38332d65, // e10 = -38
+0x37332d65, // e10 = -37
+0x36332d65, // e10 = -36
+0x35332d65, // e10 = -35
+0x34332d65, // e10 = -34
+0x33332d65, // e10 = -33
+0x32332d65, // e10 = -32
+0x31332d65, // e10 = -31
+0x30332d65, // e10 = -30
+0x39322d65, // e10 = -29
+0x38322d65, // e10 = -28
+0x37322d65, // e10 = -27
+0x36322d65, // e10 = -26
+0x35322d65, // e10 = -25
+0x34322d65, // e10 = -24
+0x33322d65, // e10 = -23
+0x32322d65, // e10 = -22
+0x31322d65, // e10 = -21
+0x30322d65, // e10 = -20
+0x39312d65, // e10 = -19
+0x38312d65, // e10 = -18
+0x37312d65, // e10 = -17
+0x36312d65, // e10 = -16
+0x35312d65, // e10 = -15
+0x34312d65, // e10 = -14
+0x33312d65, // e10 = -13
+0x32312d65, // e10 = -12
+0x31312d65, // e10 = -11
+0x30312d65, // e10 = -10
+0x39302d65, // e10 = -9
+0x38302d65, // e10 = -8
+0x37302d65, // e10 = -7
+0x36302d65, // e10 = -6
+0x35302d65, // e10 = -5
+0x34302d65, // e10 = -4
+0x0, // e10 = -3
+0x0, // e10 = -2
+0x0, // e10 = -1
+0x0, // e10 = 0
+0x0, // e10 = 1
+0x0, // e10 = 2
+0x0, // e10 = 3
+0x0, // e10 = 4
+0x0, // e10 = 5
+0x0, // e10 = 6
+0x0, // e10 = 7
+0x38302b65, // e10 = 8
+0x39302b65, // e10 = 9
+0x30312b65, // e10 = 10
+0x31312b65, // e10 = 11
+0x32312b65, // e10 = 12
+0x33312b65, // e10 = 13
+0x34312b65, // e10 = 14
+0x35312b65, // e10 = 15
+0x36312b65, // e10 = 16
+0x37312b65, // e10 = 17
+0x38312b65, // e10 = 18
+0x39312b65, // e10 = 19
+0x30322b65, // e10 = 20
+0x31322b65, // e10 = 21
+0x32322b65, // e10 = 22
+0x33322b65, // e10 = 23
+0x34322b65, // e10 = 24
+0x35322b65, // e10 = 25
+0x36322b65, // e10 = 26
+0x37322b65, // e10 = 27
+0x38322b65, // e10 = 28
+0x39322b65, // e10 = 29
+0x30332b65, // e10 = 30
+0x31332b65, // e10 = 31
+0x32332b65, // e10 = 32
+0x33332b65, // e10 = 33
+0x34332b65, // e10 = 34
+0x35332b65, // e10 = 35
+0x36332b65, // e10 = 36
+0x37332b65, // e10 = 37
+0x38332b65, // e10 = 38
+};
+    static const u32 *exp_ptr = (u32*)&exp_result_precalc[45];
+    u32 exp_result = exp_ptr[e10];
+    if(m < (u32)1e6 )[[unlikely]]
+    {
+        u64 lz = 0;
+        while(buf[2+lz] == '0')lz++;
+        lz += 2;
+        e10 -= lz - 1;
+        buf[0] = buf[lz];
+        byte_move_8(&buf[2], &buf[lz+1]);
+        exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
+        //buf += exp_pos;
+        exp_result = exp_ptr[e10];
+        //*(u32*)buf = exp_result;
+        //buf += 4;
+        //buf[0]='\0';
+        //return buf;
+    }
+//write exponent    
+#if 0
+        u64 neg = e10 < 0;
+        u64 bc = neg ? -e10 : e10;
+        u64 e = neg ? ('e' + '-' * 256) : ('e' + '+' * 256) ;
+        u64 bc_ASCII = bc * 256u - (256 * 10 - 1) * ((bc * 103u) >> 10) + (u64)('0' + '0' * 256); // 12 => "12"
+        u64 exp_result = e | ( bc_ASCII << 16 );
+        exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : exp_result;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
+#else   // use lookup table to get exp_result maybe faster than above code , but need 5064byte lookup table ;
+        //u32 exp_result = exp_ptr[e10];
+#endif
+    buf += exp_pos;
+    *(u64*)buf = exp_result;// contain '\0';
+    u32 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;//may this is faster than below code?
+    //u32 exp_len = (exp_result + ((1u<<28) - 1)) >> 28;//(e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4
+    buf += exp_len;
+    return buf;
 }
 #endif
