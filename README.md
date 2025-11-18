@@ -2,11 +2,11 @@
 xjb : a fast float to string algorithm.
 
 
-(1)float/double to decimal algorithm
-   xjb32 : for float (IEEE754-binary32) ; xjb32_i.cpp;  <!-- https://godbolt.org/z/eT57sW9q1   -->
+(1)float/double to decimal algorithm  
+   xjb32 : for float (IEEE754-binary32) ; xjb32_i.cpp;  <!-- https://godbolt.org/z/eT57sW9q1   -->  
    xjb64 : for double(IEEE754-binary64) ; xjb64_i.cpp;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
 
-(2)float/double to string algorithm
+(2)float/double to string algorithm  
    dtoa_xjb64_xjb32.cpp
 
 <!-- demo link: https://onlinegdb.com/OPKdOpikG -->
