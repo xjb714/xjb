@@ -1,20 +1,25 @@
 # xjb
 xjb : a fast float to string algorithm.
 
-xjb32 : for float (IEEE754-binary32) ; xjb32_i.cpp;  https://godbolt.org/z/eT57sW9q1  
-xjb64 : for double(IEEE754-binary64) ; xjb64_i.cpp;  https://godbolt.org/z/oG7eW9jEj  
 
-demo link: https://onlinegdb.com/OPKdOpikG
+(1)float/double to decimal algorithm
+   xjb32 : for float (IEEE754-binary32) ; xjb32_i.cpp;  <!-- https://godbolt.org/z/eT57sW9q1   -->
+   xjb64 : for double(IEEE754-binary64) ; xjb64_i.cpp;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
+
+(2)float/double to string algorithm
+   dtoa_xjb64_xjb32.cpp
+
+<!-- demo link: https://onlinegdb.com/OPKdOpikG -->
 
 This algorithm is based on the schubfach algorithm.
 This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and grisu.
 
 The latest benchmark results:
-![alt text](image.png)
+![alt text](image-1.png)
+![alt text](image-2.png)
 
 
-
-
+<!-- 
 **Outdated experimental results.**
 
 https://github.com/xjb714/f2dec_bench benchmark result:  
@@ -65,4 +70,4 @@ clang++ : Apple clang 17.0.0
 **double:**  
    clang++ -O3 -march=native  
    ![alt text](result/m1/mmexport1761290105081.jpg)  
-   
+    -->
