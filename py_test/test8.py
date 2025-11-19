@@ -169,7 +169,6 @@ for q in range(-1074, 972):
         P*=5**(-B)
     # find best rational approximation of P/Q with den <= 2**53 - 1
     C = 2**53 - 1
-    #print("res = ", (5592117679628511 * P) % Q , "r = ", ((5592117679628511 * P) % Q) / Q)
     
     if(Q <= C):
         pass
@@ -205,6 +204,8 @@ for q in range(-1074, 972):
             double_num = below_den * 2**q
             #print("double num:",double_num)
             double_hex = (q + 1075) * 2**52 + below_den - 2**52
+            if(vaild_double(below_den,q)):
+                print(hex(double_hex))
             #print(q,"error : min_r ","> 2**(" , -min_q ,")", "; max_r ","< 1 - 2**(",-max_q,") **********","c=",below_den,vaild_double(below_den,q),hex(double_hex))
             pass
 
@@ -215,7 +216,9 @@ for q in range(-1074, 972):
             #print(above_den,",",q)
             #print(vaild_double(above_den,q))
             double_hex = (q + 1075) * 2**52 + above_den - 2**52
-            print(q," : max_r =",max_r[0]," / ",max_r[1],"= ",max_r[0]/max_r[1],"< 1 - 2**(",-max_q,")","above_den=",above_den,"q=",q,"vaild=",vaild_double(above_den,q),"A=",A,"B=",B,hex(double_hex))
+            if(vaild_double(above_den,q)):
+                print(hex(double_hex))
+            #print(q," : max_r =",max_r[0]," / ",max_r[1],"= ",max_r[0]/max_r[1],"< 1 - 2**(",-max_q,")","above_den=",above_den,"q=",q,"vaild=",vaild_double(above_den,q),"A=",A,"B=",B,hex(double_hex))
             pass
 
 
