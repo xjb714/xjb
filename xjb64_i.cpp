@@ -734,6 +734,218 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
         *e10 = k;
     }
 }
+
+//compress lookup table version
+static inline void xjb64_comp_f64_to_dec(double v,unsigned long long* dec,int *e10)
+{
+    // next line need to proof correctness
+    // u64 one = ((dot_one * (u128)10 + ((dot_one == (u64)1 << 62) ? 0 : ((1ull<<63) + 6)) ) >> 64) ;
+
+    unsigned long long vi = *(unsigned  long long*)&v;
+    unsigned long long sig = vi & ((1ull<<52) - 1);
+    //unsigned long long exp = (vi>>52) & 2047;
+    unsigned long long exp = (vi & (2047ull<<52) ) >> 52;
+    //unsigned long long exp = (vi << 1 ) >> 53;
+
+    typedef __uint128_t u128;
+    typedef uint64_t u64;
+    uint64_t c;
+    int32_t q;
+    u64 ieee_significand = sig;
+    u64 ieee_exponent = exp;
+
+#ifdef __amd64__    
+    if (ieee_exponent > 0) [[likely]] // branch
+    {
+        c = (1ull<<52) | ieee_significand;// 53 bit
+        q = ieee_exponent - 1075;
+    }
+    else
+    {
+        c = ieee_significand;
+        q = 1 - 1075; // -1074
+    }
+#else
+    c = (ieee_exponent > 0) ? ( (1ull<<52) | ieee_significand) : ieee_significand;
+    q = (ieee_exponent > 0) ? (ieee_exponent - 1075) : 1-1075;
+#endif
+
+    // v = c * 2**q 
+    // c * 2**q * 10**(-k-1) = m + n
+    // m = floor( c * 2**q * 10**(-k-1) )
+    // n = fractional part
+    // convert c * 2**q  to d * 10**k
+    // ten = 10m
+    // select  from  {ten + 0, ten + floor(10n) , ten + floor(10n) + 1 , ten + 10}
+
+    int k;
+    const int offset = 6; // [5,10] ; 5 + 64 >= 69    6+64=70 >=69
+    u64 regular = ieee_significand > 0;
+    u64 irregular = (ieee_significand == 0);
+    static const uint64_t bitarray_irregular[32] = {
+    0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000, 
+    0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000, 
+    0x0000000000400000, 0x0000000000000000, 0x0000000000020000, 0x0000000000800000, 
+    0x0000000000000000, 0x0008000000000000, 0x0004000040000000, 0x0000000000000000, 
+    0x0000000000000000, 0x0000000001000000, 0x0020000000000000, 0x0000000000000000, 
+    0x0001000000040000, 0x0200000001000000, 0x0000000000102000, 0x0000000100000000, 
+    0x2000000000000000, 0x0000000000020000, 0x0000000000000000, 0x0000000000000000, 
+    0x0000000000000000, 0x0000000040000000, 0x0000000000000000, 0x0000000000008000};
+    const int base_start = -11, base_end = 11,  ratio = 27;
+    static const u64 pow10_base_and_pow5_rlz[(base_end - base_start+1)*2 + ratio + 1]={
+//pow10_base table
+0xa76c582338ed2621, 0xaf2af2b80af6f24f, // e10 =  -11 * 27 = -297
+0x873e4f75e2224e68, 0x5a7744a6e804a292, // e10 =  -10 * 27 = -270
+0xda7f5bf590966848, 0xaf39a475506a899f, // e10 =  -9 * 27 = -243
+0xb080392cc4349dec, 0xbd8d794d96aacfb4, // e10 =  -8 * 27 = -216
+0x8e938662882af53e, 0x547eb47b7282ee9d, // e10 =  -7 * 27 = -189
+0xe65829b3046b0afa, 0x0cb4a5a3112a5113, // e10 =  -6 * 27 = -162
+0xba121a4650e4ddeb, 0x92f34d62616ce414, // e10 =  -5 * 27 = -135
+0x964e858c91ba2655, 0x3a6a07f8d510f870, // e10 =  -4 * 27 = -108
+0xf2d56790ab41c2a2, 0xfae27299423fb9c4, // e10 =  -3 * 27 = -81
+0xc428d05aa4751e4c, 0xaa97e14c3c26b887, // e10 =  -2 * 27 = -54
+0x9e74d1b791e07e48, 0x775ea264cf55347e, // e10 =  -1 * 27 = -27
+0x8000000000000000, 0x0000000000000000, // e10 =  0 * 27 = 0
+0xcecb8f27f4200f3a, 0x0000000000000000, // e10 =  1 * 27 = 27
+0xa70c3c40a64e6c51, 0x999090b65f67d924, // e10 =  2 * 27 = 54
+0x86f0ac99b4e8dafd, 0x69a028bb3ded71a4, // e10 =  3 * 27 = 81
+0xda01ee641a708de9, 0xe80e6f4820cc9496, // e10 =  4 * 27 = 108
+0xb01ae745b101e9e4, 0x5ec05dcff72e7f90, // e10 =  5 * 27 = 135
+0x8e41ade9fbebc27d, 0x14588f13be847308, // e10 =  6 * 27 = 162
+0xe5d3ef282a242e81, 0x8f1668c8a86da5fb, // e10 =  7 * 27 = 189
+0xb9a74a0637ce2ee1, 0x6d953e2bd7173693, // e10 =  8 * 27 = 216
+0x95f83d0a1fb69cd9, 0x4abdaf101564f98f, // e10 =  9 * 27 = 243
+0xf24a01a73cf2dccf, 0xbc633b39673c8ced, // e10 =  10 * 27 = 270
+0xc3b8358109e84f07, 0x0a862f80ec4700c9, // e10 =  11 * 27 = 297
+//pow5_remove_left_zero table or pow10_hi table ; when 0 <= -k-1 && -k-1 <= 27; direct use below table for pow10_hi , and pow_lo=0
+0x8000000000000000,// = (5** 0) << clz(5** 0) = (5** 0) << 63 ; e10 = 0 
+0xa000000000000000,// = (5** 1) << clz(5** 1) = (5** 1) << 61 ; e10 = 1 
+0xc800000000000000,// = (5** 2) << clz(5** 2) = (5** 2) << 59 ; e10 = 2 
+0xfa00000000000000,// = (5** 3) << clz(5** 3) = (5** 3) << 57 ; e10 = 3 
+0x9c40000000000000,// = (5** 4) << clz(5** 4) = (5** 4) << 54 ; e10 = 4 
+0xc350000000000000,// = (5** 5) << clz(5** 5) = (5** 5) << 52 ; e10 = 5 
+0xf424000000000000,// = (5** 6) << clz(5** 6) = (5** 6) << 50 ; e10 = 6 
+0x9896800000000000,// = (5** 7) << clz(5** 7) = (5** 7) << 47 ; e10 = 7 
+0xbebc200000000000,// = (5** 8) << clz(5** 8) = (5** 8) << 45 ; e10 = 8 
+0xee6b280000000000,// = (5** 9) << clz(5** 9) = (5** 9) << 43 ; e10 = 9 
+0x9502f90000000000,// = (5**10) << clz(5**10) = (5**10) << 40 ; e10 = 10 
+0xba43b74000000000,// = (5**11) << clz(5**11) = (5**11) << 38 ; e10 = 11 
+0xe8d4a51000000000,// = (5**12) << clz(5**12) = (5**12) << 36 ; e10 = 12 
+0x9184e72a00000000,// = (5**13) << clz(5**13) = (5**13) << 33 ; e10 = 13 
+0xb5e620f480000000,// = (5**14) << clz(5**14) = (5**14) << 31 ; e10 = 14 
+0xe35fa931a0000000,// = (5**15) << clz(5**15) = (5**15) << 29 ; e10 = 15 
+0x8e1bc9bf04000000,// = (5**16) << clz(5**16) = (5**16) << 26 ; e10 = 16 
+0xb1a2bc2ec5000000,// = (5**17) << clz(5**17) = (5**17) << 24 ; e10 = 17 
+0xde0b6b3a76400000,// = (5**18) << clz(5**18) = (5**18) << 22 ; e10 = 18 
+0x8ac7230489e80000,// = (5**19) << clz(5**19) = (5**19) << 19 ; e10 = 19 
+0xad78ebc5ac620000,// = (5**20) << clz(5**20) = (5**20) << 17 ; e10 = 20 
+0xd8d726b7177a8000,// = (5**21) << clz(5**21) = (5**21) << 15 ; e10 = 21 
+0x878678326eac9000,// = (5**22) << clz(5**22) = (5**22) << 12 ; e10 = 22 
+0xa968163f0a57b400,// = (5**23) << clz(5**23) = (5**23) << 10 ; e10 = 23 
+0xd3c21bcecceda100,// = (5**24) << clz(5**24) = (5**24) <<  8 ; e10 = 24 
+0x84595161401484a0,// = (5**25) << clz(5**25) = (5**25) <<  5 ; e10 = 25 
+0xa56fa5b99019a5c8,// = (5**26) << clz(5**26) = (5**26) <<  3 ; e10 = 26 
+0xcecb8f27f4200f3a,// = (5**27) << clz(5**27) = (5**27) <<  1 ; e10 = 27
+    };
+    {
+#ifdef __amd64__
+        if (regular) [[likely]] // branch
+            k = (q * 315653) >> 20;
+        else
+            k = (q * 315653 - 131237) >> 20;
+#else
+        // use this branchless code for apple M1, better performance
+        // when ieee_exponent == 1 or 0 ; k=-324
+        // so we can use (ieee_exponent - 1075) to replace q
+        k = ((ieee_exponent - 1075) * 315653 - (regular ? 0 : 131237 ))>>20;
+#endif
+        int get_e10 = -k - 1;
+        static const u64 *pow5_rlz_ptr = &pow10_base_and_pow5_rlz[(base_end - base_start + 1) * 2];
+        u64 pow10_hi;
+        u128 hi128;
+        int h;
+        if( 0 <= get_e10 && get_e10 <= ratio )  // direct use the pow5_rlz table value ; likely
+        {
+            //fast path ; likely
+            h = q + ((get_e10 * 217707) >> 16);
+            pow10_hi = pow5_rlz_ptr[ get_e10 ];
+            u128 cb = c << (h + 1 + offset);
+            hi128 = cb * pow10_hi;
+        }
+        else
+        {
+            //int base = ( get_e10 - (base_start * ratio) ) / ratio;// range = [0,22] = [0/27,616/27]
+            int base = (( get_e10 - (base_start * ratio) ) * 1214) >> 15;// div 27 
+            int pow5_offset = get_e10 - (base + base_start) * ratio;// range = [0,26]
+            u64 pow10_base_high = pow10_base_and_pow5_rlz[base  * 2];
+            u64 pow10_base_low = pow10_base_and_pow5_rlz[base * 2 + 1];
+            u128 pow5_rlz_v = pow5_rlz_ptr[  pow5_offset ];
+            u128 pow10 = pow5_rlz_v * pow10_base_high + ((pow5_rlz_v * pow10_base_low) >> 64) ;// u64 * u128
+            pow10_hi = pow10 >> 64;
+            u64 pow10_lo = ((u64)pow10) + 1;
+            int alpha = ((( (base + base_start) * ratio) * 217707) >> 16) + ((pow5_offset * 217707) >> 16);
+            int diff = ((get_e10 * 217707) >> 16) - alpha; // 0 or 1
+            h = 1 + alpha + q;
+            u128 cb = c << (h + offset + 1);
+            hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64)); // u64 * u128
+        }
+        //if(h > 0) h = 0;//for irregular double number
+
+        // int h = q + (((-1 - k) * 217707) >> 16);
+        // u64 *p10 = (u64 *)&pow10_ptr[(-1 - k) * 2];
+        // u128 cb = c << (h + 1 + offset);                    
+        // u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64)); // p10[0] : high 64bit ; p10[1] : low 64bit
+
+        u64 dot_one = hi128 >> offset;   // == floor(2**64*n)    ; slow instruction
+        //u64 half_ulp = (pow10_hi >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
+        u64 half_ulp = (h > 0 ? pow10_hi * 2 : (pow10_hi >> (-h))) + ((c + 1) & 1);// when v is irregular ; h==1 exist
+        u64 ten = (hi128 >> (offset + 64) ) * 10; // == 10*m
+        //u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) >= 0x7ffffffffffffffaull) - (dot_one == (u64)1 << 62) ;
+        //u64 one = ((dot_one * (u128)10 + (1ull<<63) + 6) >> 64) - (dot_one == (u64)1 << 62) ;
+#ifdef __amd64__
+        // (dot_one == (1ull << 62)) equal to (n==0.25)
+        u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
+        u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
+        if(regular) [[likely]]
+        {
+            one = (half_ulp > dot_one) ? 0 : one;
+        }
+        else
+        {
+            // 10n - floor(10n) > 2**(q-2) * 10^(-k-1) * 10
+            if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
+                one = (((dot_one >> 4) * 10) >> 60) + 1;
+            // if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
+            //     one = (((dot_one >> 4) * 5) >> 59) + 1;
+            one = ((half_ulp >> 1) > dot_one) ? 0 : one;
+        }
+        one = (half_ulp  > ~0 - dot_one) ? 10 : one;
+        //printf("comp half_ulp = %llx,max-dot_one = %llx,nh=%d\n",half_ulp,~0 - dot_one,-h);
+        //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
+#else
+        // u64 offset_num = ((bitarray_irregular[exp/64]>>(exp%64)) & irregular) ? ~0 : (1ull<<63) + 6 ;
+        // u64 offset_num = (((bitarray_irregular[exp/64]>>(exp%64)) & irregular)<<62) + (1ull<<63) + 6 ;
+        // offset_num = (dot_one == (1ull << 62)) ? 0 : offset_num ;
+        // u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
+        
+        u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
+        if(regular)[[likely]] {
+            one = (half_ulp > dot_one) ? 0 : one;
+        }else{
+            one += (bitarray_irregular[exp/64]>>(exp%64)) & 1;
+            one = ((half_ulp>>1) > dot_one) ? 0 : one;
+        }
+        one = (half_ulp  > ~0 - dot_one) ? 10 : one;
+        //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
+#endif
+        *dec = ten + one;
+        *e10 = k;
+    }
+}
+
+
+
+//old version, performance is not better than new version : xjb64_f64_to_dec
 static inline void xjb64_f64_to_dec_old(double v,unsigned long long* dec,int *e10)
 {
     unsigned long long vi = *(unsigned  long long*)&v;

@@ -1,6 +1,7 @@
 {
     "files.associations": {
         "*.dbclient-js": "javascript",
-        "compare": "cpp"
+        "compare": "cpp",
+        "cmath": "cpp"
     }
 }

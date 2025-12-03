@@ -145,3 +145,117 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
     *dec = ten + one;
     *e10 = k;
 }
+
+
+//compress lookup table version
+static inline void xjb_comp_f32_to_dec(float v,unsigned int* dec,int *e10)
+{
+    typedef uint64_t u64;
+    typedef uint32_t u32;
+    unsigned int vi = *(unsigned int*)&v;
+    unsigned int ieee_significand = vi & ((1u<<23) - 1);
+    //unsigned int ieee_exponent = ((vi >> 23) & 255);
+    unsigned int ieee_exponent = ((vi & (255u<<23) ) >> 23);
+
+    int exp_bin, k;
+    u64 sig_bin, regular = ieee_significand > 0;
+    u64 irregular = (ieee_significand == 0);
+    if (ieee_exponent > 0) [[likely]] // branch
+    {
+        exp_bin = ieee_exponent - 150; //-127-23
+        sig_bin = ieee_significand | (1 << 23);
+    }
+    else
+    {
+        exp_bin = 1 - 150;
+        sig_bin = ieee_significand;
+    }
+#ifdef __amd64__
+    if (regular) [[likely]] // branch
+        k = (exp_bin * 315653) >> 20;
+    else
+        k = (exp_bin * 315653 - 131237) >> 20;
+#else
+    k = (exp_bin * 315653 - (irregular ?  131237 : 0 ))>>20;
+#endif
+
+    int get_e10 = -1-k;
+    int h = exp_bin + ((get_e10 * 217707) >> 16); // [-4,-1]
+    int p10_base = (get_e10 + 32) / 16;// [0,4]
+    u32 p5_off = get_e10 - ( (p10_base-2) * 16);// [0,15]
+    const u64 p5_4 = 5*5*5*5;
+    const u32 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1; 
+    static const u64 pow10_base_table_pow5[5 + 2] = { //40byte + 16byte = 56byte
+        0xcfb11ead453994bb, // e10 =  -32
+        0xe69594bec44de15c, // e10 =  -16
+        0x8000000000000000, // e10 =  0
+        0x8e1bc9bf04000000, // e10 =  16
+        0x9dc5ada82b70b59e, // e10 =  32
+        //pow5_table
+        1 + (p5_4<<32),
+        ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32)
+    };
+    u64 pow10_base = pow10_base_table_pow5[p10_base]; //-2 to 2
+    int shift = (((get_e10*217707) >> 16) - ((( (p10_base-2) *16)*217707) >> 16) - p5_off);
+    // const u32 p5_4 = 5*5*5*5;
+    // static const u32 pow5_table[4] = {//16 byte
+    //     1,
+    //     p5_4,
+    //     p5_4*p5_4,
+    //     p5_4*p5_4*p5_4
+    // };
+    u32 pow5_res;
+    static const char* start_ptr = ((char*)&pow10_base_table_pow5) + 5 * sizeof(u64);
+    memcpy(&pow5_res, start_ptr + 4 * (p5_off / 4), 4);
+    u64 p5 = (u64)pow5_res * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );
+
+    // u64 p5 = 1;
+    // //while(p5_off-- > 0)p5*=5;
+    // u64 p5_base = 5;
+    // while(p5_off > 0)
+    // {
+    //     if (p5_off & 1) {
+    //         p5 *= p5_base;
+    //     }
+    //     p5_base *= p5_base;
+    //     p5_off >>= 1;
+    // }
+
+    u64 pow10_hi = ( (__uint128_t)pow10_base * p5 ) >> shift;
+
+    u64 even = ((ieee_significand + 1) & 1);
+    const int BIT = 36; // [33,36] all right
+    u64 cb = sig_bin << (h + 1 + BIT);
+    u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64; // one mulxq instruction on x86
+    u64 ten = (sig_hi >> BIT) * 10;
+    u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
+    u64 half_ulp = pow10_hi >> ((64 - BIT) - h);
+#ifdef __amd64__
+    u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+    if (regular) [[likely]] // branch
+    {
+        one = (half_ulp + even > dot_one_36bit) ? 0 : one;
+        one = (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
+        //one = ( (half_ulp + even + dot_one_36bit) >> BIT ) ? 10 : one; // equal to above line
+    }
+    else
+    {
+        one = (half_ulp / 2 > dot_one_36bit) ? 0 : one;
+        one += (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150);// more fast
+        one = (half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
+        //one = ( (half_ulp + even + dot_one_36bit) >> BIT ) ? 10 : one;
+    }
+#else 
+    u64 offset_num  = (((u64)1 << BIT) - 7) + ((sig_hi >> (BIT - 4)) & 0xF);
+    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+    one = ( ((half_ulp + even) >> irregular) > dot_one_36bit) ? 0 : one;
+    one = (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
+    if(irregular)[[unlikely]]{
+        if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
+            one+=1;
+    }
+#endif
+    *dec = ten + one;
+    *e10 = k;
+}
