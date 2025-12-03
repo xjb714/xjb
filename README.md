@@ -7,8 +7,71 @@ xjb : a fast float to string algorithm.
 &emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
 
 (2)float/double to string algorithm  
-&emsp;&emsp;   full lookup table : `dtoa_xjb64_xjb32.cpp` table size:(1)float: `1096byte`; (2)double: `15336byte` for x64, `15336+256 = 15592byte` for arm64(or not amd64 arch).  
-&emsp;&emsp;   compress lookup table : `dtoa_xjb_comp.cpp` table size:(1)float: `56byte`; (2)double: `592byte` for x64, `592+256 = 848byte` for arm64(or not amd64 arch).  
+&emsp;&emsp;   full lookup table : `dtoa_xjb64_xjb32.cpp` 
+&emsp;&emsp;   compress lookup table : `dtoa_xjb_comp.cpp` 
+
+lookup table size:
+<table border="1px">
+    <tr>
+        <td colspan="1"></td>
+        <td colspan="1">full table</td>
+        <td colspan="1">compress table</td>
+    </tr>
+    <tr>
+        <td>float</td>
+        <td>1096byte</td>
+        <td>56byte</td>
+    </tr>
+    <tr>
+        <td>double</td>
+        <td>amd64:15336byte <br> arm64:15336+256 = 15592byte</td>
+        <td>amd64:592byte <br> arm64:592+256 = 848byte</td>
+    </tr>
+</table>
+
+Here are a few examples for double to string algorithm:
+<table border="1px">
+    <tr>
+        <td colspan="1">double</td>
+        <td colspan="1">print result</td>
+    </tr>
+    <tr>
+        <td>123.45</td>
+        <td>"123.45"</td>
+    </tr>
+    <tr>
+        <td>1000</td>
+        <td>"1000.0"</td>
+    </tr>
+    <tr>
+        <td>123</td>
+        <td>"123.0"</td>
+    </tr>
+    <tr>
+        <td>123000</td>
+        <td>"123000.0"</td>
+    </tr>
+    <tr>
+        <td>1.2e23</td>
+        <td>"1.2e23"</td>
+    </tr>
+    <tr>
+        <td>1e100</td>
+        <td>"1e100"</td>
+    </tr>
+    <tr>
+        <td>0.0123</td>
+        <td>"0.0123"</td>
+    </tr>
+    <tr>
+        <td>0.001</td>
+        <td>"0.001"</td>
+    </tr>
+    <tr>
+        <td>0.000123</td>
+        <td>"1.23e-04"</td>
+    </tr>
+</table>
 
 <!-- demo link: https://onlinegdb.com/OPKdOpikG -->
 
@@ -36,15 +99,15 @@ g++ : gcc 13.3
 **float:**  
 1. g++ -O3 -march=native  
 ![alt text](result/amd7840h/image-1.png)  
-2. icpx -O3 -march=native  
+1. icpx -O3 -march=native  
 ![alt text](result/amd7840h/image-2.png)  
-3. clang++ -O3  -march=native  
+1. clang++ -O3  -march=native  
 ![alt text](result/amd7840h/image-3.png)  
 Under this condition, the xjb32 algorithm will be compiled into AVX-512 code.  
-4. clang++ -O3  -march=native -mno-avx512f  
+1. clang++ -O3  -march=native -mno-avx512f  
 ![alt text](result/amd7840h/image-4.png)  
 Under this condition, the xjb32 algorithm will be compiled into AVX-2 code.  
-5. clang++ -O3  -march=native -mno-avx512f -mno-avx2  
+1. clang++ -O3  -march=native -mno-avx512f -mno-avx2  
 ![alt text](result/amd7840h/image-5.png)  
 Under this condition, the xjb32 algorithm will be compiled into normal code.  
 
