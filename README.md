@@ -7,8 +7,8 @@ xjb : a fast float to string algorithm.
 &emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
 
 (2)float/double to string algorithm  
-&emsp;&emsp;   full lookup table : `dtoa_xjb64_xjb32.cpp` table size:(1)float: `1096byte`; (2)double: `15336byte` for x64, `15336+256 = 15592byte` for arm64(or not amd64 arch).
-&emsp;&emsp;   compress lookup table : `dtoa_xjb_comp.cpp` table size:(1)float: `56byte`; (2)double: `592byte` for x64, `592+256 = 848byte` for arm64(or not amd64 arch).
+&emsp;&emsp;   full lookup table : `dtoa_xjb64_xjb32.cpp` table size:(1)float: `1096byte`; (2)double: `15336byte` for x64, `15336+256 = 15592byte` for arm64(or not amd64 arch).  
+&emsp;&emsp;   compress lookup table : `dtoa_xjb_comp.cpp` table size:(1)float: `56byte`; (2)double: `592byte` for x64, `592+256 = 848byte` for arm64(or not amd64 arch).  
 
 <!-- demo link: https://onlinegdb.com/OPKdOpikG -->
 
