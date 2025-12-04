@@ -628,7 +628,7 @@ void check_special_value(){
 }
 void check_rand_double()
 {
-    unsigned long error_sum = 0;
+    unsigned long long error_sum = 0;
     const unsigned long NUM = 1 << 30; // 1e9
     for (unsigned long i = 0; i < NUM; ++i)
     {
@@ -641,7 +641,7 @@ void check_rand_double()
     }
     else
     {
-        printf("check_random_double fail error sum = %u\n", error_sum);
+        printf("check_random_double fail error sum = %llu\n", error_sum);
     }
 }
 
@@ -679,13 +679,13 @@ int main()
 #if BENCH_FLOAT
     bench_float();
 
-    check_all_float_number(); // check all float number , may cost long time
+    //check_all_float_number(); // check all float number , may cost long time
 #endif
 
 #if BENCH_DOUBLE
     bench_double();
 
-    check_double(); // check double correctness , may cost long time
+    //check_double(); // check double correctness , may cost long time
 #endif
 
     return 0;

@@ -2289,7 +2289,7 @@ char* xjb64(double v,char* buf)
         {
             //int base = ( get_e10 - (base_start * ratio) ) / ratio;// range = [0,22] = [0/27,616/27]
             int base = (( get_e10 - (base_start * ratio) ) * 1214) >> 15;// div 27 
-            u32 pow5_offset = get_e10 - (base + base_start) * ratio;// range = [0,26]
+            int pow5_offset = get_e10 - (base + base_start) * ratio;// range = [0,26]
             u64 pow10_base_high = pow10_base_and_pow5_rlz[base  * 2];
             u64 pow10_base_low = pow10_base_and_pow5_rlz[base * 2 + 1];
 #if direct_via_lut_get_pow5
@@ -2400,7 +2400,7 @@ char* xjb64(double v,char* buf)
 #endif
         u64 first_sig_pos = (e10_DN<=e10 && e10<=-1) ? 1 - e10 : 0 ;
         u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1 ;
-        u64 move_pos = dot_pos + (!(e10_DN<=e10 && e10<=-1) );
+        u64 move_pos = dot_pos + (1 - (e10_DN<=e10 && e10<=-1) );
         u64 exp_pos = ((e10_DN <= e10 && e10 <= -1) ? dec_sig_len - 1 : (
             (0<=e10 && e10<= e10_UP) ? (e10+2 > dec_sig_len ? e10+2: dec_sig_len) : (
                 dec_sig_len - (dec_sig_len == 1)
@@ -2471,13 +2471,8 @@ char* xjb64(double v,char* buf)
 #if 1
 char* xjb32(float v,char* buf)
 {
-    // all lut size = 40 byte
+    // all lut size = 56 byte
     // recommend buf size >= 24byte;
-
-    // benchmark result on AMD R7-7840H
-    // clang  : 33-34 cycle
-    // icpx   : 33-34 cycle
-    // g++    : 35-36 cycle 
 
     u32 vi;
     memcpy(&vi, &v, 4);
@@ -2505,95 +2500,9 @@ char* xjb32(float v,char* buf)
         memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
         return buf + 3;
     }
-    //*(u64*)buf = *(u64*)"0.00000";
     memcpy(buf ,"0.000000",8);
-
-#if 0
-    // size = 77*8 = 616 byte
-    static const u64 pow10_table[(44 - (-32) + 1)] = {
-        0xcfb11ead453994bb, // -32
-        0x81ceb32c4b43fcf5, // -31
-        0xa2425ff75e14fc32, // -30
-        0xcad2f7f5359a3b3f, // -29
-        0xfd87b5f28300ca0e, // -28
-        0x9e74d1b791e07e49, // -27
-        0xc612062576589ddb, // -26
-        0xf79687aed3eec552, // -25
-        0x9abe14cd44753b53, // -24
-        0xc16d9a0095928a28, // -23
-        0xf1c90080baf72cb2, // -22
-        0x971da05074da7bef, // -21
-        0xbce5086492111aeb, // -20
-        0xec1e4a7db69561a6, // -19
-        0x9392ee8e921d5d08, // -18
-        0xb877aa3236a4b44a, // -17
-        0xe69594bec44de15c, // -16
-        0x901d7cf73ab0acda, // -15
-        0xb424dc35095cd810, // -14
-        0xe12e13424bb40e14, // -13
-        0x8cbccc096f5088cc, // -12
-        0xafebff0bcb24aaff, // -11
-        0xdbe6fecebdedd5bf, // -10
-        0x89705f4136b4a598, // -9
-        0xabcc77118461cefd, // -8
-        0xd6bf94d5e57a42bd, // -7
-        0x8637bd05af6c69b6, // -6
-        0xa7c5ac471b478424, // -5
-        0xd1b71758e219652c, // -4
-        0x83126e978d4fdf3c, // -3
-        0xa3d70a3d70a3d70b, // -2
-        0xcccccccccccccccd, // -1
-        0x8000000000000000, // 0
-        0xa000000000000000, // 1
-        0xc800000000000000, // 2
-        0xfa00000000000000, // 3
-        0x9c40000000000000, // 4
-        0xc350000000000000, // 5
-        0xf424000000000000, // 6
-        0x9896800000000000, // 7
-        0xbebc200000000000, // 8
-        0xee6b280000000000, // 9
-        0x9502f90000000000, // 10
-        0xba43b74000000000, // 11
-        0xe8d4a51000000000, // 12
-        0x9184e72a00000000, // 13
-        0xb5e620f480000000, // 14
-        0xe35fa931a0000000, // 15
-        0x8e1bc9bf04000000, // 16
-        0xb1a2bc2ec5000000, // 17
-        0xde0b6b3a76400000, // 18
-        0x8ac7230489e80000, // 19
-        0xad78ebc5ac620000, // 20
-        0xd8d726b7177a8000, // 21
-        0x878678326eac9000, // 22
-        0xa968163f0a57b400, // 23
-        0xd3c21bcecceda100, // 24
-        0x84595161401484a0, // 25
-        0xa56fa5b99019a5c8, // 26
-        0xcecb8f27f4200f3a, // 27
-        0x813f3978f8940985, // 28
-        0xa18f07d736b90be6, // 29
-        0xc9f2c9cd04674edf, // 30
-        0xfc6f7c4045812297, // 31
-        0x9dc5ada82b70b59e, // 32
-        0xc5371912364ce306, // 33
-        0xf684df56c3e01bc7, // 34
-        0x9a130b963a6c115d, // 35
-        0xc097ce7bc90715b4, // 36
-        0xf0bdc21abb48db21, // 37
-        0x96769950b50d88f5, // 38
-        0xbc143fa4e250eb32, // 39
-        0xeb194f8e1ae525fe, // 40
-        0x92efd1b8d0cf37bf, // 41
-        0xb7abc627050305ae, // 42
-        0xe596b7b0c643c71a, // 43
-        0x8f7e32ce7bea5c70, // 44
-    };
-#endif
-    
     int exp_bin, k;
     u64 sig_bin, regular = sig > 0;
-    //u64 irregular = (sig == 0);
     if (exp > 0) [[likely]] // branch
     {
         exp_bin = exp - 150; //-127-23
@@ -2604,16 +2513,12 @@ char* xjb32(float v,char* buf)
         exp_bin = 1 - 150;
         sig_bin = sig;
     }
-    // exp_bin = exp > 0 ? (exp - 150) : 1 - 150; //-127-23
-    // sig_bin = exp > 0 ? (sig | (1u << 23)) : sig;
-//#if 0
 #ifdef __amd64__
     if (regular) [[likely]] // branch
         k = (exp_bin * 315653) >> 20;
     else
         k = (exp_bin * 315653 - 131237) >> 20;
 #else
-    //k = (exp_bin * 315653 - (irregular ? 131237 : 0 ))>>20;
     k = (exp_bin * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
     int get_e10 = -1 - k;
@@ -2633,12 +2538,6 @@ char* xjb32(float v,char* buf)
         1 + (p5_4<<32),
         ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32)
     };
-    // static const u32 pow5_table[4] = { //16 byte
-    //     1,
-    //     p5_4,
-    //     p5_4*p5_4,
-    //     p5_4*p5_4*p5_4
-    // };
     const u32 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1; 
     u64 pow10_base = pow10_base_table_pow5[p10_base_index];
     int shift = ((get_e10 * 217707) >> 16) - ((p10_base * 217707) >> 16) - p5_off;
@@ -2646,7 +2545,6 @@ char* xjb32(float v,char* buf)
     static const char* start_ptr = ((char*)pow10_base_table_pow5) + 5 * sizeof(u64);
     memcpy(&pow5_base, start_ptr + 4 * (p5_off / 4), 4);
     u64 p5 = (u64)pow5_base * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );// p5 = 5**p5_off
-
     // u64 p5 = ((((p5_off / 4 > 1) ?  ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32) : 1 + (p5_4<<32)) >> ((p5_off & 4) * 8 )) & ((1ull<<32) - 1))
     //             * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );// this code direct calc p5, but slow than above code
 
@@ -2662,7 +2560,6 @@ char* xjb32(float v,char* buf)
     // }
     
     u64 pow10_hi = ( (__uint128_t)pow10_base * p5 ) >> shift;
-
     u64 even = ((sig_bin + 1) & 1);
     const int BIT = 36; // [33,36] all right
     u64 cb = sig_bin << (h + 1 + BIT);
@@ -2726,7 +2623,7 @@ char* xjb32(float v,char* buf)
 #else
     u64 first_sig_pos = ( e10_DN <= e10 && e10 <= -1 ) ? 1 - e10 : 0;
     u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1;
-    u64 move_pos = dot_pos + (( e10_DN <= e10 && e10 <= -1 ) ? 0 : 1);
+    u64 move_pos = dot_pos + (1 - ( e10_DN <= e10 && e10 <= -1 ) );
     u64 exp_pos = ((e10_DN <= e10 && e10 <= -1) ? dec_sig_len - 1 : (
             (0<=e10 && e10<= e10_UP) ? (e10+2 > dec_sig_len ? e10+2: dec_sig_len ) : (
                 dec_sig_len - (dec_sig_len == 1)
@@ -2736,11 +2633,8 @@ char* xjb32(float v,char* buf)
 #endif
     char* buf_origin = (char*)buf;
     buf += first_sig_pos;
-    //byte_move_8(buf,&ASCII_8);//7 or 8 byte
     memcpy(buf, &ASCII_8, 8);
-    //memcpy(&buf[7 + D9], &one, 8);
     memcpy(buf + 7 + D9, &one, 8);
-    //byte_move_8(&buf[move_pos],&buf[dot_pos]);
     byte_move_8(buf + move_pos , buf + dot_pos);
     buf_origin[dot_pos] = '.';
     if(m < (u32)1e6 )[[unlikely]]
@@ -2754,17 +2648,12 @@ char* xjb32(float v,char* buf)
         exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
     }
 //write exponent    
-#if 1
-        u64 neg = e10 < 0;
-        u64 e10_abs = neg ? -e10 : e10;
-        u64 e = neg ? ('e' + '-' * 256) | ((u64)('0' + '0' * 256) << 16) : ('e' + '+' * 256) | ((u64)('0' + '0' * 256) << 16);
-        u64 e10_BCD = (e10_abs << 24) - ((u64)(256 * 10 - 1) << 16) * ((e10_abs * 103u) >> 10); // 12 => "12"
-        u64 exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : e | e10_BCD;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
-#else
-        u64 exp_result = exp_ptr[e10];
-#endif
+    u64 neg = e10 < 0;
+    u64 e10_abs = neg ? -e10 : e10;
+    u64 e = neg ? ('e' + '-' * 256) | ((u64)('0' + '0' * 256) << 16) : ('e' + '+' * 256) | ((u64)('0' + '0' * 256) << 16);
+    u64 e10_BCD = (e10_abs << 24) - ((u64)(256 * 10 - 1) << 16) * ((e10_abs * 103u) >> 10); // 12 => "12"
+    u64 exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : e | e10_BCD;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
     buf += exp_pos;
-    //*(u64*)buf = exp_result;// contain '\0';
     memcpy(buf, &exp_result, 8);
     u32 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
     //u32 exp_len = (exp_result + ((1u<<28) - 1)) >> 28;//(e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4

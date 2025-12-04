@@ -1,1 +1,4 @@
 example
+bench/main_gcc
+bench/main_clang
+bench/main_icpx
