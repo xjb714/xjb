@@ -39,6 +39,8 @@
         "string": "cpp",
         "typeinfo": "cpp",
         "algorithm": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "queue": "cpp",
+        "stack": "cpp"
     }
 }

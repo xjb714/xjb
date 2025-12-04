@@ -2342,7 +2342,7 @@ char* xjb32(float v,char* buf)
     u64 up_down = up + down;
     m = (sig_hi >> BIT) + up;
     D9 = m >= (u32)1e7;
-    u64 mr = D9 ? m : m * 10;//remove left zero
+    //u64 mr = D9 ? m : m * 10;//remove left zero
     u64 ASCII_8;
     tz = encode_8digit(m,&ASCII_8);
     //dec_sig_len = up_down ? 8 - tz : 8 + D9;
@@ -2357,8 +2357,10 @@ char* xjb32(float v,char* buf)
     k += 7 + D9;
     e10 = k;// euqal to e10 = k+7+D9
 
-    u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
-    u64 one = ((dot_one_36bit * 20 + offset_num) >> (BIT + 1))  + (u64)('0' + '0' * 256);
+    // u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
+    // u64 one = ((dot_one_36bit * 20 + offset_num) >> (BIT + 1))  + (u64)('0' + '0' * 256);
+    u64 offset_num  = ((u64)('0' + '0' * 256) << (BIT + 1)) + (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
     if(!regular)[[unlikely]]{ // branch
         if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
             one+=1;

@@ -2401,11 +2401,14 @@ char* xjb64(double v,char* buf)
         u64 first_sig_pos = (e10_DN<=e10 && e10<=-1) ? 1 - e10 : 0 ;
         u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1 ;
         u64 move_pos = dot_pos + (1 - (e10_DN<=e10 && e10<=-1) );
-        u64 exp_pos = ((e10_DN <= e10 && e10 <= -1) ? dec_sig_len - 1 : (
-            (0<=e10 && e10<= e10_UP) ? (e10+2 > dec_sig_len ? e10+2: dec_sig_len) : (
-                dec_sig_len - (dec_sig_len == 1)
-            )
-        ) ) + 1;
+        // u64 exp_pos = ((e10_DN <= e10 && e10 <= -1) ? dec_sig_len - 1 : (
+        //     (0<=e10 && e10<= e10_UP) ? (e10+2 > dec_sig_len ? e10+2: dec_sig_len) : (
+        //         dec_sig_len - (dec_sig_len == 1)
+        //     )
+        // ) ) + 1;
+        u64 exp_pos = (0<=e10 && e10<= e10_UP) ? (e10+3 > dec_sig_len+1 ? e10+3 : dec_sig_len+1) : (
+            dec_sig_len + ( (1 - ( e10_DN <= e10 && e10 <= -1 )) > (dec_sig_len == 1) )
+        );
         char * buf_origin = buf;
         buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
@@ -2454,6 +2457,13 @@ char* xjb64(double v,char* buf)
         u64 e10_abs = neg ? -e10 : e10;
         u64 e = neg ? ('e' + '-' * 256) : ('e' + '+' * 256);
         u64 a = (e10_abs * 656) >> 16; /* e10_abs / 100 */
+        // u64 _bc = ((e10_abs * 656) & ((1<<16) - 1)) ;
+        // u64 b_c = _bc * 10;
+        // u64 b = b_c >> 16;
+        // u64 _c = b_c & ((1<<16) - 1);
+        // u64 c_ = _c * 10;
+        // u64 c1 = c_ >> 16;
+        // u64 bc_ASCII = b + c1 * 256 + (u64)('0' + '0' * 256 + (4ull << 40) + (4ull << 32));
         u64 bc = e10_abs - a * 100;    /* e10_abs % 100 */
         u64 bc_ASCII = bc * 256u - (256 * 10 - 1) * ((bc * 103u) >> 10) + (u64)('0' + '0' * 256 + (4ull << 40) + (4ull << 32)); // 12 => "12"
         u64 exp_result = e | ( ( (e10_abs > 99u) ? a | ('0' | (1ull << 40)) | (bc_ASCII << 8) : bc_ASCII) << 16);
@@ -2527,7 +2537,7 @@ char* xjb32(float v,char* buf)
     int p10_base = p10_base_index * 16 - 32;
     u32 p5_off = get_e10 - p10_base;// [0,15]
     const u64 p5_4 = 5*5*5*5;
-    static const u64 pow10_base_table_pow5[5 + 2] = { //40byte + 16byte = 56byte
+    static const u64 pow10_base_table_pow5[5 + 2 + 1] = { //40byte + 16byte = 56byte
         //pow10_table
         0xcfb11ead453994bb, // e10 =  -32
         0xe69594bec44de15c, // e10 =  -16
@@ -2536,15 +2546,20 @@ char* xjb32(float v,char* buf)
         0x9dc5ada82b70b59e, // e10 =  32
         //pow5_table
         1 + (p5_4<<32),
-        ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32)
+        ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32),
+        (125<<24) + (25<<16) + (5<<8) + 1
     };
     const u32 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1; 
     u64 pow10_base = pow10_base_table_pow5[p10_base_index];
     int shift = ((get_e10 * 217707) >> 16) - ((p10_base * 217707) >> 16) - p5_off;
     u32 pow5_base;
+    u8 pow5_offset;
     static const char* start_ptr = ((char*)pow10_base_table_pow5) + 5 * sizeof(u64);
+    static const char* start_ptr2 = ((char*)pow10_base_table_pow5) + 7 * sizeof(u64);
     memcpy(&pow5_base, start_ptr + 4 * (p5_off / 4), 4);
-    u64 p5 = (u64)pow5_base * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );// p5 = 5**p5_off
+    memcpy(&pow5_offset, start_ptr2 + (p5_off % 4), 1);
+    //u64 p5 = (u64)pow5_base * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );// p5 = 5**p5_off
+    u64 p5 = (u64)pow5_base * (u64)pow5_offset;
     // u64 p5 = ((((p5_off / 4 > 1) ?  ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32) : 1 + (p5_4<<32)) >> ((p5_off & 4) * 8 )) & ((1ull<<32) - 1))
     //             * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );// this code direct calc p5, but slow than above code
 
@@ -2589,8 +2604,10 @@ char* xjb32(float v,char* buf)
     k += 7 + D9;
     e10 = k;// euqal to e10 = k+7+D9
 
-    u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
-    u64 one = ((dot_one_36bit * 20 + offset_num) >> (BIT + 1))  + (u64)('0' + '0' * 256);
+    // u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
+    // u64 one = ((dot_one_36bit * 20 + offset_num) >> (BIT + 1))  + (u64)('0' + '0' * 256);
+    u64 offset_num  = ((u64)('0' + '0' * 256) << (BIT + 1)) + (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
     if(!regular)[[unlikely]]{ // branch
         if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
             one+=1;
@@ -2624,12 +2641,15 @@ char* xjb32(float v,char* buf)
     u64 first_sig_pos = ( e10_DN <= e10 && e10 <= -1 ) ? 1 - e10 : 0;
     u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1;
     u64 move_pos = dot_pos + (1 - ( e10_DN <= e10 && e10 <= -1 ) );
-    u64 exp_pos = ((e10_DN <= e10 && e10 <= -1) ? dec_sig_len - 1 : (
-            (0<=e10 && e10<= e10_UP) ? (e10+2 > dec_sig_len ? e10+2: dec_sig_len ) : (
-                dec_sig_len - (dec_sig_len == 1)
-                //(dec_sig_len == 1) ? 0 : dec_sig_len
-            )
-        ) ) + 1;
+    // u64 exp_pos = ((e10_DN <= e10 && e10 <= -1) ? dec_sig_len - 1 : (
+    //         (0<=e10 && e10<= e10_UP) ? (e10+2 > dec_sig_len ? e10+2: dec_sig_len ) : (
+    //             dec_sig_len - (dec_sig_len == 1)
+    //             //(dec_sig_len == 1) ? 0 : dec_sig_len
+    //         )
+    //     ) ) + 1;
+    u64 exp_pos = (0<=e10 && e10<= e10_UP) ? (e10+3 > dec_sig_len+1 ? e10+3 : dec_sig_len+1) : (
+                dec_sig_len + ( (1 - ( e10_DN <= e10 && e10 <= -1 )) > (dec_sig_len == 1) )
+            );
 #endif
     char* buf_origin = (char*)buf;
     buf += first_sig_pos;

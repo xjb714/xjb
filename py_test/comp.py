@@ -253,26 +253,40 @@ for p5_off in range(0,28,1):
         print("error p5_off =",p5_off,"clz =",clz,"clz2 =",clz2)
 
 
-for q in range(1-150,254-150 + 1,1):
-    #k1 = (q * 315653) >> 20
-    k1 = (q * 315653 - 131237) >> 20
-    #k1 = math.floor(q*math.log10(2) - math.log10(4/3) )
-    get_e10 = - k1 - 1
-    h = q + ((get_e10 * 217707) >> 16)
-    base = (get_e10 + 297) // 27
-    pow5_off = get_e10 - (base + (-11)) * 27
-    alpha = ((((base + (-11))*27) * 217707 ) >> 16) + ((pow5_off * 217707) >> 16)
-    diff = ((get_e10 * 217707) >> 16) - alpha # 0 or 1
-    h2 = 1 + alpha + q - (1 - diff)
-    h3 = 1 + alpha + q
-    print("q =",q,"diff =",diff)
-    if(h != h2):
-        print("error: q =",q,"h =",h,"h2 =",h2)
-    if(-h2 < 0):
-        print("error h2 > 0 : q =",q,"exp =",q+150,"-h3 =",-h2,"diff =",diff)
-    if(-h3 < 0):
-        print("error h3 > 0 : q =",q,"exp =",q+150,"-h3 =",-h3,"diff =",diff)
-        pass
+# for q in range(1-150,254-150 + 1,1):
+#     #k1 = (q * 315653) >> 20
+#     k1 = (q * 315653 - 131237) >> 20
+#     #k1 = math.floor(q*math.log10(2) - math.log10(4/3) )
+#     get_e10 = - k1 - 1
+#     h = q + ((get_e10 * 217707) >> 16)
+#     base = (get_e10 + 297) // 27
+#     pow5_off = get_e10 - (base + (-11)) * 27
+#     alpha = ((((base + (-11))*27) * 217707 ) >> 16) + ((pow5_off * 217707) >> 16)
+#     diff = ((get_e10 * 217707) >> 16) - alpha # 0 or 1
+#     h2 = 1 + alpha + q - (1 - diff)
+#     h3 = 1 + alpha + q
+#     print("q =",q,"diff =",diff)
+#     if(h != h2):
+#         print("error: q =",q,"h =",h,"h2 =",h2)
+#     if(-h2 < 0):
+#         print("error h2 > 0 : q =",q,"exp =",q+150,"-h3 =",-h2,"diff =",diff)
+#     if(-h3 < 0):
+#         print("error h3 > 0 : q =",q,"exp =",q+150,"-h3 =",-h3,"diff =",diff)
+#         pass
 
     # if(q + alpha == 0):
     #     print("q + alpha=0, q =",q,"exp =",q+1075)
+
+
+for j in range(9,12):
+    a = 2**j
+    b = (a//10) 
+    for m in range(b,2*b,1):
+        is_ok=1
+        for e10_abs in range(4,46,1):
+            div10 = e10_abs // 10
+            div10_2 = (e10_abs * m) >> j
+            if(div10 != div10_2):
+                is_ok=0
+        if(is_ok):
+            print("j =",j,"m =",m)

@@ -1,8 +1,8 @@
 #include <iostream>
 #include <cmath>
 
-#include "dtoa_xjb_comp.cpp" // compress table
-#include "dtoa_xjb64_xjb32.cpp" // full table
+#include "bench/xjb/dtoa_xjb_comp.cpp" // compress table
+#include "bench/xjb/dtoa_xjb64_xjb32.cpp" // full table
 
 
 int main() 

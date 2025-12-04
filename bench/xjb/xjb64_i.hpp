@@ -873,7 +873,7 @@ static inline void xjb64_comp_f64_to_dec(double v,unsigned long long* dec,int *e
         {
             //int base = ( get_e10 - (base_start * ratio) ) / ratio;// range = [0,22] = [0/27,616/27]
             int base = (( get_e10 - (base_start * ratio) ) * 1214) >> 15;// div 27 
-            u32 pow5_offset = get_e10 - (base + base_start) * ratio;// range = [0,26]
+            u64 pow5_offset = get_e10 - (base + base_start) * ratio;// range = [0,26]
             u64 pow10_base_high = pow10_base_and_pow5_rlz[base  * 2];
             u64 pow10_base_low = pow10_base_and_pow5_rlz[base * 2 + 1];
             u128 pow5_rlz_v = pow5_rlz_ptr[  pow5_offset ];
