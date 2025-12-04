@@ -14,8 +14,8 @@ lookup table size:
 <table border="1px">
     <tr>
         <td colspan="1"></td>
-        <td colspan="1">full table</td>
-        <td colspan="1">compress table</td>
+        <td colspan="1">full table:dtoa_xjb64_xjb32.cpp</td>
+        <td colspan="1">compress table:dtoa_xjb_comp.cpp</td>
     </tr>
     <tr>
         <td>float</td>

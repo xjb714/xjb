@@ -5,6 +5,12 @@
         "cmath": "cpp",
         "iostream": "cpp",
         "random": "cpp",
-        "numbers": "cpp"
+        "numbers": "cpp",
+        "cstdint": "cpp",
+        "format": "cpp",
+        "array": "cpp",
+        "string_view": "cpp",
+        "initializer_list": "cpp",
+        "span": "cpp"
     }
 }

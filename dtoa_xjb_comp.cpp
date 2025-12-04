@@ -655,13 +655,15 @@ static inline u64 encode_8digit(const u64 x, u64* ASCII){
     // require x in [1 , 1e8 - 1] = [1 , 99999999]
     // return tail zero count of x in base 10 , range [0,7]
 
-    // 12345678 => "12345678" 
+    // 12345678 => "12345678"
+    // 01234567 => "12345670"
+    // when x=0 , return value tz = u64_lz_bits(0) / 8, so tz is not sure.
     const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
     u64 aabbccdd = x;
     u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
     u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
     u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
-    aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
+    aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);//if top digit = 0,remove it.  example : 01234567 => "12345670"
     u64 tz = u64_lz_bits(aabbccdd_BCD) / 8;
     u64 aabbccdd_ASCII = aabbccdd_BCD + ZERO;
     *ASCII = aabbccdd_ASCII;
@@ -694,14 +696,24 @@ static inline void byte_move_8(void * dst,const void* src){
     memcpy(&src_value, src, 8);
     memcpy(dst, &src_value, 8);
 }
-static inline u64 calc_pow5_rlz(int pow5_offset)
+static inline u64 calc_pow5_rlz(unsigned int pow5_offset)
 {
-    //pow5_offset <= 27; max_u64 = (2**64)-1 > 5**27
+    // require 0<= pow5_offset <= 27; max_u64 = (2**64)-1 > 5**27
+    // return (5**pow5_offset) << clz(5**pow5_offset);
+#if 1
+    const u64 p5_4 = 5*5*5*5;
+    const u64 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1; 
+    unsigned int pow5_offset_right = pow5_offset % 16;
+    u64 p5_right = ((((pow5_offset_right / 4 > 1) ?  ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32) : 1 + (p5_4<<32)) >> ((pow5_offset_right & 4) * 8 )) & ((1ull<<32) - 1))
+                * (u64)( (p5_0_3 >> ((pow5_offset_right % 4) * 8)) & 0xff );
+    u64 p5 = pow5_offset >= 16 ? p5_right * (p5_4*p5_4*p5_4*p5_4) : p5_right;
+    return p5 << u64_lz_bits(p5);
+#else
     u64 p5 = 1;
     u64 p5_base = 5;
     while (pow5_offset > 0)
     {
-        if (pow5_offset & 1) 
+        if (pow5_offset & 1)
             p5 *= p5_base;
         p5_base *= p5_base;
         pow5_offset >>= 1;
@@ -709,6 +721,7 @@ static inline u64 calc_pow5_rlz(int pow5_offset)
     u64 clz = u64_lz_bits(p5);
     //u64 clz2 = 63 - ((pow5_offset * 217707) >> 16) + pow5_offset;
     return p5 << clz;
+#endif
 }
 
 
@@ -837,8 +850,8 @@ char* xjb64(double v,char* buf)
     memcpy(buf, "0.000000", 8);
     u64 c;
     int32_t q;
-//#ifdef __amd64__
-#if 0    
+#ifdef __amd64__
+//#if 0    
     if (ieee_exponent > 0) [[likely]] // branch
     {
         c = (1ull<<52) | ieee_significand;// 53 bit
@@ -2123,7 +2136,7 @@ char* xjb64(double v,char* buf)
     };
     static const u64 *pow10_ptr = g + 293 * 2; 
 #endif    
-    //compress ratio = 27; all lut size = 23*2*8 + 27*8 = 584 byte 
+    
     const int base_start = -11, base_end = 11,  ratio = 27;
 //     static const u64 pow10_base[ (base_end-base_start+1)*2 ]={
 // 0xa76c582338ed2621, 0xaf2af2b80af6f24f, // e10 =  -11 * 27 = -297
@@ -2180,10 +2193,11 @@ char* xjb64(double v,char* buf)
 // 0xa56fa5b99019a5c8,// = (5**26) << clz(5**26) = (5**26) <<  3
 //     };
 
-#define direct_via_lut_get_pow5  1 
+#define direct_via_lut_get_pow5  1
 // direct_via_lut_get_pow5 = 1 : direct use looup table to get (5**n)<<clz(5**n)
 // direct_via_lut_get_pow5 = 0 : calc the  (5**n)<<clz(5**n)  directly, without using lookup table
     
+    //compress ratio = 27; all lut size = 23*2*8 + (27+1)*8 = 592 byte 
     static const u64 pow10_base_and_pow5_rlz[(base_end - base_start + 1) * 2 + direct_via_lut_get_pow5 * (ratio + 1)]={
 //pow10_base table
 0xa76c582338ed2621, 0xaf2af2b80af6f24f, // e10 =  -11 * 27 = -297
@@ -2241,8 +2255,7 @@ char* xjb64(double v,char* buf)
 0xcecb8f27f4200f3a,// = (5**27) << clz(5**27) = (5**27) <<  1 ; e10 = 27
 #endif
     };
-//#ifdef __amd64__
-#if 0
+#ifdef __amd64__
         if (regular) [[likely]] // branch
             k = ((ieee_exponent - 1075) * 315653) >> 20;
         else
@@ -2450,7 +2463,7 @@ char* xjb64(double v,char* buf)
 #endif
         buf += exp_pos;
         //*(u64*)buf = exp_result;
-        memcpy(buf, &exp_result, 8);
+        memcpy(buf, &exp_result, 8);  
         //u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 | (e10_abs > 99u) ) ;// "e+20" "e+308" : 4 or 5
         u64 exp_len = exp_result >> 56; // 0 or 4 or 5 ; equal to above code
         return buf + exp_len;// return the end of buffer with '\0';
@@ -2479,6 +2492,7 @@ char* xjb32(float v,char* buf)
     u32 dec_sig_len_ofs;// = dec_sig_len + 2
     u32 D9;// 1:9 digits 0:8 digits
     u32 sig = vi & ((1<<23) - 1);
+    //u32 sig = (vi << 9 ) >> 9;
     u32 exp = (vi << 1 ) >> 24;
 
     if( (vi << 1) == 0 )[[unlikely]]
@@ -2602,10 +2616,11 @@ char* xjb32(float v,char* buf)
     //k = (exp_bin * 315653 - (irregular ? 131237 : 0 ))>>20;
     k = (exp_bin * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
-    int get_e10 = -1-k;
+    int get_e10 = -1 - k;
     int h = exp_bin + ((get_e10 * 217707) >> 16); // [-4,-1]
-    int p10_base = (get_e10 + 32) / 16;// [0,4]
-    u32 p5_off = get_e10 - ( (p10_base-2) * 16);// [0,15]
+    u32 p10_base_index = (u32)(get_e10 + 32) / 16;// [0,4]
+    int p10_base = p10_base_index * 16 - 32;
+    u32 p5_off = get_e10 - p10_base;// [0,15]
     const u64 p5_4 = 5*5*5*5;
     static const u64 pow10_base_table_pow5[5 + 2] = { //40byte + 16byte = 56byte
         //pow10_table
@@ -2618,7 +2633,6 @@ char* xjb32(float v,char* buf)
         1 + (p5_4<<32),
         ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32)
     };
-    
     // static const u32 pow5_table[4] = { //16 byte
     //     1,
     //     p5_4,
@@ -2626,23 +2640,15 @@ char* xjb32(float v,char* buf)
     //     p5_4*p5_4*p5_4
     // };
     const u32 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1; 
-    u64 pow10_base = pow10_base_table_pow5[p10_base]; //-2 to 2
-    //u64 pow10_base = pow10_base_and_pow5_rlz[(base_end - base_start+1)*2 + ratio + p10_base];
-    // static const u64* pow5_ptr = &pow10_base_and_pow5_rlz[(base_end - base_start+1)*2];
-    // u64 pow10_base = pow5_ptr[p10_base]; //-2 to 2
-    // u64 pow10_base = 0xcfb11ead453994bb;
-    // //if(p10_base==0)pow10_base = 0xcfb11ead453994bb;
-    // if(p10_base==1)pow10_base = 0xe69594bec44de15c;
-    // if(p10_base==2)pow10_base = 0x8000000000000000;
-    // if(p10_base==3)pow10_base = 0x8e1bc9bf04000000;
-    // if(p10_base==4)pow10_base = 0x9dc5ada82b70b59e;
-    int shift = (((get_e10 * 217707) >> 16) - ((( (p10_base-2) *16)*217707) >> 16) - p5_off);
-    // 5**0 -> 5**15 ; 16 = 4 * 4
-    //u64 p5 = pow5_table_0_15[p5_off];
-    u32 pow5_res;
-    static const char* start_ptr = ((char*)&pow10_base_table_pow5) + 5 * sizeof(u64);
-    memcpy(&pow5_res, start_ptr + 4 * (p5_off / 4), 4);
-    u64 p5 = (u64)pow5_res * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );
+    u64 pow10_base = pow10_base_table_pow5[p10_base_index];
+    int shift = ((get_e10 * 217707) >> 16) - ((p10_base * 217707) >> 16) - p5_off;
+    u32 pow5_base;
+    static const char* start_ptr = ((char*)pow10_base_table_pow5) + 5 * sizeof(u64);
+    memcpy(&pow5_base, start_ptr + 4 * (p5_off / 4), 4);
+    u64 p5 = (u64)pow5_base * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );// p5 = 5**p5_off
+
+    // u64 p5 = ((((p5_off / 4 > 1) ?  ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32) : 1 + (p5_4<<32)) >> ((p5_off & 4) * 8 )) & ((1ull<<32) - 1))
+    //             * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );// this code direct calc p5, but slow than above code
 
     // u64 p5 = 1;
     // u64 p5_base = 5;
@@ -2664,14 +2670,14 @@ char* xjb32(float v,char* buf)
     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
     u64 half_ulp = (pow10_hi >> ((64 - BIT) - h)) + even;
     //u64 up = (half_ulp  > (((u64)1 << BIT) - 1) - dot_one_36bit);
-    u64 up = (half_ulp + dot_one_36bit) >> BIT;
-    u64 down =  ((half_ulp >> (1 - regular)) > dot_one_36bit);
-    u64 up_down = up + down;
+    u64 up = (half_ulp + dot_one_36bit) >> BIT;// 1 or 0
+    u64 down =  ((half_ulp >> (1 - regular)) > dot_one_36bit);//1 or 0
+    u64 up_down = up + down;// 1 or 0
     m = (sig_hi >> BIT) + up;
     D9 = m >= (u32)1e7;
-    u64 mr = D9 ? m : m * 10;//remove left zero
+    //u64 mr = D9 ? m : m * 10;//remove left zero
     u64 ASCII_8;
-    tz = encode_8digit(m,&ASCII_8);
+    tz = encode_8digit(m,&ASCII_8);//When m=0, the return value tz is not used. because of up_down is must be 0. m=0 => updown=0;
     //dec_sig_len = up_down ? 8 - tz : 8 + D9;
 #if yy_is_real_gcc 
     // use this code to prevent gcc compiler generate branch instructions
@@ -2718,9 +2724,9 @@ char* xjb32(float v,char* buf)
     u64 move_pos = e10_variable_data[e10_data_ofs][2];
     u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs];
 #else
-    u64 first_sig_pos = (e10_DN<=e10 && e10<=-1) ? 1 - e10 : 0 ;
-    u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1 ;
-    u64 move_pos = dot_pos + (!(e10_DN<=e10 && e10<=-1) );
+    u64 first_sig_pos = ( e10_DN <= e10 && e10 <= -1 ) ? 1 - e10 : 0;
+    u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1;
+    u64 move_pos = dot_pos + (( e10_DN <= e10 && e10 <= -1 ) ? 0 : 1);
     u64 exp_pos = ((e10_DN <= e10 && e10 <= -1) ? dec_sig_len - 1 : (
             (0<=e10 && e10<= e10_UP) ? (e10+2 > dec_sig_len ? e10+2: dec_sig_len ) : (
                 dec_sig_len - (dec_sig_len == 1)
@@ -2737,96 +2743,6 @@ char* xjb32(float v,char* buf)
     //byte_move_8(&buf[move_pos],&buf[dot_pos]);
     byte_move_8(buf + move_pos , buf + dot_pos);
     buf_origin[dot_pos] = '.';
-    
-// -45 -> 38 ; size = 84*4 =  336 byte
-//     static const u32 exp_result_precalc[45 + 38 + 1]={
-// 0x35342d65, // e10 = -45
-// 0x34342d65, // e10 = -44
-// 0x33342d65, // e10 = -43
-// 0x32342d65, // e10 = -42
-// 0x31342d65, // e10 = -41
-// 0x30342d65, // e10 = -40
-// 0x39332d65, // e10 = -39
-// 0x38332d65, // e10 = -38
-// 0x37332d65, // e10 = -37
-// 0x36332d65, // e10 = -36
-// 0x35332d65, // e10 = -35
-// 0x34332d65, // e10 = -34
-// 0x33332d65, // e10 = -33
-// 0x32332d65, // e10 = -32
-// 0x31332d65, // e10 = -31
-// 0x30332d65, // e10 = -30
-// 0x39322d65, // e10 = -29
-// 0x38322d65, // e10 = -28
-// 0x37322d65, // e10 = -27
-// 0x36322d65, // e10 = -26
-// 0x35322d65, // e10 = -25
-// 0x34322d65, // e10 = -24
-// 0x33322d65, // e10 = -23
-// 0x32322d65, // e10 = -22
-// 0x31322d65, // e10 = -21
-// 0x30322d65, // e10 = -20
-// 0x39312d65, // e10 = -19
-// 0x38312d65, // e10 = -18
-// 0x37312d65, // e10 = -17
-// 0x36312d65, // e10 = -16
-// 0x35312d65, // e10 = -15
-// 0x34312d65, // e10 = -14
-// 0x33312d65, // e10 = -13
-// 0x32312d65, // e10 = -12
-// 0x31312d65, // e10 = -11
-// 0x30312d65, // e10 = -10
-// 0x39302d65, // e10 = -9
-// 0x38302d65, // e10 = -8
-// 0x37302d65, // e10 = -7
-// 0x36302d65, // e10 = -6
-// 0x35302d65, // e10 = -5
-// 0x34302d65, // e10 = -4
-// 0x0, // e10 = -3
-// 0x0, // e10 = -2
-// 0x0, // e10 = -1
-// 0x0, // e10 = 0
-// 0x0, // e10 = 1
-// 0x0, // e10 = 2
-// 0x0, // e10 = 3
-// 0x0, // e10 = 4
-// 0x0, // e10 = 5
-// 0x0, // e10 = 6
-// 0x0, // e10 = 7
-// 0x38302b65, // e10 = 8
-// 0x39302b65, // e10 = 9
-// 0x30312b65, // e10 = 10
-// 0x31312b65, // e10 = 11
-// 0x32312b65, // e10 = 12
-// 0x33312b65, // e10 = 13
-// 0x34312b65, // e10 = 14
-// 0x35312b65, // e10 = 15
-// 0x36312b65, // e10 = 16
-// 0x37312b65, // e10 = 17
-// 0x38312b65, // e10 = 18
-// 0x39312b65, // e10 = 19
-// 0x30322b65, // e10 = 20
-// 0x31322b65, // e10 = 21
-// 0x32322b65, // e10 = 22
-// 0x33322b65, // e10 = 23
-// 0x34322b65, // e10 = 24
-// 0x35322b65, // e10 = 25
-// 0x36322b65, // e10 = 26
-// 0x37322b65, // e10 = 27
-// 0x38322b65, // e10 = 28
-// 0x39322b65, // e10 = 29
-// 0x30332b65, // e10 = 30
-// 0x31332b65, // e10 = 31
-// 0x32332b65, // e10 = 32
-// 0x33332b65, // e10 = 33
-// 0x34332b65, // e10 = 34
-// 0x35332b65, // e10 = 35
-// 0x36332b65, // e10 = 36
-// 0x37332b65, // e10 = 37
-// 0x38332b65, // e10 = 38
-// };
-//     static const u32 *exp_ptr = (u32*)&exp_result_precalc[45];
-//     //u32 exp_result = exp_ptr[e10];
     if(m < (u32)1e6 )[[unlikely]]
     {
         u64 lz = 0;
@@ -2840,11 +2756,10 @@ char* xjb32(float v,char* buf)
 //write exponent    
 #if 1
         u64 neg = e10 < 0;
-        u64 bc = neg ? -e10 : e10;
-        u64 e = neg ? ('e' + '-' * 256) : ('e' + '+' * 256) ;
-        u64 bc_ASCII = bc * 256u - (256 * 10 - 1) * ((bc * 103u) >> 10) + (u64)('0' + '0' * 256); // 12 => "12"
-        u64 exp_result = e | ( bc_ASCII << 16 );
-        exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : exp_result;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
+        u64 e10_abs = neg ? -e10 : e10;
+        u64 e = neg ? ('e' + '-' * 256) | ((u64)('0' + '0' * 256) << 16) : ('e' + '+' * 256) | ((u64)('0' + '0' * 256) << 16);
+        u64 e10_BCD = (e10_abs << 24) - ((u64)(256 * 10 - 1) << 16) * ((e10_abs * 103u) >> 10); // 12 => "12"
+        u64 exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : e | e10_BCD;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
 #else
         u64 exp_result = exp_ptr[e10];
 #endif
