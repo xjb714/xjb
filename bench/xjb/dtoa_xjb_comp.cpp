@@ -47,7 +47,7 @@
     input    : float x  , A float number
                char* buf , At least 24byte
     output   : The function returns a pointer to the end of the string. The string is null-terminated.
-    
+
 
     dtoa_xjb64 is a function that converts a double number to a string that satisfies the requirements of the Steele & White algorithm.
     ftoa_xjb32 is a function that converts a float number to a string that satisfies the requirements of the Steele & White algorithm.
@@ -76,10 +76,10 @@
     In the x64 platform, dtoa_xjb64 uses the sse2 instruction to accelerate the conversion.
     If the cpu not contains neon or sse2, dtoa_xjb64 performances will be poor.
 
-    On the x64 platform, the performance of this code may not be optimal when compiled by the gcc compiler or the clang compiler. 
-    Under the gcc compiler, due to certain conditional move statements being compiled into branch instructions, 
-    a large number of branch prediction failures occur, which seriously affects performance. 
-    Under the clang compiler, the performance is very poor, and the cause is still under investigation. 
+    On the x64 platform, the performance of this code may not be optimal when compiled by the gcc compiler or the clang compiler.
+    Under the gcc compiler, due to certain conditional move statements being compiled into branch instructions,
+    a large number of branch prediction failures occur, which seriously affects performance.
+    Under the clang compiler, the performance is very poor, and the cause is still under investigation.
     Only under the intel compiler icpx does the performance meet expectations.
     I don't know how to force the conditional move statement to be compiled into the cmov instruction.
     The incorrect optimization of the compiler has led to performance not meeting expectations. If you know how to solve it, please provide feedback.
@@ -90,15 +90,15 @@
                 clang 18.1.3  : 16.2-17ns   61.6-62.5cycle ipc=2.13  branch-miss=0.15%
                 gcc 13.3      : 12.2-13.1ns 46.7-50cycle   ipc=3.28  branch-miss=0.7%-1.22%
 
-    compiler options          : -O3 
+    compiler options          : -O3
                 icpx 2025.0.4 : 10.5-10.8ns 39.5-41.5cycle ipc=3.57  branch-miss=0.15%
                 clang 18.1.3  : 16.8-17.5ns 63.4-66cycle   ipc=2.25  branch-miss=0.15%
                 gcc 13.3      : 11.6-12.5ns 45.2-47cycle   ipc=3.56  branch-miss=0.7%-1.16%
-    
+
     for clang compiler, the performance is very poor, the ipc value is very low.
     for gcc compiler, the performance is poor, and the branch-miss rate is high.
     only icpx compiler has good performance, and the ipc value is high(the instruction-level parallelism is high), and the branch-miss rate is low.
-    
+
     The icpx compiler generates the best code : (1)lower instructions, (2)higher ipc, (3)low branch-miss rate.
 
     In summary, the performance of this code is not optimal, and the cause is still under investigation.
@@ -226,16 +226,16 @@
 #   if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
         (defined(__INTEL_COMPILER) || defined(__ICC))
 #       define is_intel_compiler 1
-#   endif 
+#   endif
 #endif
 
 /*
  Compiler barriers for single variable.
- 
+
  These macros informs GCC that a read/write access to the given memory location
  will occur, preventing certain compiler optimizations or reordering around
  the access to 'val'. It does not emit any actual instructions.
- 
+
  Useful when GCC's default optimization strategies are suboptimal and need
  precise control over memory access patterns.
  */
@@ -316,35 +316,35 @@
 
 /*
  Correct rounding in double number computations.
- 
+
  On the x86 architecture, some compilers may use x87 FPU instructions for
  floating-point arithmetic. The x87 FPU loads all floating point number as
  80-bit double-extended precision internally, then rounds the result to original
  precision, which may produce inaccurate results. For a more detailed
  explanation, see the paper: https://arxiv.org/abs/cs/0701192
- 
+
  Here are some examples of double precision calculation error:
- 
+
      2877.0 / 1e6   == 0.002877,  but x87 returns 0.0028770000000000002
      43683.0 * 1e21 == 4.3683e25, but x87 returns 4.3683000000000004e25
- 
+
  Here are some examples of compiler flags to generate x87 instructions on x86:
- 
+
      clang -m32 -mno-sse
      gcc/icc -m32 -mfpmath=387
      msvc /arch:SSE or /arch:IA32
- 
+
  If we are sure that there's no similar error described above, we can define the
  YY_DOUBLE_MATH_CORRECT as 1 to enable the fast path calculation. This is
  not an accurate detection, it's just try to avoid the error at compile-time.
  An accurate detection can be done at run-time:
- 
+
      bool is_double_math_correct(void) {
          volatile double r = 43683.0;
          r *= 1e21;
          return r == 4.3683e25;
      }
- 
+
  See also: utils.h in https://github.com/google/double-conversion/
  */
 #if !defined(FLT_EVAL_METHOD) && defined(__FLT_EVAL_METHOD__)
@@ -527,7 +527,7 @@ static inline u32 u32_lz_bits(u32 v) {
 
 #if defined(__SSE4_1__) // __GNUC__ : gcc icpx clang  ; for MSVC how to check cpu support sse4.1
     __m128i z = _mm_sub_epi32( _mm_slli_epi32(y,16) , _mm_mullo_epi32( _mm_set1_epi32((100<<16)-1) , _mm_srli_epi32( _mm_mulhi_epi16(y,_mm_set1_epi32(10486)),4)));
-#else   
+#else
     // y_div_100    = [   0   |    mn |   0   |    ij |   0   |    ef |   0   |    ab ]
     __m128i y_div_100;
     y_div_100 = _mm_mulhi_epu16(y, div_100);
@@ -541,7 +541,7 @@ static inline u32 u32_lz_bits(u32 v) {
     // z            = [    mn |    op |    ij |    kl |    ef |    gh |    ab |    cd ]
     __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
 #endif
-    
+
 
     // z_div_10     = [ 0 | m | 0 | o | 0 | i | 0 | k | 0 | e | 0 | g | 0 | a | 0 | c ]
     __m128i z_div_10 = _mm_mulhi_epu16(z, div_10);
@@ -557,7 +557,7 @@ static inline u32 u32_lz_bits(u32 v) {
     tmp = _mm_add_epi8(tmp, ascii0);
 
     *ASCII = tmp;
-    
+
     return tz;
 
     }
@@ -626,7 +626,7 @@ static inline u32 u32_lz_bits(u32 v) {
 
 
 static inline u64 encode_16digit(const u64 x, u64* hi,u64* lo){
-    // this code convert 16 digit number to 16 digit ASCII number; 
+    // this code convert 16 digit number to 16 digit ASCII number;
     // require x in [1 , 1e16 - 1] = [1 , 99999999*1e8 + 99999999]
     // return tail zero count of x in base 10 , range [0,15]
 
@@ -651,7 +651,7 @@ static inline u64 encode_16digit(const u64 x, u64* hi,u64* lo){
     return tz;
 }
 static inline u64 encode_8digit(const u64 x, u64* ASCII){
-    // this code convert 8 digit number to 8 digit ASCII number; 
+    // this code convert 8 digit number to 8 digit ASCII number;
     // require x in [1 , 1e8 - 1] = [1 , 99999999]
     // return tail zero count of x in base 10 , range [0,7]
 
@@ -702,12 +702,11 @@ static inline u64 calc_pow5_rlz(unsigned int pow5_offset)
     // return (5**pow5_offset) << clz(5**pow5_offset);
 #if 1
     const u64 p5_4 = 5*5*5*5;
-    const u64 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1; 
-    unsigned int pow5_offset_right = pow5_offset % 16;
-    u64 p5_right = ((((pow5_offset_right / 4 > 1) ?  ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32) : 1 + (p5_4<<32)) >> ((pow5_offset_right & 4) * 8 )) & ((1ull<<32) - 1))
-                * (u64)( (p5_0_3 >> ((pow5_offset_right % 4) * 8)) & 0xff );
-    u64 p5 = pow5_offset >= 16 ? p5_right * (p5_4*p5_4*p5_4*p5_4) : p5_right;
-    return p5 << u64_lz_bits(p5);
+    const u64 p5_8 = p5_4*p5_4;
+    const u64 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1;
+    u64 p5 = ((pow5_offset & 16) ? p5_8*p5_8 : 1) * ((pow5_offset & 8) ? p5_8 : 1) * ((pow5_offset & 4) ? p5_4 : 1) * ( (p5_0_3 >> ((pow5_offset % 4) * 8)) & 0xff );
+    u64 clz = 63 - ((pow5_offset * 149) >> 6);// equal to clz(p5)
+    return p5 << clz;
 #else
     u64 p5 = 1;
     u64 p5_base = 5;
@@ -752,33 +751,33 @@ static inline u64 calc_pow5_rlz(unsigned int pow5_offset)
 // 0xf24a01a73cf2dccf, 0xbc633b39673c8ced, // e10 =  10 * 27 = 270
 // 0xc3b8358109e84f07, 0x0a862f80ec4700c9, // e10 =  11 * 27 = 297
 // //pow5_remove_left_zero table or pow10_hi table ; when 0 <= -k-1 && -k-1 <= 27; direct use below table for pow10_hi , and pow_lo=0
-// 0x8000000000000000,// = (5** 0) << clz(5** 0) = (5** 0) << 63 ; e10 = 0 
-// 0xa000000000000000,// = (5** 1) << clz(5** 1) = (5** 1) << 61 ; e10 = 1 
-// 0xc800000000000000,// = (5** 2) << clz(5** 2) = (5** 2) << 59 ; e10 = 2 
-// 0xfa00000000000000,// = (5** 3) << clz(5** 3) = (5** 3) << 57 ; e10 = 3 
-// 0x9c40000000000000,// = (5** 4) << clz(5** 4) = (5** 4) << 54 ; e10 = 4 
-// 0xc350000000000000,// = (5** 5) << clz(5** 5) = (5** 5) << 52 ; e10 = 5 
-// 0xf424000000000000,// = (5** 6) << clz(5** 6) = (5** 6) << 50 ; e10 = 6 
-// 0x9896800000000000,// = (5** 7) << clz(5** 7) = (5** 7) << 47 ; e10 = 7 
-// 0xbebc200000000000,// = (5** 8) << clz(5** 8) = (5** 8) << 45 ; e10 = 8 
-// 0xee6b280000000000,// = (5** 9) << clz(5** 9) = (5** 9) << 43 ; e10 = 9 
-// 0x9502f90000000000,// = (5**10) << clz(5**10) = (5**10) << 40 ; e10 = 10 
-// 0xba43b74000000000,// = (5**11) << clz(5**11) = (5**11) << 38 ; e10 = 11 
-// 0xe8d4a51000000000,// = (5**12) << clz(5**12) = (5**12) << 36 ; e10 = 12 
-// 0x9184e72a00000000,// = (5**13) << clz(5**13) = (5**13) << 33 ; e10 = 13 
-// 0xb5e620f480000000,// = (5**14) << clz(5**14) = (5**14) << 31 ; e10 = 14 
-// 0xe35fa931a0000000,// = (5**15) << clz(5**15) = (5**15) << 29 ; e10 = 15 
-// 0x8e1bc9bf04000000,// = (5**16) << clz(5**16) = (5**16) << 26 ; e10 = 16 
-// 0xb1a2bc2ec5000000,// = (5**17) << clz(5**17) = (5**17) << 24 ; e10 = 17 
-// 0xde0b6b3a76400000,// = (5**18) << clz(5**18) = (5**18) << 22 ; e10 = 18 
-// 0x8ac7230489e80000,// = (5**19) << clz(5**19) = (5**19) << 19 ; e10 = 19 
-// 0xad78ebc5ac620000,// = (5**20) << clz(5**20) = (5**20) << 17 ; e10 = 20 
-// 0xd8d726b7177a8000,// = (5**21) << clz(5**21) = (5**21) << 15 ; e10 = 21 
-// 0x878678326eac9000,// = (5**22) << clz(5**22) = (5**22) << 12 ; e10 = 22 
-// 0xa968163f0a57b400,// = (5**23) << clz(5**23) = (5**23) << 10 ; e10 = 23 
-// 0xd3c21bcecceda100,// = (5**24) << clz(5**24) = (5**24) <<  8 ; e10 = 24 
-// 0x84595161401484a0,// = (5**25) << clz(5**25) = (5**25) <<  5 ; e10 = 25 
-// 0xa56fa5b99019a5c8,// = (5**26) << clz(5**26) = (5**26) <<  3 ; e10 = 26 
+// 0x8000000000000000,// = (5** 0) << clz(5** 0) = (5** 0) << 63 ; e10 = 0
+// 0xa000000000000000,// = (5** 1) << clz(5** 1) = (5** 1) << 61 ; e10 = 1
+// 0xc800000000000000,// = (5** 2) << clz(5** 2) = (5** 2) << 59 ; e10 = 2
+// 0xfa00000000000000,// = (5** 3) << clz(5** 3) = (5** 3) << 57 ; e10 = 3
+// 0x9c40000000000000,// = (5** 4) << clz(5** 4) = (5** 4) << 54 ; e10 = 4
+// 0xc350000000000000,// = (5** 5) << clz(5** 5) = (5** 5) << 52 ; e10 = 5
+// 0xf424000000000000,// = (5** 6) << clz(5** 6) = (5** 6) << 50 ; e10 = 6
+// 0x9896800000000000,// = (5** 7) << clz(5** 7) = (5** 7) << 47 ; e10 = 7
+// 0xbebc200000000000,// = (5** 8) << clz(5** 8) = (5** 8) << 45 ; e10 = 8
+// 0xee6b280000000000,// = (5** 9) << clz(5** 9) = (5** 9) << 43 ; e10 = 9
+// 0x9502f90000000000,// = (5**10) << clz(5**10) = (5**10) << 40 ; e10 = 10
+// 0xba43b74000000000,// = (5**11) << clz(5**11) = (5**11) << 38 ; e10 = 11
+// 0xe8d4a51000000000,// = (5**12) << clz(5**12) = (5**12) << 36 ; e10 = 12
+// 0x9184e72a00000000,// = (5**13) << clz(5**13) = (5**13) << 33 ; e10 = 13
+// 0xb5e620f480000000,// = (5**14) << clz(5**14) = (5**14) << 31 ; e10 = 14
+// 0xe35fa931a0000000,// = (5**15) << clz(5**15) = (5**15) << 29 ; e10 = 15
+// 0x8e1bc9bf04000000,// = (5**16) << clz(5**16) = (5**16) << 26 ; e10 = 16
+// 0xb1a2bc2ec5000000,// = (5**17) << clz(5**17) = (5**17) << 24 ; e10 = 17
+// 0xde0b6b3a76400000,// = (5**18) << clz(5**18) = (5**18) << 22 ; e10 = 18
+// 0x8ac7230489e80000,// = (5**19) << clz(5**19) = (5**19) << 19 ; e10 = 19
+// 0xad78ebc5ac620000,// = (5**20) << clz(5**20) = (5**20) << 17 ; e10 = 20
+// 0xd8d726b7177a8000,// = (5**21) << clz(5**21) = (5**21) << 15 ; e10 = 21
+// 0x878678326eac9000,// = (5**22) << clz(5**22) = (5**22) << 12 ; e10 = 22
+// 0xa968163f0a57b400,// = (5**23) << clz(5**23) = (5**23) << 10 ; e10 = 23
+// 0xd3c21bcecceda100,// = (5**24) << clz(5**24) = (5**24) <<  8 ; e10 = 24
+// 0x84595161401484a0,// = (5**25) << clz(5**25) = (5**25) <<  5 ; e10 = 25
+// 0xa56fa5b99019a5c8,// = (5**26) << clz(5**26) = (5**26) <<  3 ; e10 = 26
 // 0xcecb8f27f4200f3a,// = (5**27) << clz(5**27) = (5**27) <<  1 ; e10 = 27
 // // //for float
 // // 0xcfb11ead453994bb, // e10 =  -32
@@ -793,7 +792,7 @@ char* xjb64(double v,char* buf)
 {
 
     // compress lookup table version
-    // lookup table size : 
+    // lookup table size :
     //        (1)  x86-64 : 592 byte
     //        (2)  arm64 : 592+256 = 848 byte
 
@@ -804,7 +803,7 @@ char* xjb64(double v,char* buf)
     memcpy(&vi, &v, sizeof(v));//double to u64 bit copy
     buf[0]='-';
     buf += vi>>63;
-    
+
     u64 dec,m;
     int e10;
     u64 tz;// tail zero
@@ -851,7 +850,7 @@ char* xjb64(double v,char* buf)
     u64 c;
     int32_t q;
 #ifdef __amd64__
-//#if 0    
+//#if 0
     if (ieee_exponent > 0) [[likely]] // branch
     {
         c = (1ull<<52) | ieee_significand;// 53 bit
@@ -1507,13 +1506,13 @@ char* xjb64(double v,char* buf)
 0x500003830332b65, // e10=308
     };
     static const u64 bitarray_irregular[32] = {
-        0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000, 
-        0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000, 
-        0x0000000000400000, 0x0000000000000000, 0x0000000000020000, 0x0000000000800000, 
-        0x0000000000000000, 0x0008000000000000, 0x0004000040000000, 0x0000000000000000, 
-        0x0000000000000000, 0x0000000001000000, 0x0020000000000000, 0x0000000000000000, 
-        0x0001000000040000, 0x0200000001000000, 0x0000000000102000, 0x0000000100000000, 
-        0x2000000000000000, 0x0000000000020000, 0x0000000000000000, 0x0000000000000000, 
+        0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000,
+        0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000,
+        0x0000000000400000, 0x0000000000000000, 0x0000000000020000, 0x0000000000800000,
+        0x0000000000000000, 0x0008000000000000, 0x0004000040000000, 0x0000000000000000,
+        0x0000000000000000, 0x0000000001000000, 0x0020000000000000, 0x0000000000000000,
+        0x0001000000040000, 0x0200000001000000, 0x0000000000102000, 0x0000000100000000,
+        0x2000000000000000, 0x0000000000020000, 0x0000000000000000, 0x0000000000000000,
         0x0000000000000000, 0x0000000040000000, 0x0000000000000000, 0x0000000000008000};
     static const u64 g[(323 - (-293) + 1) * 2] = {
         0xcc5fc196fefd7d0c, 0x1e53ed49a96272c9, // -293
@@ -2134,9 +2133,9 @@ char* xjb64(double v,char* buf)
         0xca5e89b18b602368, 0x385bb19cb14bdfc5, // 322
         0xfcf62c1dee382c42, 0x46729e03dd9ed7b6, // 323
     };
-    static const u64 *pow10_ptr = g + 293 * 2; 
-#endif    
-    
+    static const u64 *pow10_ptr = g + 293 * 2;
+#endif
+
     const int base_start = -11, base_end = 11,  ratio = 27;
 //     static const u64 pow10_base[ (base_end-base_start+1)*2 ]={
 // 0xa76c582338ed2621, 0xaf2af2b80af6f24f, // e10 =  -11 * 27 = -297
@@ -2196,8 +2195,8 @@ char* xjb64(double v,char* buf)
 #define direct_via_lut_get_pow5  1
 // direct_via_lut_get_pow5 = 1 : direct use looup table to get (5**n)<<clz(5**n)
 // direct_via_lut_get_pow5 = 0 : calc the  (5**n)<<clz(5**n)  directly, without using lookup table
-    
-    //compress ratio = 27; all lut size = 23*2*8 + (27+1)*8 = 592 byte 
+
+    //compress ratio = 27; all lut size = 23*2*8 + (27+1)*8 = 592 byte
     static const u64 pow10_base_and_pow5_rlz[(base_end - base_start + 1) * 2 + direct_via_lut_get_pow5 * (ratio + 1)]={
 //pow10_base table
 0xa76c582338ed2621, 0xaf2af2b80af6f24f, // e10 =  -11 * 27 = -297
@@ -2225,33 +2224,33 @@ char* xjb64(double v,char* buf)
 0xc3b8358109e84f07, 0x0a862f80ec4700c9, // e10 =  11 * 27 = 297
 #if direct_via_lut_get_pow5
 // //pow5_remove_left_zero table or pow10_hi table ; when 0 <= -k-1 && -k-1 <= 27; direct use below table for pow10_hi , and pow_lo=0
-0x8000000000000000,// = (5** 0) << clz(5** 0) = (5** 0) << 63 ; e10 = 0 
-0xa000000000000000,// = (5** 1) << clz(5** 1) = (5** 1) << 61 ; e10 = 1 
-0xc800000000000000,// = (5** 2) << clz(5** 2) = (5** 2) << 59 ; e10 = 2 
-0xfa00000000000000,// = (5** 3) << clz(5** 3) = (5** 3) << 57 ; e10 = 3 
-0x9c40000000000000,// = (5** 4) << clz(5** 4) = (5** 4) << 54 ; e10 = 4 
-0xc350000000000000,// = (5** 5) << clz(5** 5) = (5** 5) << 52 ; e10 = 5 
-0xf424000000000000,// = (5** 6) << clz(5** 6) = (5** 6) << 50 ; e10 = 6 
-0x9896800000000000,// = (5** 7) << clz(5** 7) = (5** 7) << 47 ; e10 = 7 
-0xbebc200000000000,// = (5** 8) << clz(5** 8) = (5** 8) << 45 ; e10 = 8 
-0xee6b280000000000,// = (5** 9) << clz(5** 9) = (5** 9) << 43 ; e10 = 9 
-0x9502f90000000000,// = (5**10) << clz(5**10) = (5**10) << 40 ; e10 = 10 
-0xba43b74000000000,// = (5**11) << clz(5**11) = (5**11) << 38 ; e10 = 11 
-0xe8d4a51000000000,// = (5**12) << clz(5**12) = (5**12) << 36 ; e10 = 12 
-0x9184e72a00000000,// = (5**13) << clz(5**13) = (5**13) << 33 ; e10 = 13 
-0xb5e620f480000000,// = (5**14) << clz(5**14) = (5**14) << 31 ; e10 = 14 
-0xe35fa931a0000000,// = (5**15) << clz(5**15) = (5**15) << 29 ; e10 = 15 
-0x8e1bc9bf04000000,// = (5**16) << clz(5**16) = (5**16) << 26 ; e10 = 16 
-0xb1a2bc2ec5000000,// = (5**17) << clz(5**17) = (5**17) << 24 ; e10 = 17 
-0xde0b6b3a76400000,// = (5**18) << clz(5**18) = (5**18) << 22 ; e10 = 18 
-0x8ac7230489e80000,// = (5**19) << clz(5**19) = (5**19) << 19 ; e10 = 19 
-0xad78ebc5ac620000,// = (5**20) << clz(5**20) = (5**20) << 17 ; e10 = 20 
-0xd8d726b7177a8000,// = (5**21) << clz(5**21) = (5**21) << 15 ; e10 = 21 
-0x878678326eac9000,// = (5**22) << clz(5**22) = (5**22) << 12 ; e10 = 22 
-0xa968163f0a57b400,// = (5**23) << clz(5**23) = (5**23) << 10 ; e10 = 23 
-0xd3c21bcecceda100,// = (5**24) << clz(5**24) = (5**24) <<  8 ; e10 = 24 
-0x84595161401484a0,// = (5**25) << clz(5**25) = (5**25) <<  5 ; e10 = 25 
-0xa56fa5b99019a5c8,// = (5**26) << clz(5**26) = (5**26) <<  3 ; e10 = 26 
+0x8000000000000000,// = (5** 0) << clz(5** 0) = (5** 0) << 63 ; e10 = 0
+0xa000000000000000,// = (5** 1) << clz(5** 1) = (5** 1) << 61 ; e10 = 1
+0xc800000000000000,// = (5** 2) << clz(5** 2) = (5** 2) << 59 ; e10 = 2
+0xfa00000000000000,// = (5** 3) << clz(5** 3) = (5** 3) << 57 ; e10 = 3
+0x9c40000000000000,// = (5** 4) << clz(5** 4) = (5** 4) << 54 ; e10 = 4
+0xc350000000000000,// = (5** 5) << clz(5** 5) = (5** 5) << 52 ; e10 = 5
+0xf424000000000000,// = (5** 6) << clz(5** 6) = (5** 6) << 50 ; e10 = 6
+0x9896800000000000,// = (5** 7) << clz(5** 7) = (5** 7) << 47 ; e10 = 7
+0xbebc200000000000,// = (5** 8) << clz(5** 8) = (5** 8) << 45 ; e10 = 8
+0xee6b280000000000,// = (5** 9) << clz(5** 9) = (5** 9) << 43 ; e10 = 9
+0x9502f90000000000,// = (5**10) << clz(5**10) = (5**10) << 40 ; e10 = 10
+0xba43b74000000000,// = (5**11) << clz(5**11) = (5**11) << 38 ; e10 = 11
+0xe8d4a51000000000,// = (5**12) << clz(5**12) = (5**12) << 36 ; e10 = 12
+0x9184e72a00000000,// = (5**13) << clz(5**13) = (5**13) << 33 ; e10 = 13
+0xb5e620f480000000,// = (5**14) << clz(5**14) = (5**14) << 31 ; e10 = 14
+0xe35fa931a0000000,// = (5**15) << clz(5**15) = (5**15) << 29 ; e10 = 15
+0x8e1bc9bf04000000,// = (5**16) << clz(5**16) = (5**16) << 26 ; e10 = 16
+0xb1a2bc2ec5000000,// = (5**17) << clz(5**17) = (5**17) << 24 ; e10 = 17
+0xde0b6b3a76400000,// = (5**18) << clz(5**18) = (5**18) << 22 ; e10 = 18
+0x8ac7230489e80000,// = (5**19) << clz(5**19) = (5**19) << 19 ; e10 = 19
+0xad78ebc5ac620000,// = (5**20) << clz(5**20) = (5**20) << 17 ; e10 = 20
+0xd8d726b7177a8000,// = (5**21) << clz(5**21) = (5**21) << 15 ; e10 = 21
+0x878678326eac9000,// = (5**22) << clz(5**22) = (5**22) << 12 ; e10 = 22
+0xa968163f0a57b400,// = (5**23) << clz(5**23) = (5**23) << 10 ; e10 = 23
+0xd3c21bcecceda100,// = (5**24) << clz(5**24) = (5**24) <<  8 ; e10 = 24
+0x84595161401484a0,// = (5**25) << clz(5**25) = (5**25) <<  5 ; e10 = 25
+0xa56fa5b99019a5c8,// = (5**26) << clz(5**26) = (5**26) <<  3 ; e10 = 26
 0xcecb8f27f4200f3a,// = (5**27) << clz(5**27) = (5**27) <<  1 ; e10 = 27
 #endif
     };
@@ -2268,7 +2267,7 @@ char* xjb64(double v,char* buf)
         k = ((ieee_exponent - 1075) * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
         int get_e10 = -k - 1;
-        
+
         static const u64 *pow5_rlz_ptr = &pow10_base_and_pow5_rlz[(base_end - base_start + 1)*2];
         u64 pow10_hi;
         u128 hi128;
@@ -2278,7 +2277,7 @@ char* xjb64(double v,char* buf)
             //fast path ; likely
             h = q + ((get_e10 * 217707) >> 16);
 #if direct_via_lut_get_pow5
-            pow10_hi = pow5_rlz_ptr[ get_e10 ];// pow10_lo = 0 
+            pow10_hi = pow5_rlz_ptr[ get_e10 ];// pow10_lo = 0
 #else
             pow10_hi = calc_pow5_rlz(get_e10);
 #endif
@@ -2288,8 +2287,8 @@ char* xjb64(double v,char* buf)
         else
         {
             //int base = ( get_e10 - (base_start * ratio) ) / ratio;// range = [0,22] = [0/27,616/27]
-            int base = (( get_e10 - (base_start * ratio) ) * 1214) >> 15;// div 27 
-            int pow5_offset = get_e10 - (base + base_start) * ratio;// range = [0,26]
+            int base = (( get_e10 - (base_start * ratio) ) * 1214) >> 15;// div 27
+            u32 pow5_offset = get_e10 - (base + base_start) * ratio;// range = [0,26]
             u64 pow10_base_high = pow10_base_and_pow5_rlz[base  * 2];
             u64 pow10_base_low = pow10_base_and_pow5_rlz[base * 2 + 1];
 #if direct_via_lut_get_pow5
@@ -2322,7 +2321,7 @@ char* xjb64(double v,char* buf)
         //dec_sig_len_ofs = ( ( (2+16+16)*256 + 2+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
         dec_sig_len = ( ( (16+16)*256 + 16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
 #else
-        ///dec_sig_len_ofs = ( ( (2+16)*256 + 2+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
+        //dec_sig_len_ofs = ( ( (2+16)*256 + 2+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
         dec_sig_len = ( ( (16)*256 + 16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
 #endif
 
@@ -2334,6 +2333,7 @@ char* xjb64(double v,char* buf)
 #else
         //dec_sig_len_ofs = up_down  ?  2+16 - tz : 2+16 + D17;
         dec_sig_len = up_down  ?  16 - tz : 16 + D17;
+        //u64 dec_sig_len_1 = up_down  ?  16+1 - tz : 16+1 + D17;
 #endif
 
 #endif
@@ -2352,18 +2352,18 @@ char* xjb64(double v,char* buf)
 #else // for apple M1 , better performance
         u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) + (u64)('0' + '0' * 256);
         static const u64 bitarray_irregular[32] = {
-        0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000, 
-        0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000, 
-        0x0000000000400000, 0x0000000000000000, 0x0000000000020000, 0x0000000000800000, 
-        0x0000000000000000, 0x0008000000000000, 0x0004000040000000, 0x0000000000000000, 
-        0x0000000000000000, 0x0000000001000000, 0x0020000000000000, 0x0000000000000000, 
-        0x0001000000040000, 0x0200000001000000, 0x0000000000102000, 0x0000000100000000, 
-        0x2000000000000000, 0x0000000000020000, 0x0000000000000000, 0x0000000000000000, 
+        0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000,
+        0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000,
+        0x0000000000400000, 0x0000000000000000, 0x0000000000020000, 0x0000000000800000,
+        0x0000000000000000, 0x0008000000000000, 0x0004000040000000, 0x0000000000000000,
+        0x0000000000000000, 0x0000000001000000, 0x0020000000000000, 0x0000000000000000,
+        0x0001000000040000, 0x0200000001000000, 0x0000000000102000, 0x0000000100000000,
+        0x2000000000000000, 0x0000000000020000, 0x0000000000000000, 0x0000000000000000,
         0x0000000000000000, 0x0000000040000000, 0x0000000000000000, 0x0000000000008000};
         if(!regular)[[unlikely]]
             one += (bitarray_irregular[ieee_exponent/64]>>(ieee_exponent%64)) & 1;
 #endif
-        
+
         // when -3<=e10 && e10 <= 15 ; we use %lf format print float number
         const int e10_DN = -3;//do not change this value
         const int e10_UP = 15;//do not change this value
@@ -2391,13 +2391,13 @@ char* xjb64(double v,char* buf)
 0,16,17,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,// e10=15
 0,1,2,1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,// e10=other
         };
-        u64 e10_3 = e10 + 3;//convert to unsigned number 
-        u64 e10_data_ofs = e10_3 < 15+3+1 ? e10_3 : 15+3+1;//compute offset 
-        // u64 first_sig_pos = e10_variable_data[e10_data_ofs][0];
-        // u64 dot_pos = e10_variable_data[e10_data_ofs][1];
-        // u64 move_pos = e10_variable_data[e10_data_ofs][2];
-        // u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs];
-#endif
+        u64 e10_3 = e10 + 3;//convert to unsigned number
+        u64 e10_data_ofs = e10_3 < 15+3+1 ? e10_3 : 15+3+1;//compute offset
+        u64 first_sig_pos = e10_variable_data[e10_data_ofs][0];
+        u64 dot_pos = e10_variable_data[e10_data_ofs][1];
+        u64 move_pos = e10_variable_data[e10_data_ofs][2];
+        u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs];
+#else
         u64 first_sig_pos = (e10_DN<=e10 && e10<=-1) ? 1 - e10 : 0 ;
         u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1 ;
         u64 move_pos = dot_pos + (1 - (e10_DN<=e10 && e10<=-1) );
@@ -2409,6 +2409,7 @@ char* xjb64(double v,char* buf)
         u64 exp_pos = (0<=e10 && e10<= e10_UP) ? (e10+3 > dec_sig_len+1 ? e10+3 : dec_sig_len+1) : (
             dec_sig_len + ( (1 - ( e10_DN <= e10 && e10 <= -1 )) > (dec_sig_len == 1) )
         );
+#endif
         char * buf_origin = buf;
         buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
@@ -2430,8 +2431,8 @@ char* xjb64(double v,char* buf)
         byte_move_16(buf + move_pos , buf + dot_pos );
         buf_origin[dot_pos] = '.';
         //static const u64 *exp_ptr = (u64*)&exp_result_precalc[324];
-        
-//process the some special case : subnormal number 
+
+//process the some special case : subnormal number
         if(m < (u64)1e14 ) [[unlikely]]
         {
             // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
@@ -2451,31 +2452,56 @@ char* xjb64(double v,char* buf)
 //             return buf + 5;// return the end of buffer with '\0';
 // #endif
         }
-// write exponent , set 0 to use lookup table to get exp_result , set 1 to use next code to calc exp_result 
+// write exponent , set 0 to use lookup table to get exp_result , set 1 to use next code to calc exp_result
 #if 1
+        buf += exp_pos;
         u64 neg = e10 < 0;
-        u64 e10_abs = neg ? -e10 : e10;
+        u32 e10_abs = neg ? -e10 : e10;
         u64 e = neg ? ('e' + '-' * 256) : ('e' + '+' * 256);
-        u64 a = (e10_abs * 656) >> 16; /* e10_abs / 100 */
-        // u64 _bc = ((e10_abs * 656) & ((1<<16) - 1)) ;
-        // u64 b_c = _bc * 10;
-        // u64 b = b_c >> 16;
-        // u64 _c = b_c & ((1<<16) - 1);
-        // u64 c_ = _c * 10;
-        // u64 c1 = c_ >> 16;
-        // u64 bc_ASCII = b + c1 * 256 + (u64)('0' + '0' * 256 + (4ull << 40) + (4ull << 32));
-        u64 bc = e10_abs - a * 100;    /* e10_abs % 100 */
+        // memcpy(buf, &e, 2);
+        // u64 a = (e10_abs * (u128)184467440737095517) >> 64;
+        // u64 a_ascii = a+'0';
+        // memcpy(buf+2,&a_ascii,1);
+        // u64 _bc = (e10_abs * (u128)184467440737095517);
+        // u64 b = (_bc * (u128)10) >> 64;
+        // u64 b_ascii = b+'0';
+        // memcpy(buf+2+(a>0),&b_ascii,1);
+        // u64 _c = (_bc * (u128)10);
+        // u64 c1 = (_c * (u128)10) >> 64;
+        // u64 c_ascii = c1 + '0';
+        // u32 write_pos = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : 2 + (a>0) + 1;
+        // u32 write_len = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : write_pos + 1;
+        // u32 write_value = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : c_ascii;
+        // memcpy(buf + write_pos ,&write_value, 2 );
+        // return buf + write_len;
+
+        //buf += 2;
+
+        // u32 ab = (e10_abs * 410) >> 12;//e10_abs div 10
+        // u32 e10_c = (e10_abs - ab * 10) << 16;
+        // u32 e10_ab = ab * 256 - 2559 * ((ab * 103) >> 10) ;
+        // u32 abc_ascii = e10_ab + e10_c + (u32)('0' + '0' * 256 + '0' * 65536);
+        // abc_ascii = e10_abs > 99 ? abc_ascii : abc_ascii >> 8;
+        // u64 exp_result = e + (abc_ascii << 16);
+
+
+        u32 a = (e10_abs * 656u) >> 16; /* e10_abs / 100 */
+        u32 bc = e10_abs - a * 100;    /* e10_abs % 100 */
         u64 bc_ASCII = bc * 256u - (256 * 10 - 1) * ((bc * 103u) >> 10) + (u64)('0' + '0' * 256 + (4ull << 40) + (4ull << 32)); // 12 => "12"
-        u64 exp_result = e | ( ( (e10_abs > 99u) ? a | ('0' | (1ull << 40)) | (bc_ASCII << 8) : bc_ASCII) << 16);
+        u64 exp_result = e + ( ( (e10_abs > 99u) ? a + ('0' | (1ull << 40)) + (bc_ASCII << 8) : bc_ASCII) << 16);
+
+        // u64 bc_ASCII = bc * 256 - (256 * 10 - 1) * ((bc * 103u) >> 10) + (u64)('0' + '0' * 256); // 12 => "12"
+        // u64 exp_result = e + ( ( (e10_abs > 99u) ? a + '0' + (bc_ASCII << 8) : bc_ASCII) << 16);
         exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : exp_result;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
+
 #else
         //u64 exp_result = exp_ptr[e10];
 #endif
-        buf += exp_pos;
+
         //*(u64*)buf = exp_result;
-        memcpy(buf, &exp_result, 8);  
-        //u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 | (e10_abs > 99u) ) ;// "e+20" "e+308" : 4 or 5
-        u64 exp_len = exp_result >> 56; // 0 or 4 or 5 ; equal to above code
+        memcpy(buf, &exp_result, 8);
+        u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 + (e10_abs > 99u) ) ;// "e+20" "e+308" : 4 or 5
+        //u64 exp_len = exp_result >> 56; // 0 or 4 or 5 ; equal to above code
         return buf + exp_len;// return the end of buffer with '\0';
 }
 #if 1
@@ -2531,7 +2557,7 @@ char* xjb32(float v,char* buf)
 #else
     k = (exp_bin * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
-    int get_e10 = -1 - k;
+    int get_e10 = -1 - k;// [-32,44]
     int h = exp_bin + ((get_e10 * 217707) >> 16); // [-4,-1]
     u32 p10_base_index = (u32)(get_e10 + 32) / 16;// [0,4]
     int p10_base = p10_base_index * 16 - 32;
@@ -2549,7 +2575,7 @@ char* xjb32(float v,char* buf)
         ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32),
         (125<<24) + (25<<16) + (5<<8) + 1
     };
-    const u32 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1; 
+    const u32 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1;
     u64 pow10_base = pow10_base_table_pow5[p10_base_index];
     int shift = ((get_e10 * 217707) >> 16) - ((p10_base * 217707) >> 16) - p5_off;
     u32 pow5_base;
@@ -2568,12 +2594,12 @@ char* xjb32(float v,char* buf)
     // //for(int i=0;i<p5_off;++i)p5*=5;
     // while (p5_off > 0)
     // {
-    //     if (p5_off & 1) 
+    //     if (p5_off & 1)
     //         p5 *= p5_base;
     //     p5_base *= p5_base;
     //     p5_off >>= 1;
     // }
-    
+
     u64 pow10_hi = ( (__uint128_t)pow10_base * p5 ) >> shift;
     u64 even = ((sig_bin + 1) & 1);
     const int BIT = 36; // [33,36] all right
@@ -2591,7 +2617,7 @@ char* xjb32(float v,char* buf)
     u64 ASCII_8;
     tz = encode_8digit(m,&ASCII_8);//When m=0, the return value tz is not used. because of up_down is must be 0. m=0 => updown=0;
     //dec_sig_len = up_down ? 8 - tz : 8 + D9;
-#if yy_is_real_gcc 
+#if yy_is_real_gcc
     // use this code to prevent gcc compiler generate branch instructions
     //dec_sig_len_ofs = ( ( ((2+8 - tz)*256) + 2+8 + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     //dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
@@ -2631,8 +2657,8 @@ char* xjb32(float v,char* buf)
 0,8,9,10,10,10,10,10,10,10,10,10,// e10=7
 0,1,2,1,3,4,5,6,7,8,9,10// e10=other
         };
-    u64 e10_3 = e10 + (-e10_DN);//convert to unsigned number 
-    u64 e10_data_ofs = e10_3 < e10_UP-e10_DN+1 ? e10_3 : e10_UP-e10_DN+1;//compute offset 
+    u64 e10_3 = e10 + (-e10_DN);//convert to unsigned number
+    u64 e10_data_ofs = e10_3 < e10_UP-e10_DN+1 ? e10_3 : e10_UP-e10_DN+1;//compute offset
     u64 first_sig_pos = e10_variable_data[e10_data_ofs][0];  // we use lookup table to get first_sig_pos
     u64 dot_pos = e10_variable_data[e10_data_ofs][1];
     u64 move_pos = e10_variable_data[e10_data_ofs][2];
@@ -2667,7 +2693,7 @@ char* xjb32(float v,char* buf)
         byte_move_8(buf + 2, buf+lz+1);
         exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
     }
-//write exponent    
+//write exponent
     u64 neg = e10 < 0;
     u64 e10_abs = neg ? -e10 : e10;
     u64 e = neg ? ('e' + '-' * 256) | ((u64)('0' + '0' * 256) << 16) : ('e' + '+' * 256) | ((u64)('0' + '0' * 256) << 16);
