@@ -20,7 +20,7 @@ lookup table size:
     <tr>
         <td>float</td>
         <td>1096byte</td>
-        <td>56byte</td>
+        <td>64byte</td>
     </tr>
     <tr>
         <td>double</td>
