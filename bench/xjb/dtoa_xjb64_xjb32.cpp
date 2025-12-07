@@ -47,7 +47,7 @@
     input    : float x  , A float number
                char* buf , At least 24byte
     output   : The function returns a pointer to the end of the string. The string is null-terminated.
-    
+
 
     dtoa_xjb64 is a function that converts a double number to a string that satisfies the requirements of the Steele & White algorithm.
     ftoa_xjb32 is a function that converts a float number to a string that satisfies the requirements of the Steele & White algorithm.
@@ -76,10 +76,10 @@
     In the x64 platform, dtoa_xjb64 uses the sse2 instruction to accelerate the conversion.
     If the cpu not contains neon or sse2, dtoa_xjb64 performances will be poor.
 
-    On the x64 platform, the performance of this code may not be optimal when compiled by the gcc compiler or the clang compiler. 
-    Under the gcc compiler, due to certain conditional move statements being compiled into branch instructions, 
-    a large number of branch prediction failures occur, which seriously affects performance. 
-    Under the clang compiler, the performance is very poor, and the cause is still under investigation. 
+    On the x64 platform, the performance of this code may not be optimal when compiled by the gcc compiler or the clang compiler.
+    Under the gcc compiler, due to certain conditional move statements being compiled into branch instructions,
+    a large number of branch prediction failures occur, which seriously affects performance.
+    Under the clang compiler, the performance is very poor, and the cause is still under investigation.
     Only under the intel compiler icpx does the performance meet expectations.
     I don't know how to force the conditional move statement to be compiled into the cmov instruction.
     The incorrect optimization of the compiler has led to performance not meeting expectations. If you know how to solve it, please provide feedback.
@@ -90,15 +90,15 @@
                 clang 18.1.3  : 16.2-17ns   61.6-62.5cycle ipc=2.13  branch-miss=0.15%
                 gcc 13.3      : 12.2-13.1ns 46.7-50cycle   ipc=3.28  branch-miss=0.7%-1.22%
 
-    compiler options          : -O3 
+    compiler options          : -O3
                 icpx 2025.0.4 : 10.5-10.8ns 39.5-41.5cycle ipc=3.57  branch-miss=0.15%
                 clang 18.1.3  : 16.8-17.5ns 63.4-66cycle   ipc=2.25  branch-miss=0.15%
                 gcc 13.3      : 11.6-12.5ns 45.2-47cycle   ipc=3.56  branch-miss=0.7%-1.16%
-    
+
     for clang compiler, the performance is very poor, the ipc value is very low.
     for gcc compiler, the performance is poor, and the branch-miss rate is high.
     only icpx compiler has good performance, and the ipc value is high(the instruction-level parallelism is high), and the branch-miss rate is low.
-    
+
     The icpx compiler generates the best code : (1)lower instructions, (2)higher ipc, (3)low branch-miss rate.
 
     In summary, the performance of this code is not optimal, and the cause is still under investigation.
@@ -226,16 +226,16 @@
 #   if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
         (defined(__INTEL_COMPILER) || defined(__ICC))
 #       define is_intel_compiler 1
-#   endif 
+#   endif
 #endif
 
 /*
  Compiler barriers for single variable.
- 
+
  These macros informs GCC that a read/write access to the given memory location
  will occur, preventing certain compiler optimizations or reordering around
  the access to 'val'. It does not emit any actual instructions.
- 
+
  Useful when GCC's default optimization strategies are suboptimal and need
  precise control over memory access patterns.
  */
@@ -316,35 +316,35 @@
 
 /*
  Correct rounding in double number computations.
- 
+
  On the x86 architecture, some compilers may use x87 FPU instructions for
  floating-point arithmetic. The x87 FPU loads all floating point number as
  80-bit double-extended precision internally, then rounds the result to original
  precision, which may produce inaccurate results. For a more detailed
  explanation, see the paper: https://arxiv.org/abs/cs/0701192
- 
+
  Here are some examples of double precision calculation error:
- 
+
      2877.0 / 1e6   == 0.002877,  but x87 returns 0.0028770000000000002
      43683.0 * 1e21 == 4.3683e25, but x87 returns 4.3683000000000004e25
- 
+
  Here are some examples of compiler flags to generate x87 instructions on x86:
- 
+
      clang -m32 -mno-sse
      gcc/icc -m32 -mfpmath=387
      msvc /arch:SSE or /arch:IA32
- 
+
  If we are sure that there's no similar error described above, we can define the
  YY_DOUBLE_MATH_CORRECT as 1 to enable the fast path calculation. This is
  not an accurate detection, it's just try to avoid the error at compile-time.
  An accurate detection can be done at run-time:
- 
+
      bool is_double_math_correct(void) {
          volatile double r = 43683.0;
          r *= 1e21;
          return r == 4.3683e25;
      }
- 
+
  See also: utils.h in https://github.com/google/double-conversion/
  */
 #if !defined(FLT_EVAL_METHOD) && defined(__FLT_EVAL_METHOD__)
@@ -527,7 +527,7 @@ static inline u32 u32_lz_bits(u32 v) {
 
 #if defined(__SSE4_1__) // __GNUC__ : gcc icpx clang  ; for MSVC how to check cpu support sse4.1
     __m128i z = _mm_sub_epi32( _mm_slli_epi32(y,16) , _mm_mullo_epi32( _mm_set1_epi32((100<<16)-1) , _mm_srli_epi32( _mm_mulhi_epi16(y,_mm_set1_epi32(10486)),4)));
-#else   
+#else
     // y_div_100    = [   0   |    mn |   0   |    ij |   0   |    ef |   0   |    ab ]
     __m128i y_div_100;
     y_div_100 = _mm_mulhi_epu16(y, div_100);
@@ -541,7 +541,7 @@ static inline u32 u32_lz_bits(u32 v) {
     // z            = [    mn |    op |    ij |    kl |    ef |    gh |    ab |    cd ]
     __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
 #endif
-    
+
 
     // z_div_10     = [ 0 | m | 0 | o | 0 | i | 0 | k | 0 | e | 0 | g | 0 | a | 0 | c ]
     __m128i z_div_10 = _mm_mulhi_epu16(z, div_10);
@@ -557,7 +557,7 @@ static inline u32 u32_lz_bits(u32 v) {
     tmp = _mm_add_epi8(tmp, ascii0);
 
     *ASCII = tmp;
-    
+
     return tz;
 
     }
@@ -626,7 +626,7 @@ static inline u32 u32_lz_bits(u32 v) {
 
 
 static inline u64 encode_16digit(const u64 x, u64* hi,u64* lo){
-    // this code convert 16 digit number to 16 digit ASCII number; 
+    // this code convert 16 digit number to 16 digit ASCII number;
     // require x in [1 , 1e16 - 1] = [1 , 99999999*1e8 + 99999999]
     // return tail zero count of x in base 10 , range [0,15]
 
@@ -651,11 +651,11 @@ static inline u64 encode_16digit(const u64 x, u64* hi,u64* lo){
     return tz;
 }
 static inline u64 encode_8digit(const u64 x, u64* ASCII){
-    // this code convert 8 digit number to 8 digit ASCII number; 
+    // this code convert 8 digit number to 8 digit ASCII number;
     // require x in [1 , 1e8 - 1] = [1 , 99999999]
     // return tail zero count of x in base 10 , range [0,7]
 
-    // 12345678 => "12345678" 
+    // 12345678 => "12345678"
     const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
     u64 aabbccdd = x;
     u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
@@ -702,7 +702,7 @@ char* xjb64(double v,char* buf)
     u64 sign = vi>>63;
     buf[0]='-';
     buf+=sign;
-    
+
     u64 dec,m;
     int e10;
     u64 tz;// tail zero
@@ -728,17 +728,17 @@ char* xjb64(double v,char* buf)
     {
         // *(u64*)buf = ((vi << 1) < 3) ? ((vi << 1) ? *(u64*)"5e-324\0" : *(u32*)"0.0")
         //                              : (vi << 1) == (2047ull<<53) ? *(u32*)"Inf" : *(u32*)"NaN";//end with '\0'
-        if( (vi << 1) == 0 )memcpy(buf , "0.0", 4);
+        if( (vi << 1) == 0 )memcpy(buf , "0.0\0\0\0\0", 8);
         if( (vi << 1) == (1 << 1) )memcpy(buf , "5e-324\0", 8);
-        if( (vi << 1) == (2047ull<<53) )memcpy(buf , "Inf", 4);
-        if( (vi << 1) > (2047ull<<53) )memcpy(buf , "NaN", 4);
+        if( (vi << 1) == (2047ull<<53) )memcpy(buf , "Inf\0\0\0\0", 8);
+        if( (vi << 1) > (2047ull<<53) )memcpy(buf , "NaN\0\0\0\0", 8);
         return buf + ((vi << 1) - 3 == (u64)-1 ? 6 : 3);//end with '\0'
     }
     //*(u64*)buf = *(u64*)"0.00000";
     memcpy(buf, "0.000000", 8);
     u64 c;
     int32_t q;
-#ifdef __amd64__    
+#ifdef __amd64__
     if (ieee_exponent > 0) [[likely]] // branch
     {
         c = (1ull<<52) | ieee_significand;// 53 bit
@@ -1393,13 +1393,13 @@ char* xjb64(double v,char* buf)
 0x500003830332b65, // e10=308
     };
     static const u64 bitarray_irregular[32] = {
-        0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000, 
-        0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000, 
-        0x0000000000400000, 0x0000000000000000, 0x0000000000020000, 0x0000000000800000, 
-        0x0000000000000000, 0x0008000000000000, 0x0004000040000000, 0x0000000000000000, 
-        0x0000000000000000, 0x0000000001000000, 0x0020000000000000, 0x0000000000000000, 
-        0x0001000000040000, 0x0200000001000000, 0x0000000000102000, 0x0000000100000000, 
-        0x2000000000000000, 0x0000000000020000, 0x0000000000000000, 0x0000000000000000, 
+        0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000,
+        0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000,
+        0x0000000000400000, 0x0000000000000000, 0x0000000000020000, 0x0000000000800000,
+        0x0000000000000000, 0x0008000000000000, 0x0004000040000000, 0x0000000000000000,
+        0x0000000000000000, 0x0000000001000000, 0x0020000000000000, 0x0000000000000000,
+        0x0001000000040000, 0x0200000001000000, 0x0000000000102000, 0x0000000100000000,
+        0x2000000000000000, 0x0000000000020000, 0x0000000000000000, 0x0000000000000000,
         0x0000000000000000, 0x0000000040000000, 0x0000000000000000, 0x0000000000008000};
     static const u64 g[(323 - (-293) + 1) * 2] = {
         0xcc5fc196fefd7d0c, 0x1e53ed49a96272c9, // -293
@@ -2020,7 +2020,7 @@ char* xjb64(double v,char* buf)
         0xca5e89b18b602368, 0x385bb19cb14bdfc5, // 322
         0xfcf62c1dee382c42, 0x46729e03dd9ed7b6, // 323
     };
-    static const u64 *pow10_ptr = g + 293 * 2; 
+    static const u64 *pow10_ptr = g + 293 * 2;
 #ifdef __amd64__
         if (regular) [[likely]] // branch
             k = (q * 315653) >> 20;
@@ -2032,10 +2032,11 @@ char* xjb64(double v,char* buf)
         // so we can use (ieee_exponent - 1075) to replace q
         k = ((ieee_exponent - 1075) * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
-        int h = q + (((-1 - k) * 217707) >> 16);
-        u64 *p10 = (u64 *)&pow10_ptr[(-1 - k) * 2];
+        int get_e10 = -1 - k;
+        int h = q + ((get_e10 * 217707) >> 16);
+        u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
         u128 cb = c << (h + 1 + offset);
-        u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64)); // p10[0] : high 64bit ; p10[1] : low 64bit
+        u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
         u64 dot_one = hi128 >> offset;   // == floor(2**64*n)
         u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
         u64 up = (half_ulp  > ~0 - dot_one);
@@ -2080,7 +2081,7 @@ char* xjb64(double v,char* buf)
         if(!regular)[[unlikely]]
             one += (bitarray_irregular[ieee_exponent/64]>>(ieee_exponent%64)) & 1;
 #endif
-        
+
         // when -3<=e10 && e10 <= 15 ; we use %lf format print float number
         const int e10_DN = -3;//do not change this value
         const int e10_UP = 15;//do not change this value
@@ -2107,8 +2108,8 @@ char* xjb64(double v,char* buf)
 0,16,17,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,// e10=15
 0,1,2,1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,// e10=other
         };
-        u64 e10_3 = e10 + 3;//convert to unsigned number 
-        u64 e10_data_ofs = e10_3 < 15+3+1 ? e10_3 : 15+3+1;//compute offset 
+        u64 e10_3 = e10 + 3;//convert to unsigned number
+        u64 e10_data_ofs = e10_3 < 15+3+1 ? e10_3 : 15+3+1;//compute offset
         // u64 first_sig_pos = (e10_DN<=e10 && e10<=-1) ? 1 - e10 : 0 ;
         // u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1 ;
         // u64 move_pos = dot_pos + (!(e10_DN<=e10 && e10<=-1) );
@@ -2137,13 +2138,13 @@ char* xjb64(double v,char* buf)
         memcpy(buf + 8, &ASCII_16.lo, 8);
 #endif
         //*(u64*)&buf[15+D17] = one;//write 2 byte
-        memcpy(buf + 15 + D17, &one, 8);
-        //byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
-        byte_move_16(buf + move_pos , buf + dot_pos );
+        memcpy(&buf[15 + D17], &one, 8);
+        byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
+        //byte_move_16(buf + move_pos , buf + dot_pos );
         buf_origin[dot_pos] = '.';
         static const u64 *exp_ptr = (u64*)&exp_result_precalc[324];
-        
-//process the some special case : subnormal number 
+
+//process the some special case : subnormal number
         if(m < (u64)1e14 ) [[unlikely]]
         {
             // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
@@ -2152,8 +2153,8 @@ char* xjb64(double v,char* buf)
             lz += 2;
             e10 -= lz - 1;
             buf[0] = buf[lz];
-            //byte_move_16(&buf[2], &buf[lz+1]);
-            byte_move_16(buf+2, buf+lz+1);
+            byte_move_16(&buf[2], &buf[lz+1]);
+            //byte_move_16(buf+2, buf+lz+1);
             exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
 #if is_intel_compiler
             buf += exp_pos;
@@ -2163,7 +2164,7 @@ char* xjb64(double v,char* buf)
             return buf + 5;// return the end of buffer with '\0';
 #endif
         }
-// write exponent , set 0 to use lookup table to get exp_result , set 1 to use next code to calc exp_result 
+// write exponent , set 0 to use lookup table to get exp_result , set 1 to use next code to calc exp_result
 #if 0
         u64 neg = e10 < 0;
         u64 e10_abs = neg ? -e10 : e10;
@@ -2192,7 +2193,7 @@ char* xjb32(float v,char* buf)
     // benchmark result on AMD R7-7840H
     // clang  : 33-34 cycle
     // icpx   : 33-34 cycle
-    // g++    : 35-36 cycle 
+    // g++    : 35-36 cycle
 
     u32 vi;
     memcpy(&vi, &v, 4);
@@ -2346,7 +2347,7 @@ char* xjb32(float v,char* buf)
     u64 ASCII_8;
     tz = encode_8digit(m,&ASCII_8);
     //dec_sig_len = up_down ? 8 - tz : 8 + D9;
-#if yy_is_real_gcc 
+#if yy_is_real_gcc
     // use this code to prevent gcc compiler generate branch instructions
     //dec_sig_len_ofs = ( ( ((2+8 - tz)*256) + 2+8 + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
@@ -2383,8 +2384,8 @@ char* xjb32(float v,char* buf)
 0,8,9,10,10,10,10,10,10,10,10,10,// e10=7
 0,1,2,1,3,4,5,6,7,8,9,10// e10=other
         };
-    u64 e10_3 = e10 + (-e10_DN);//convert to unsigned number 
-    u64 e10_data_ofs = e10_3 < e10_UP-e10_DN+1 ? e10_3 : e10_UP-e10_DN+1;//compute offset 
+    u64 e10_3 = e10 + (-e10_DN);//convert to unsigned number
+    u64 e10_data_ofs = e10_3 < e10_UP-e10_DN+1 ? e10_3 : e10_UP-e10_DN+1;//compute offset
     u64 first_sig_pos = e10_variable_data[e10_data_ofs][0];  // we use lookup table to get first_sig_pos
     u64 dot_pos = e10_variable_data[e10_data_ofs][1];
     u64 move_pos = e10_variable_data[e10_data_ofs][2];
@@ -2401,12 +2402,11 @@ char* xjb32(float v,char* buf)
     buf += first_sig_pos;
     //byte_move_8(buf,&ASCII_8);//7 or 8 byte
     memcpy(buf, &ASCII_8, 8);
-    //memcpy(&buf[7 + D9], &one, 8);
-    memcpy(buf + 7 + D9, &one, 8);
-    //byte_move_8(&buf[move_pos],&buf[dot_pos]);
-    byte_move_8(buf + move_pos , buf + dot_pos);
+    memcpy(&buf[7 + D9], &one, 8);
+    byte_move_8(&buf[move_pos],&buf[dot_pos]);
+    //byte_move_8(buf + move_pos , buf + dot_pos);
     buf_origin[dot_pos] = '.';
-    
+
     // -45 -> 38 ; size = 84*4 =  336 byte
     static const u32 exp_result_precalc[45 + 38 + 1]={
 0x35342d65, // e10 = -45
@@ -2503,8 +2503,8 @@ char* xjb32(float v,char* buf)
         lz += 2;
         e10 -= lz - 1;
         buf[0] = buf[lz];
-        //byte_move_8(&buf[2], &buf[lz+1]);
-        byte_move_8(buf + 2, buf+lz+1);
+        byte_move_8(&buf[2], &buf[lz+1]);
+        //byte_move_8(buf + 2, buf+lz+1);
         exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
         // buf += exp_pos;
         // u32 exp_result = exp_ptr[e10];
@@ -2513,7 +2513,7 @@ char* xjb32(float v,char* buf)
         // buf[0]='\0';
         // return buf;
     }
-//write exponent    
+//write exponent
 #if 0
         u64 neg = e10 < 0;
         u64 bc = neg ? -e10 : e10;

@@ -2426,9 +2426,9 @@ char* xjb64(double v,char* buf)
         memcpy(buf + 8, &ASCII_16.lo, 8);
 #endif
         //*(u64*)&buf[15+D17] = one;//write 2 byte
-        memcpy(buf + 15 + D17, &one, 8);
-        //byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
-        byte_move_16(buf + move_pos , buf + dot_pos );
+        memcpy(&buf[15 + D17], &one, 8);
+        byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
+        //byte_move_16(buf + move_pos , buf + dot_pos );
         buf_origin[dot_pos] = '.';
         //static const u64 *exp_ptr = (u64*)&exp_result_precalc[324];
 
@@ -2441,8 +2441,8 @@ char* xjb64(double v,char* buf)
             lz += 2;
             e10 -= lz - 1;
             buf[0] = buf[lz];
-            //byte_move_16(&buf[2], &buf[lz+1]);
-            byte_move_16(buf+2, buf+lz+1);
+            byte_move_16(&buf[2], &buf[lz+1]);
+            //byte_move_16(buf+2, buf+lz+1);
             exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
 // #if is_intel_compiler
 //             buf += exp_pos;
@@ -2680,8 +2680,8 @@ char* xjb32(float v,char* buf)
     char* buf_origin = (char*)buf;
     buf += first_sig_pos;
     memcpy(buf, &ASCII_8, 8);
-    memcpy(buf + 7 + D9, &one, 8);
-    byte_move_8(buf + move_pos , buf + dot_pos);
+    memcpy(&buf[7 + D9], &one, 8);
+    byte_move_8(&buf[move_pos] , &buf[dot_pos]);
     buf_origin[dot_pos] = '.';
     if(m < (u32)1e6 )[[unlikely]]
     {
@@ -2690,7 +2690,8 @@ char* xjb32(float v,char* buf)
         lz += 2;
         e10 -= lz - 1;
         buf[0] = buf[lz];
-        byte_move_8(buf + 2, buf+lz+1);
+        byte_move_8(&buf[2], &buf[lz+1]);
+        //byte_move_8(buf + 2, buf+lz+1);
         exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
     }
 //write exponent
