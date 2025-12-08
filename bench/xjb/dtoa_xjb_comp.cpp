@@ -2526,30 +2526,42 @@ char* xjb32(float v,char* buf)
     //u32 sig = (vi << 9 ) >> 9;
     u32 exp = (vi << 1 ) >> 24;
 
-    if( (vi << 1) == 0 )[[unlikely]]
-    {
-        memcpy(buf, "0.0" , 4);//end with '\0'
-        return buf + 3;
-    }
-    if(exp == 255)[[unlikely]]
-    {
-        memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
-        return buf + 3;
-    }
-    memcpy(buf ,"0.000000",8);
+    // if( (vi << 1) == 0 )[[unlikely]]
+    // {
+    //     memcpy(buf, "0.0" , 4);//end with '\0'
+    //     return buf + 3;
+    // }
+    // if(exp == 255)[[unlikely]]
+    // {
+    //     memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
+    //     return buf + 3;
+    // }
+    //memcpy(buf ,"0.000000",8);
     int exp_bin, k;
     u64 sig_bin, regular = sig > 0;
     if (exp > 0) [[likely]] // branch
     {
+        if(exp == 255)[[unlikely]]
+        {
+            memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
+            return buf + 3;
+        }
         exp_bin = exp - 150; //-127-23
         sig_bin = sig | (1u << 23);
     }
     else
     {
+        if( (vi << 1) == 0 )[[unlikely]]
+        {
+            memcpy(buf, "0.0" , 4);//end with '\0'
+            return buf + 3;
+        }
         exp_bin = 1 - 150;
         sig_bin = sig;
     }
+    memcpy(buf ,"0.000000",8);
 #ifdef __amd64__
+//#if 1
     if (regular) [[likely]] // branch
         k = (exp_bin * 315653) >> 20;
     else
@@ -2561,9 +2573,10 @@ char* xjb32(float v,char* buf)
     int h = exp_bin + ((get_e10 * 217707) >> 16); // [-4,-1]
     u32 p10_base_index = (u32)(get_e10 + 32) / 16;// [0,4]
     int p10_base = p10_base_index * 16 - 32;
-    u32 p5_off = get_e10 - p10_base;// [0,15]
+    //u32 p5_off = get_e10 - p10_base;// [0,15]
+    u32 p5_off = get_e10 + 32 - p10_base_index * 16;//[0,15]
     const u64 p5_4 = 5*5*5*5;
-    static const u64 pow10_base_table_pow5[5 + 2 + 1] = { //40byte + 16byte = 56byte
+    static const u64 pow10_base_table_pow5[5 + 2 + 1] = { //40byte + 24byte = 64byte
         //pow10_table
         0xcfb11ead453994bb, // e10 =  -32
         0xe69594bec44de15c, // e10 =  -16
@@ -2582,8 +2595,8 @@ char* xjb32(float v,char* buf)
     u8 pow5_offset;
     static const char* start_ptr = ((char*)pow10_base_table_pow5) + 5 * sizeof(u64);
     static const char* start_ptr2 = ((char*)pow10_base_table_pow5) + 7 * sizeof(u64);
-    memcpy(&pow5_base, start_ptr + 4 * (p5_off / 4), 4);
-    memcpy(&pow5_offset, start_ptr2 + (p5_off % 4), 1);
+    memcpy(&pow5_base, &start_ptr[4 * (p5_off / 4)], 4);
+    memcpy(&pow5_offset, &start_ptr2[(p5_off % 4)], 1);
     //u64 p5 = (u64)pow5_base * (u64)( (p5_0_3 >> ((p5_off % 4) * 8)) & 0xff );// p5 = 5**p5_off
     u64 p5 = (u64)pow5_base * (u64)pow5_offset;
     // u64 p5 = ((((p5_off / 4 > 1) ?  ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32) : 1 + (p5_4<<32)) >> ((p5_off & 4) * 8 )) & ((1ull<<32) - 1))

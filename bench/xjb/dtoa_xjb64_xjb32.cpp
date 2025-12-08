@@ -663,7 +663,7 @@ static inline u64 encode_8digit(const u64 x, u64* ASCII){
     u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
     aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
     u64 tz = u64_lz_bits(aabbccdd_BCD) / 8;
-    u64 aabbccdd_ASCII = aabbccdd_BCD + ZERO;
+    u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
     *ASCII = aabbccdd_ASCII;
     return tz;
 }
@@ -2199,8 +2199,7 @@ char* xjb32(float v,char* buf)
     memcpy(&vi, &v, 4);
 
     buf[0]='-';
-    u32 sign = vi>>31;
-    buf+=sign;
+    buf += vi>>31;
 
     u64 dec,m;
     int e10;
@@ -2212,18 +2211,18 @@ char* xjb32(float v,char* buf)
     //u32 sig = (vi << 9 ) >> 9;
     u32 exp = (vi << 1 ) >> 24;
 
-    if( (vi << 1) == 0 )[[unlikely]]
-    {
-        memcpy(buf, "0.0" , 4);//end with '\0'
-        return buf + 3;
-    }
-    if(exp == 255)[[unlikely]]
-    {
-        memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
-        return buf + 3;
-    }
+    // if( (vi << 1) == 0 )[[unlikely]]
+    // {
+    //     memcpy(buf, "0.0" , 4);//end with '\0'
+    //     return buf + 3;
+    // }
+    // if(exp == 255)[[unlikely]]
+    // {
+    //     memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
+    //     return buf + 3;
+    // }
     //*(u64*)buf = *(u64*)"0.00000";
-    memcpy(buf ,"0.000000",8);
+
 
     // size = 77*8 = 616 byte
     static const u64 pow10_table[(44 - (-32) + 1)] = {
@@ -2310,15 +2309,27 @@ char* xjb32(float v,char* buf)
     u64 irregular = (sig == 0);
     if (exp > 0) [[likely]] // branch
     {
+        if(exp == 255)[[unlikely]]
+        {
+            memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
+            return buf + 3;
+        }
         exp_bin = exp - 150; //-127-23
         sig_bin = sig | (1u << 23);
     }
     else
     {
+        if(sig == 0)[[unlikely]]
+        {
+            memcpy(buf, "0.0" , 4);//end with '\0'
+            return buf + 3;
+        }
         exp_bin = 1 - 150;
         sig_bin = sig;
     }
-#ifdef __amd64__
+    memcpy(buf ,"0.000000",8);
+//#ifdef __amd64__
+#if 1
     if (regular) [[likely]] // branch
         k = (exp_bin * 315653) >> 20;
     else
@@ -2329,7 +2340,7 @@ char* xjb32(float v,char* buf)
 #endif
     int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
     static const u64 *pow10 = &pow10_table[32];
-    u64 pow10_hi = pow10[(-1 - k)];
+    u64 pow10_hi = pow10[(-1-k)];
     //u64 pow10_hi = pow10_table[(-1-k)+32];
     u64 even = ((sig_bin + 1) & 1);
     const int BIT = 36; // [33,36] all right
@@ -2353,7 +2364,7 @@ char* xjb32(float v,char* buf)
     dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
 #else
     // icpx clang use this code to generate cmov instructions
-    dec_sig_len_ofs = up_down ? 2+8 - tz : 2+8 + D9;// when mr = 0, up_down = 0, so can avoid use tz
+    dec_sig_len_ofs = up_down ? 2+8 - tz : 2+1 + (7 + D9);// when mr = 0, up_down = 0, so can avoid use tz
 #endif
     k += 7 + D9;
     e10 = k;// euqal to e10 = k+7+D9
