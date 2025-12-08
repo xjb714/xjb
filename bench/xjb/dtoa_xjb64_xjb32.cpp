@@ -656,13 +656,14 @@ static inline u64 encode_8digit(const u64 x, u64* ASCII){
     // return tail zero count of x in base 10 , range [0,7]
 
     // 12345678 => "12345678"
+    // 01234567 => "12345670"
     const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
     u64 aabbccdd = x;
     u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
     u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
     u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
     aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
-    u64 tz = u64_lz_bits(aabbccdd_BCD) / 8;
+    u64 tz = u64_lz_bits(aabbccdd_BCD) / 8;//force tz max = 7
     u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
     *ASCII = aabbccdd_ASCII;
     return tz;
@@ -2327,10 +2328,10 @@ char* xjb32(float v,char* buf)
         exp_bin = 1 - 150;
         sig_bin = sig;
     }
-    memcpy(buf ,"0.000000",8);
+    //memcpy(buf ,"0.000000",8);
 //#ifdef __amd64__
 #if 1
-    if (regular) [[likely]] // branch
+    if (!irregular) [[likely]] // branch
         k = (exp_bin * 315653) >> 20;
     else
         k = (exp_bin * 315653 - 131237) >> 20;
@@ -2340,7 +2341,7 @@ char* xjb32(float v,char* buf)
 #endif
     int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
     static const u64 *pow10 = &pow10_table[32];
-    u64 pow10_hi = pow10[(-1-k)];
+    u64 pow10_hi = pow10[(-1 - k)];
     //u64 pow10_hi = pow10_table[(-1-k)+32];
     u64 even = ((sig_bin + 1) & 1);
     const int BIT = 36; // [33,36] all right
@@ -2348,13 +2349,17 @@ char* xjb32(float v,char* buf)
     u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64; // one mulxq instruction on x86 , need BMI2
     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
     u64 half_ulp = (pow10_hi >> ((64 - BIT) - h)) + even;
-    //u64 up = (half_ulp  > (((u64)1 << BIT) - 1) - dot_one_36bit);
+#ifdef __amd64__
     u64 up = (half_ulp + dot_one_36bit) >> BIT;
-    u64 down =  ((half_ulp >> (1 - regular)) > dot_one_36bit);
+#else
+    u64 up = half_ulp  > (((u64)1 << BIT) - 1) - dot_one_36bit; // for apple M1 , better performance
+#endif
+    u64 down =  (half_ulp >> irregular) > dot_one_36bit;
     u64 up_down = up + down;
     m = (sig_hi >> BIT) + up;
     D9 = m >= (u32)1e7;
     //u64 mr = D9 ? m : m * 10;//remove left zero
+    memcpy(buf ,"0.000000",8);
     u64 ASCII_8;
     tz = encode_8digit(m,&ASCII_8);
     //dec_sig_len = up_down ? 8 - tz : 8 + D9;
@@ -2362,45 +2367,92 @@ char* xjb32(float v,char* buf)
     // use this code to prevent gcc compiler generate branch instructions
     //dec_sig_len_ofs = ( ( ((2+8 - tz)*256) + 2+8 + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
+    int dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
+    // when m==0 => up_down = 0; m==0 equal to v < 1e-44; only contain 6 value : 1e-45,3e-45,4e-45,6e-45,7e-45,8e-45 ;
+    // when m=0 , tz = clz(0)/8 is not sure in some machine. but we can prove  ( 7*256 + 7 - (tz<<8)  + D9 ) & 0xff is always equal to 7+D9; Even if tz is a random value
+    // when m>0 , tz <= 7 is must exist.
+    // Therefore, the following two expressions are equivalent
+    // (1) dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
+    // (2) dec_sig_len_ofs3 = up_down ? 7 - tz : 7 + D9;
 #else
     // icpx clang use this code to generate cmov instructions
-    dec_sig_len_ofs = up_down ? 2+8 - tz : 2+1 + (7 + D9);// when mr = 0, up_down = 0, so can avoid use tz
+    dec_sig_len_ofs = up_down ? 2+8 - tz : 2+8 + D9;// when mr = 0, up_down = 0, so can avoid use tz
+    int dec_sig_len_ofs3 = up_down ? 7 - tz : 7 + D9;
 #endif
     k += 7 + D9;
     e10 = k;// euqal to e10 = k+7+D9
+    //e10 = k + (7 + D9);
 
     // u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
     // u64 one = ((dot_one_36bit * 20 + offset_num) >> (BIT + 1))  + (u64)('0' + '0' * 256);
-    u64 offset_num  = ((u64)('0' + '0' * 256) << (BIT + 1)) + (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
-    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
-    if(!regular)[[unlikely]]{ // branch
+    // u64 offset_num  = ((u64)('0' + '0' * 256) << (BIT + 1)) + (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
+    // u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+
+    u64 offset_num  = ((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
+    if(irregular)[[unlikely]]{ // branch
         if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
             one+=1;
     }
 
     const int e10_DN = -3;
     const int e10_UP = 7;
+
     // size = 12*12 = 144 byte
-    static const u8 e10_variable_data[e10_UP-(e10_DN) + 1 + 1][3+9]={
-4,1,1,1,2,3,4,5,6,7,8,9,// e10=-3
-3,1,1,1,2,3,4,5,6,7,8,9,// e10=-2
-2,1,1,1,2,3,4,5,6,7,8,9,// e10=-1
-0,1,2,3,3,4,5,6,7,8,9,10,// e10=0
-0,2,3,4,4,4,5,6,7,8,9,10,// e10=1
-0,3,4,5,5,5,5,6,7,8,9,10,// e10=2
-0,4,5,6,6,6,6,6,7,8,9,10,// e10=3
-0,5,6,7,7,7,7,7,7,8,9,10,// e10=4
-0,6,7,8,8,8,8,8,8,8,9,10,// e10=5
-0,7,8,9,9,9,9,9,9,9,9,10,// e10=6
-0,8,9,10,10,10,10,10,10,10,10,10,// e10=7
-0,1,2,1,3,4,5,6,7,8,9,10// e10=other
-        };
-    u64 e10_3 = e10 + (-e10_DN);//convert to unsigned number
-    u64 e10_data_ofs = e10_3 < e10_UP-e10_DN+1 ? e10_3 : e10_UP-e10_DN+1;//compute offset
-    u64 first_sig_pos = e10_variable_data[e10_data_ofs][0];  // we use lookup table to get first_sig_pos
-    u64 dot_pos = e10_variable_data[e10_data_ofs][1];
-    u64 move_pos = e10_variable_data[e10_data_ofs][2];
-    u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs];
+//     static const u8 e10_variable_data2[e10_UP-(e10_DN) + 1 + 1][3+9]={
+// 4,1,1,1,2,3,4,5,6,7,8,9,// e10=-3
+// 3,1,1,1,2,3,4,5,6,7,8,9,// e10=-2
+// 2,1,1,1,2,3,4,5,6,7,8,9,// e10=-1
+// 0,1,2,3,3,4,5,6,7,8,9,10,// e10=0
+// 0,2,3,4,4,4,5,6,7,8,9,10,// e10=1
+// 0,3,4,5,5,5,5,6,7,8,9,10,// e10=2
+// 0,4,5,6,6,6,6,6,7,8,9,10,// e10=3
+// 0,5,6,7,7,7,7,7,7,8,9,10,// e10=4
+// 0,6,7,8,8,8,8,8,8,8,9,10,// e10=5
+// 0,7,8,9,9,9,9,9,9,9,9,10,// e10=6
+// 0,8,9,10,10,10,10,10,10,10,10,10,// e10=7
+// 0,1,2,1,3,4,5,6,7,8,9,10// e10=other
+//         };
+        static const u8 e10_variable_data[e10_UP-(e10_DN) + 1 + 1][3+9]={
+    1,2,3,4,5,6,7,8,9, 4,1,1,// e10=-3
+    1,2,3,4,5,6,7,8,9, 3,1,1,// e10=-2
+    1,2,3,4,5,6,7,8,9, 2,1,1,// e10=-1
+    3,3,4,5,6,7,8,9,10, 0,1,2,// e10=0
+    4,4,4,5,6,7,8,9,10, 0,2,3,// e10=1
+    5,5,5,5,6,7,8,9,10, 0,3,4,// e10=2
+    6,6,6,6,6,7,8,9,10, 0,4,5,// e10=3
+    7,7,7,7,7,7,8,9,10, 0,5,6,// e10=4
+    8,8,8,8,8,8,8,9,10, 0,6,7,// e10=5
+    9,9,9,9,9,9,9,9,10, 0,7,8,// e10=6
+    10,10,10,10,10,10,10,10,10, 0,8,9,// e10=7
+    1,3,4,5,6,7,8,9,10, 0,1,2,// e10=other
+            };
+    // static const u32 e10_variable_data3[e10_UP-(e10_DN) + 1 + 1]={
+    //     4+(1<<8)+(1<<16),// e10=-3
+    //     3+(1<<8)+(1<<16),// e10=-2
+    //     2+(1<<8)+(1<<16),// e10=-1
+    //     0+(1<<8)+(2<<16),// e10=0
+    //     0+(2<<8)+(3<<16),// e10=1
+    //     0+(3<<8)+(4<<16),// e10=2
+    //     0+(4<<8)+(5<<16),// e10=3
+    //     0+(5<<8)+(6<<16),// e10=4
+    //     0+(6<<8)+(7<<16),// e10=5
+    //     0+(7<<8)+(8<<16),// e10=6
+    //     0+(8<<8)+(9<<16),// e10=7
+    //     0+(1<<8)+(2<<16),// e10=other
+    // };
+    u32 e10_3 = e10 + (-e10_DN);//convert to unsigned number
+    u64 e10_data_ofs = e10_3 < e10_UP-e10_DN+1 ? e10_3 : e10_UP-e10_DN+1;//compute offset , min(e10_3,11)
+    u64 first_sig_pos = e10_variable_data[e10_data_ofs][9+0];  // we use lookup table to get first_sig_pos
+    u64 dot_pos = e10_variable_data[e10_data_ofs][9+1];
+    u64 move_pos = e10_variable_data[e10_data_ofs][9+2];
+
+    // u32 e10_data3 = e10_variable_data3[e10_data_ofs];
+    // u64 first_sig_pos = e10_data3 & 0xff;
+    // u64 dot_pos = (e10_data3 >> 8) & 0xff;
+    // u64 move_pos = (e10_data3 >> 16) ;
+
+    u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs3];
     // u64 first_sig_pos = (e10_DN<=e10 && e10<=-1) ? 1 - e10 : 0 ;
     // u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1 ;
     // u64 move_pos = dot_pos + (!(e10_DN<=e10 && e10<=-1) );
@@ -2506,8 +2558,9 @@ char* xjb32(float v,char* buf)
 0x38332b65, // e10 = 38
 };
     static const u32 *exp_ptr = (u32*)&exp_result_precalc[45];
-    //u32 exp_result = exp_ptr[e10];
+    //u64 exp_result = exp_ptr[e10];
     if(m < (u32)1e6 )[[unlikely]]
+    //if( (ASCII_8 & 0x0f) == 0 )[[unlikely]]
     {
         u64 lz = 0;
         while(buf[2+lz] == '0')lz++;
@@ -2515,6 +2568,7 @@ char* xjb32(float v,char* buf)
         e10 -= lz - 1;
         buf[0] = buf[lz];
         byte_move_8(&buf[2], &buf[lz+1]);
+        //exp_result = exp_ptr[e10];
         //byte_move_8(buf + 2, buf+lz+1);
         exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
         // buf += exp_pos;
@@ -2538,7 +2592,7 @@ char* xjb32(float v,char* buf)
     buf += exp_pos;
     //*(u64*)buf = exp_result;// contain '\0';
     memcpy(buf, &exp_result, 8);
-    u32 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;//may this is faster than below code?
+    u32 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
     //u32 exp_len = (exp_result + ((1u<<28) - 1)) >> 28;//(e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4
     buf += exp_len;
     return buf;

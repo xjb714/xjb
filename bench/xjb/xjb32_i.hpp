@@ -120,8 +120,12 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
     u64 half_ulp = pow10_hi >> ((64 - BIT) - h);
 #ifdef __amd64__
-    u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
-    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+    // u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
+    // u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+
+    u64 offset_num  = (((u64)1 << (BIT - 2) ) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
+
     if (regular) [[likely]] // branch
     {
         one = (half_ulp + even > dot_one_36bit) ? 0 : one;
@@ -135,9 +139,11 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
         one = (half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
         //one = ( (half_ulp + even + dot_one_36bit) >> BIT ) ? 10 : one;
     }
-#else 
-    u64 offset_num  = (((u64)1 << BIT) - 7) + ((sig_hi >> (BIT - 4)) & 0xF);
-    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+#else
+    // u64 offset_num  = (((u64)1 << BIT) - 7) + ((sig_hi >> (BIT - 4)) & 0xF);
+    // u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+    u64 offset_num  = (((u64)1 << (BIT - 2) ) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
     one = ( ((half_ulp + even) >> irregular) > dot_one_36bit) ? 0 : one;
     one = (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
     if(irregular)[[unlikely]]{
@@ -187,7 +193,7 @@ static inline void xjb_comp_f32_to_dec(float v,unsigned int* dec,int *e10)
     int p10_base = p10_base_index * 16 - 32;
     u32 p5_off = get_e10 - p10_base;// [0,15]
     const u64 p5_4 = 5*5*5*5;
-    const u32 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1; 
+    const u32 p5_0_3 = (125<<24) + (25<<16) + (5<<8) + 1;
     static const u64 pow10_base_table_pow5[5 + 2] = { //40byte + 16byte = 56byte
         0xcfb11ead453994bb, // e10 =  -32
         0xe69594bec44de15c, // e10 =  -16
@@ -234,8 +240,10 @@ static inline void xjb_comp_f32_to_dec(float v,unsigned int* dec,int *e10)
     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
     u64 half_ulp = pow10_hi >> ((64 - BIT) - h);
 #ifdef __amd64__
-    u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
-    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+    // u64 offset_num  = (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
+    // u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+    u64 offset_num  = (((u64)1 << (BIT - 2) ) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
     if (regular) [[likely]] // branch
     {
         one = (half_ulp + even > dot_one_36bit) ? 0 : one;
@@ -249,9 +257,12 @@ static inline void xjb_comp_f32_to_dec(float v,unsigned int* dec,int *e10)
         one = (half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
         //one = ( (half_ulp + even + dot_one_36bit) >> BIT ) ? 10 : one;
     }
-#else 
-    u64 offset_num  = (((u64)1 << BIT) - 7) + ((sig_hi >> (BIT - 4)) & 0xF);
-    u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+#else
+    // u64 offset_num  = (((u64)1 << BIT) - 7) + ((sig_hi >> (BIT - 4)) & 0xF);
+    // u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
+    u64 offset_num  = (((u64)1 << (BIT - 2) ) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
+
     one = ( ((half_ulp + even) >> irregular) > dot_one_36bit) ? 0 : one;
     one = (half_ulp + even > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 10 : one;
     if(irregular)[[unlikely]]{
