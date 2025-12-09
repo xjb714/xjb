@@ -84,13 +84,43 @@ unsigned long long getns()
 }
 double gen_double_filter_NaN_Inf()
 {
-    unsigned long long rnd;
-    do
-        rnd = gen() & ((1ull << 63) - 1); // abs
-    while (rnd >= (0x7ffull << 52)); // nan or inf
-    // while ((  (rnd & ((1ull << 63) - 1)) >= (0x7ffull << 52)) || (  (rnd & ((1ull << 63) - 1)) < (1ull << 52)));//subnormal or nan of inf
-
+    unsigned long long rnd,rnd_abs;
+    do{
+        rnd = gen() ;
+        rnd_abs = rnd & ((1ull << 63) - 1);
+    }
+    while (rnd_abs >= (0x7ffull << 52)); // nan or inf
     return *(double *)&rnd;
+}
+double gen_double_filter_NaN_Inf_subnormal()
+{
+    unsigned long long rnd,rnd_abs;
+    do{
+        rnd = gen() ;
+        rnd_abs = rnd & ((1ull << 63) - 1);
+    }
+    while (rnd_abs >= (0x7ffull << 52) && rnd_abs < (1ull << 52) ); // nan or inf or subnormal
+    return *(double *)&rnd;
+}
+float gen_float_filter_NaN_Inf()
+{
+    unsigned int rnd,rnd_abs;
+    do{
+        rnd = gen() ;
+        rnd_abs = rnd & ((1u << 31) - 1);
+    }
+    while (rnd_abs >= (0xffu << 23)); // nan or inf
+    return *(float *)&rnd;
+}
+float gen_float_filter_NaN_Inf_subnormal()
+{
+    unsigned int rnd,rnd_abs;
+    do{
+        rnd = gen();
+        rnd_abs = rnd & ((1u << 31) - 1);
+    }
+    while (rnd_abs >= (0xffu << 23) && rnd_abs < (1u << 23) ); // nan or inf or subnormal
+    return *(float *)&rnd;
 }
 void init_double()
 {
@@ -152,12 +182,7 @@ void init_float()
 
     for (int i = 0; i < N; ++i)
     {
-        // generate random float data : [1 , ((0xff<<23)-1)]
-        unsigned int rnd;
-        do
-            rnd = gen() & ((1u << 31) - 1);
-        while (rnd >= (0xffu << 23) || rnd == 0); // 0 or nan or inf
-        data_float[i] = *(float *)&rnd;
+        data_float[i] = gen_float_filter_NaN_Inf();
     }
     printf("generate random float data finish\n");
 
@@ -650,9 +675,9 @@ void check_double()
     printf("\ncheck start , may cost long time , please wait\n");
     printf("<=== check xjb64 algorithm ; use schubfach_xjb for correct result ===>\n");
     check_special_value();
-    check_subnormal();
-    check_float(); // not contain subnormal float  , very slow
     check_irregular();
+    check_subnormal();
+    //check_float(); // not contain subnormal float  , very slow
     check_rand_double(); // random double
     printf("check finish\n");
 }
@@ -685,7 +710,7 @@ int main()
 #if BENCH_DOUBLE
     bench_double();
 
-    //check_double(); // check double correctness , may cost long time
+    check_double(); // check double correctness , may cost long time
 #endif
 
     return 0;

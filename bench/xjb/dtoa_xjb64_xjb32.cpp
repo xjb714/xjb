@@ -424,6 +424,37 @@ static inline u32 u64_lz_bits(u64 v) {
         return table[(v * ((0x03F79D71ull << 32) + 0xB4CB0A89ull)) >> 58];
     #endif
 }
+static inline u32 u64_tz_bits(u64 v) {
+    // to be completed
+    #if GCC_HAS_CTZLL
+        return (u32)__builtin_ctzll(v);
+    #elif MSC_HAS_BIT_SCAN_64
+        // unsigned long r;
+        // _BitScanReverse64(&r, v);
+        // return (u32)63 - (u32)r;
+    #elif MSC_HAS_BIT_SCAN
+        // unsigned long hi, lo;
+        // bool hi_set = _BitScanReverse(&hi, (u32)(v >> 32)) != 0;
+        // _BitScanReverse(&lo, (u32)v);
+        // hi |= 32;
+        // return (u32)63 - (u32)(hi_set ? hi : lo);
+    #else
+        /* branchless, use de Bruijn sequences */
+        // const u8 table[64] = {
+        //     63, 16, 62,  7, 15, 36, 61,  3,  6, 14, 22, 26, 35, 47, 60,  2,
+        //      9,  5, 28, 11, 13, 21, 42, 19, 25, 31, 34, 40, 46, 52, 59,  1,
+        //     17,  8, 37,  4, 23, 27, 48, 10, 29, 12, 43, 20, 32, 41, 53, 18,
+        //     38, 24, 49, 30, 44, 33, 54, 39, 50, 45, 55, 51, 56, 57, 58,  0
+        // };
+        // v |= v >> 1;
+        // v |= v >> 2;
+        // v |= v >> 4;
+        // v |= v >> 8;
+        // v |= v >> 16;
+        // v |= v >> 32;
+        // return table[(v * ((0x03F79D71ull << 32) + 0xB4CB0A89ull)) >> 58];
+    #endif
+}
 static inline u32 u32_lz_bits(u32 v) {
     #if GCC_HAS_CLZLL
         return (u32)__builtin_clz(v);
@@ -476,6 +507,20 @@ static inline u32 u32_lz_bits(u32 v) {
             u64 tz = (eeffgghh_BCD == 0) ? 64 | aabbccdd_tz : eeffgghh_tz;//when eeffgghh_BCD is zero, aabbccdd_tz is the not-zero value ; because of v > 5e-324 ; x!=0
             tz = tz / 8;
             return tz;
+        }
+    static inline u64 encode_8digit_fast(const u64 x,u64* ASCII){
+            u64 aabb = (x * (u128)1844674407370956) >> 64;
+            u64 ccdd = x - aabb * 10000;
+            uint32x2_t merge4_t = vld1_u32((uint32_t const *)&aabb);// 0000 aabb
+            merge4_t = vset_lane_u32(ccdd, merge4_t, 1);// ccdd aabb
+            uint64x1_t merge4 = vreinterpret_u64_u32(merge4_t);
+            uint64x1_t merge2 = vmls_n_u32(vshl_n_u32(merge4,16), vshr_n_u32(vmul_n_u32(merge4,10486),20) , ((100<<16) - 1) );
+            uint16x4_t merge = vmls_n_u16(vshl_n_u16(merge2,8), vshr_n_u16(vmul_n_u16(merge2,103),10) , ((10<<8) - 1) );
+            uint64x1_t merge_final = vreinterpret_u64_u16(merge);
+            u64 aabbccdd_BCD = vget_lane_u64(merge_final,0);
+            aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
+            *ASCII = aabbccdd_BCD | ((0x30303030ull << 32) + 0x30303030ull);
+            return u64_lz_bits(aabbccdd_BCD) / 8;
         }
     #endif // endif HAS_NEON
 
@@ -561,9 +606,23 @@ static inline u32 u32_lz_bits(u32 v) {
     return tz;
 
     }
+    static inline u64 encode_8digit_fast(const u64 x, u64* ASCII){//to be completed
+        // this code convert 8 digit number to 8 digit ASCII number;
+        // require x in [1 , 1e8 - 1] = [1 , 99999999]
+        // return tail zero count of x in base 10 , range [0,7]
+
+        // 12345678 => "12345678"
+        // 01234567 => "12345670"
+        u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * ((x * 109951163) >> 40);
+        u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
+        *ASCII =  aabbccdd_BCD | ((0x30303030ull << 32) + 0x30303030ull);
+        return u64_lz_bits(aabbccdd_BCD) / 8;
+    }
     #endif // endif HAS_SSE2
 #else
-    u64 endcode_16digit_fast(const u64 v,byte16_reg* ASCII)
+    static inline u64 endcode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
         const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
         u64 aabbccdd = v / 100000000;
@@ -583,6 +642,20 @@ static inline u32 u32_lz_bits(u32 v) {
         (*ASCII).hi = aabbccdd_ASCII;
         (*ASCII).lo = eeffgghh_ASCII;
         return tz;
+    }
+    static inline u64 encode_8digit_fast(const u64 x, u64* ASCII){
+        // this code convert 8 digit number to 8 digit ASCII number;
+        // require x in [1 , 1e8 - 1] = [1 , 99999999]
+        // return tail zero count of x in base 10 , range [0,7]
+
+        // 12345678 => "12345678"
+        // 01234567 => "12345670"
+        u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * ((x * 109951163) >> 40);
+        u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
+        *ASCII =  aabbccdd_BCD | ((0x30303030ull << 32) + 0x30303030ull);
+        return u64_lz_bits(aabbccdd_BCD) / 8;
     }
 #endif // endif HAS_NEON_OR_SSE2
 
@@ -625,49 +698,34 @@ static inline u32 u32_lz_bits(u32 v) {
 // }
 
 
-static inline u64 encode_16digit(const u64 x, u64* hi,u64* lo){
-    // this code convert 16 digit number to 16 digit ASCII number;
-    // require x in [1 , 1e16 - 1] = [1 , 99999999*1e8 + 99999999]
-    // return tail zero count of x in base 10 , range [0,15]
+// static inline u64 encode_16digit(const u64 x, u64* hi,u64* lo){
+//     // this code convert 16 digit number to 16 digit ASCII number;
+//     // require x in [1 , 1e16 - 1] = [1 , 99999999*1e8 + 99999999]
+//     // return tail zero count of x in base 10 , range [0,15]
 
-    // 1234567890123456 => hi:"12345678" + lo:"90123456"
-    const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
-    u64 aabbccdd = x / 100000000;
-    u64 eeffgghh = x - aabbccdd * 100000000;
-    u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
-    u64 eeff_gghh_merge = (eeffgghh << 32) - ((10000ull<<32) - 1) * ((eeffgghh * 109951163) >> 40);
-    u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
-    u64 ee_ff_gg_hh_merge = (eeff_gghh_merge << 16) - ((100ull<<16) - 1) * (((eeff_gghh_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
-    u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
-    u64 eeffgghh_BCD = (ee_ff_gg_hh_merge << 8) - ((10ull<<8) - 1) * (((ee_ff_gg_hh_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
-    u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
-    u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
-    u64 tz = (eeffgghh_BCD == 0) ? 64 | aabbccdd_tz : eeffgghh_tz;
-    tz = tz / 8;
-    u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
-    u64 eeffgghh_ASCII = eeffgghh_BCD | ZERO;
-    *hi = aabbccdd_ASCII;
-    *lo = eeffgghh_ASCII;
-    return tz;
-}
-static inline u64 encode_8digit(const u64 x, u64* ASCII){
-    // this code convert 8 digit number to 8 digit ASCII number;
-    // require x in [1 , 1e8 - 1] = [1 , 99999999]
-    // return tail zero count of x in base 10 , range [0,7]
+//     // 1234567890123456 => hi:"12345678" + lo:"90123456"
+//     const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
+//     u64 aabbccdd = x / 100000000;
+//     u64 eeffgghh = x - aabbccdd * 100000000;
+//     u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
+//     u64 eeff_gghh_merge = (eeffgghh << 32) - ((10000ull<<32) - 1) * ((eeffgghh * 109951163) >> 40);
+//     u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+//     u64 ee_ff_gg_hh_merge = (eeff_gghh_merge << 16) - ((100ull<<16) - 1) * (((eeff_gghh_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+//     u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+//     u64 eeffgghh_BCD = (ee_ff_gg_hh_merge << 8) - ((10ull<<8) - 1) * (((ee_ff_gg_hh_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+//     u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
+//     u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
+//     u64 tz = (eeffgghh_BCD == 0) ? 64 | aabbccdd_tz : eeffgghh_tz;
+//     tz = tz / 8;
+//     u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
+//     u64 eeffgghh_ASCII = eeffgghh_BCD | ZERO;
+//     *hi = aabbccdd_ASCII;
+//     *lo = eeffgghh_ASCII;
+//     return tz;
+// }
 
-    // 12345678 => "12345678"
-    // 01234567 => "12345670"
-    const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
-    u64 aabbccdd = x;
-    u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
-    u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
-    u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
-    aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
-    u64 tz = u64_lz_bits(aabbccdd_BCD) / 8;//force tz max = 7
-    u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
-    *ASCII = aabbccdd_ASCII;
-    return tz;
-}
+
+
 static inline void byte_move_16(void * dst,const void* src){
     // move 16byte from src to dst;
 #if HAS_NEON
@@ -2200,7 +2258,7 @@ char* xjb32(float v,char* buf)
     memcpy(&vi, &v, 4);
 
     buf[0]='-';
-    buf += vi>>31;
+
 
     u64 dec,m;
     int e10;
@@ -2209,8 +2267,9 @@ char* xjb32(float v,char* buf)
     u32 dec_sig_len_ofs;// = dec_sig_len + 2
     u32 D9;// 1:9 digits 0:8 digits
     u32 sig = vi & ((1<<23) - 1);
-    //u32 sig = (vi << 9 ) >> 9;
     u32 exp = (vi << 1 ) >> 24;
+
+    buf += vi>>31;
 
     // if( (vi << 1) == 0 )[[unlikely]]
     // {
@@ -2305,11 +2364,91 @@ char* xjb32(float v,char* buf)
         0xe596b7b0c643c71a, // 43
         0x8f7e32ce7bea5c70, // 44
     };
+    static const u64 pow10_table_reverse[(44 - (-32) + 1)] = {
+        0x8f7e32ce7bea5c70 , // 44
+        0xe596b7b0c643c71a , // 43
+        0xb7abc627050305ae , // 42
+        0x92efd1b8d0cf37bf , // 41
+        0xeb194f8e1ae525fe , // 40
+        0xbc143fa4e250eb32 , // 39
+        0x96769950b50d88f5 , // 38
+        0xf0bdc21abb48db21 , // 37
+        0xc097ce7bc90715b4 , // 36
+        0x9a130b963a6c115d , // 35
+        0xf684df56c3e01bc7 , // 34
+        0xc5371912364ce306 , // 33
+        0x9dc5ada82b70b59e , // 32
+        0xfc6f7c4045812297 , // 31
+        0xc9f2c9cd04674edf , // 30
+        0xa18f07d736b90be6 , // 29
+        0x813f3978f8940985 , // 28
+        0xcecb8f27f4200f3a , // 27
+        0xa56fa5b99019a5c8 , // 26
+        0x84595161401484a0 , // 25
+        0xd3c21bcecceda100 , // 24
+        0xa968163f0a57b400 , // 23
+        0x878678326eac9000 , // 22
+        0xd8d726b7177a8000 , // 21
+        0xad78ebc5ac620000 , // 20
+        0x8ac7230489e80000 , // 19
+        0xde0b6b3a76400000 , // 18
+        0xb1a2bc2ec5000000 , // 17
+        0x8e1bc9bf04000000 , // 16
+        0xe35fa931a0000000 , // 15
+        0xb5e620f480000000 , // 14
+        0x9184e72a00000000 , // 13
+        0xe8d4a51000000000 , // 12
+        0xba43b74000000000 , // 11
+        0x9502f90000000000 , // 10
+        0xee6b280000000000 , // 9
+        0xbebc200000000000 , // 8
+        0x9896800000000000 , // 7
+        0xf424000000000000 , // 6
+        0xc350000000000000 , // 5
+        0x9c40000000000000 , // 4
+        0xfa00000000000000 , // 3
+        0xc800000000000000 , // 2
+        0xa000000000000000 , // 1
+        0x8000000000000000 , // 0
+        0xcccccccccccccccd , // -1
+        0xa3d70a3d70a3d70b , // -2
+        0x83126e978d4fdf3c , // -3
+        0xd1b71758e219652c , // -4
+        0xa7c5ac471b478424 , // -5
+        0x8637bd05af6c69b6 , // -6
+        0xd6bf94d5e57a42bd , // -7
+        0xabcc77118461cefd , // -8
+        0x89705f4136b4a598 , // -9
+        0xdbe6fecebdedd5bf , // -10
+        0xafebff0bcb24aaff , // -11
+        0x8cbccc096f5088cc , // -12
+        0xe12e13424bb40e14 , // -13
+        0xb424dc35095cd810 , // -14
+        0x901d7cf73ab0acda , // -15
+        0xe69594bec44de15c , // -16
+        0xb877aa3236a4b44a , // -17
+        0x9392ee8e921d5d08 , // -18
+        0xec1e4a7db69561a6 , // -19
+        0xbce5086492111aeb , // -20
+        0x971da05074da7bef , // -21
+        0xf1c90080baf72cb2 , // -22
+        0xc16d9a0095928a28 , // -23
+        0x9abe14cd44753b53 , // -24
+        0xf79687aed3eec552 , // -25
+        0xc612062576589ddb , // -26
+        0x9e74d1b791e07e49 , // -27
+        0xfd87b5f28300ca0e , // -28
+        0xcad2f7f5359a3b3f , // -29
+        0xa2425ff75e14fc32 , // -30
+        0x81ceb32c4b43fcf5 , // -31
+        0xcfb11ead453994bb , // -32
+    };
     int exp_bin, k;
     u64 sig_bin, regular = sig > 0;
-    u64 irregular = (sig == 0);
+    //u64 irregular = (sig == 0);
     if (exp > 0) [[likely]] // branch
     {
+        //exp>>=23;
         if(exp == 255)[[unlikely]]
         {
             memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
@@ -2328,6 +2467,7 @@ char* xjb32(float v,char* buf)
         exp_bin = 1 - 150;
         sig_bin = sig;
     }
+    u64 irregular = sig_bin == 1<<23;
     //memcpy(buf ,"0.000000",8);
 //#ifdef __amd64__
 #if 1
@@ -2336,12 +2476,14 @@ char* xjb32(float v,char* buf)
     else
         k = (exp_bin * 315653 - 131237) >> 20;
 #else
-    //k = (exp_bin * 315653 - (irregular ? 131237 : 0 ))>>20;
-    k = (exp_bin * 315653 - (regular ? 0 : 131237 ))>>20;
+    k = (exp_bin * 315653 - (irregular ? 131237 : 0 ))>>20;
+    //k = (exp_bin * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
     int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
-    static const u64 *pow10 = &pow10_table[32];
-    u64 pow10_hi = pow10[(-1 - k)];
+    // static const u64 *pow10 = &pow10_table[32];
+    // u64 pow10_hi = pow10[(-1 - k)];
+    //static const u64 *pow10_reverse = &pow10_table_reverse[45];
+    u64 pow10_hi = pow10_table_reverse[k + 45];// get 10^(-k-1)
     //u64 pow10_hi = pow10_table[(-1-k)+32];
     u64 even = ((sig_bin + 1) & 1);
     const int BIT = 36; // [33,36] all right
@@ -2361,13 +2503,13 @@ char* xjb32(float v,char* buf)
     //u64 mr = D9 ? m : m * 10;//remove left zero
     memcpy(buf ,"0.000000",8);
     u64 ASCII_8;
-    tz = encode_8digit(m,&ASCII_8);
+    tz = encode_8digit_fast(m,&ASCII_8);
     //dec_sig_len = up_down ? 8 - tz : 8 + D9;
 #if yy_is_real_gcc
     // use this code to prevent gcc compiler generate branch instructions
     //dec_sig_len_ofs = ( ( ((2+8 - tz)*256) + 2+8 + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
-    int dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
+    u32 dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     // when m==0 => up_down = 0; m==0 equal to v < 1e-44; only contain 6 value : 1e-45,3e-45,4e-45,6e-45,7e-45,8e-45 ;
     // when m=0 , tz = clz(0)/8 is not sure in some machine. but we can prove  ( 7*256 + 7 - (tz<<8)  + D9 ) & 0xff is always equal to 7+D9; Even if tz is a random value
     // when m>0 , tz <= 7 is must exist.
@@ -2377,7 +2519,7 @@ char* xjb32(float v,char* buf)
 #else
     // icpx clang use this code to generate cmov instructions
     dec_sig_len_ofs = up_down ? 2+8 - tz : 2+8 + D9;// when mr = 0, up_down = 0, so can avoid use tz
-    int dec_sig_len_ofs3 = up_down ? 7 - tz : 7 + D9;
+    u32 dec_sig_len_ofs3 = up_down ? 7 - tz : 7 + D9;
 #endif
     k += 7 + D9;
     e10 = k;// euqal to e10 = k+7+D9
@@ -2392,27 +2534,13 @@ char* xjb32(float v,char* buf)
     u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
     if(irregular)[[unlikely]]{ // branch
         if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
-            one+=1;
+            one += 1;
     }
 
     const int e10_DN = -3;
     const int e10_UP = 7;
 
     // size = 12*12 = 144 byte
-//     static const u8 e10_variable_data2[e10_UP-(e10_DN) + 1 + 1][3+9]={
-// 4,1,1,1,2,3,4,5,6,7,8,9,// e10=-3
-// 3,1,1,1,2,3,4,5,6,7,8,9,// e10=-2
-// 2,1,1,1,2,3,4,5,6,7,8,9,// e10=-1
-// 0,1,2,3,3,4,5,6,7,8,9,10,// e10=0
-// 0,2,3,4,4,4,5,6,7,8,9,10,// e10=1
-// 0,3,4,5,5,5,5,6,7,8,9,10,// e10=2
-// 0,4,5,6,6,6,6,6,7,8,9,10,// e10=3
-// 0,5,6,7,7,7,7,7,7,8,9,10,// e10=4
-// 0,6,7,8,8,8,8,8,8,8,9,10,// e10=5
-// 0,7,8,9,9,9,9,9,9,9,9,10,// e10=6
-// 0,8,9,10,10,10,10,10,10,10,10,10,// e10=7
-// 0,1,2,1,3,4,5,6,7,8,9,10// e10=other
-//         };
         static const u8 e10_variable_data[e10_UP-(e10_DN) + 1 + 1][3+9]={
     1,2,3,4,5,6,7,8,9, 4,1,1,// e10=-3
     1,2,3,4,5,6,7,8,9, 3,1,1,// e10=-2
@@ -2427,35 +2555,17 @@ char* xjb32(float v,char* buf)
     10,10,10,10,10,10,10,10,10, 0,8,9,// e10=7
     1,3,4,5,6,7,8,9,10, 0,1,2,// e10=other
             };
-    // static const u32 e10_variable_data3[e10_UP-(e10_DN) + 1 + 1]={
-    //     4+(1<<8)+(1<<16),// e10=-3
-    //     3+(1<<8)+(1<<16),// e10=-2
-    //     2+(1<<8)+(1<<16),// e10=-1
-    //     0+(1<<8)+(2<<16),// e10=0
-    //     0+(2<<8)+(3<<16),// e10=1
-    //     0+(3<<8)+(4<<16),// e10=2
-    //     0+(4<<8)+(5<<16),// e10=3
-    //     0+(5<<8)+(6<<16),// e10=4
-    //     0+(6<<8)+(7<<16),// e10=5
-    //     0+(7<<8)+(8<<16),// e10=6
-    //     0+(8<<8)+(9<<16),// e10=7
-    //     0+(1<<8)+(2<<16),// e10=other
-    // };
     u32 e10_3 = e10 + (-e10_DN);//convert to unsigned number
     u64 e10_data_ofs = e10_3 < e10_UP-e10_DN+1 ? e10_3 : e10_UP-e10_DN+1;//compute offset , min(e10_3,11)
+    u32 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
     u64 first_sig_pos = e10_variable_data[e10_data_ofs][9+0];  // we use lookup table to get first_sig_pos
     u64 dot_pos = e10_variable_data[e10_data_ofs][9+1];
     u64 move_pos = e10_variable_data[e10_data_ofs][9+2];
-
-    // u32 e10_data3 = e10_variable_data3[e10_data_ofs];
-    // u64 first_sig_pos = e10_data3 & 0xff;
-    // u64 dot_pos = (e10_data3 >> 8) & 0xff;
-    // u64 move_pos = (e10_data3 >> 16) ;
-
+    //u64 move_pos = dot_pos + (e10_data_ofs>=3);
     u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs3];
     // u64 first_sig_pos = (e10_DN<=e10 && e10<=-1) ? 1 - e10 : 0 ;
     // u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1 ;
-    // u64 move_pos = dot_pos + (!(e10_DN<=e10 && e10<=-1) );
+    // u64 move_pos = dot_pos + (1-(e10_DN<=e10 && e10<=-1) );
     // u64 exp_pos = ((e10_DN <= e10 && e10 <= -1) ? dec_sig_len - 1 : (
     //         (0<=e10 && e10<= e10_UP) ? (e10+2 > dec_sig_len ? e10+2: dec_sig_len ) : (
     //             dec_sig_len - (dec_sig_len == 1)
@@ -2557,12 +2667,13 @@ char* xjb32(float v,char* buf)
 0x37332b65, // e10 = 37
 0x38332b65, // e10 = 38
 };
-    static const u32 *exp_ptr = (u32*)&exp_result_precalc[45];
-    //u64 exp_result = exp_ptr[e10];
+    //static const u32 *exp_ptr = (u32*)&exp_result_precalc[45];
+    //u32 exp_result = exp_ptr[e10];
     if(m < (u32)1e6 )[[unlikely]]
     //if( (ASCII_8 & 0x0f) == 0 )[[unlikely]]
     {
         u64 lz = 0;
+        //lz += buf[2+lz]=='0';
         while(buf[2+lz] == '0')lz++;
         lz += 2;
         e10 -= lz - 1;
@@ -2587,12 +2698,14 @@ char* xjb32(float v,char* buf)
         u64 exp_result = e | ( bc_ASCII << 16 );
         exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : exp_result;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
 #else
-        u64 exp_result = exp_ptr[e10];
+        //u64 exp_result = exp_ptr[e10];
+        u64 exp_result = exp_result_precalc[45 + e10];
 #endif
     buf += exp_pos;
     //*(u64*)buf = exp_result;// contain '\0';
     memcpy(buf, &exp_result, 8);
-    u32 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
+    //buf[4]='\0';
+    //u32 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
     //u32 exp_len = (exp_result + ((1u<<28) - 1)) >> 28;//(e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4
     buf += exp_len;
     return buf;
