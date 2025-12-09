@@ -606,18 +606,32 @@ static inline u32 u32_lz_bits(u32 v) {
     return tz;
 
     }
-    static inline u64 encode_8digit_fast(const u64 x, u64* ASCII){//to be completed
+    static inline u64 encode_8digit_fast(u64 x, u64* ASCII){//to be completed
         // this code convert 8 digit number to 8 digit ASCII number;
         // require x in [1 , 1e8 - 1] = [1 , 99999999]
         // return tail zero count of x in base 10 , range [0,7]
 
         // 12345678 => "12345678"
         // 01234567 => "12345670"
-        u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * ((x * 109951163) >> 40);
-        u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
-        u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
-        aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
-        *ASCII =  aabbccdd_BCD | ((0x30303030ull << 32) + 0x30303030ull);
+        //u64 aabb = (x * 109951163) >> 40;
+        u64 aabb = (x * (u128)1844674407370956) >> 64;
+        u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * (aabb);
+        __m128i y = _mm_set1_epi64x(aabb_ccdd_merge);
+#if defined(__SSE4_1__) // __GNUC__ : gcc icpx clang  ; for MSVC how to check cpu support sse4.1
+    //_mm_mullo_epi32 need sse4.1
+    __m128i z = _mm_sub_epi32( _mm_slli_epi32(y,16) , _mm_mullo_epi32( _mm_set1_epi32((100<<16)-1) , _mm_srli_epi32( _mm_mulhi_epi16(y,_mm_set1_epi32(10486)),4)));
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epi16(y, _mm_set1_epi16(0x147b)),3);
+
+    __m128i y_mod_100 = _mm_sub_epi16(y,_mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+
+    __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+#endif
+        __m128i z_div_10 = _mm_mulhi_epi16(z, _mm_set1_epi16(0x199a));
+        __m128i tmp = _mm_sub_epi16(_mm_slli_epi16(z,8) , _mm_mullo_epi16(_mm_set1_epi16(2559) , z_div_10));
+        u64 aabbccdd_BCD = _mm_cvtsi128_si64(tmp);
+        aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8) ;
+        *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
         return u64_lz_bits(aabbccdd_BCD) / 8;
     }
     #endif // endif HAS_SSE2
@@ -654,7 +668,7 @@ static inline u32 u32_lz_bits(u32 v) {
         u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
         u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
         aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
-        *ASCII =  aabbccdd_BCD | ((0x30303030ull << 32) + 0x30303030ull);
+        *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
         return u64_lz_bits(aabbccdd_BCD) / 8;
     }
 #endif // endif HAS_NEON_OR_SSE2
@@ -2482,8 +2496,8 @@ char* xjb32(float v,char* buf)
     int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
     // static const u64 *pow10 = &pow10_table[32];
     // u64 pow10_hi = pow10[(-1 - k)];
-    //static const u64 *pow10_reverse = &pow10_table_reverse[45];
-    u64 pow10_hi = pow10_table_reverse[k + 45];// get 10^(-k-1)
+    static const u64 *pow10_reverse = &pow10_table_reverse[45];
+    u64 pow10_hi = pow10_reverse[k];// get 10^(-k-1)
     //u64 pow10_hi = pow10_table[(-1-k)+32];
     u64 even = ((sig_bin + 1) & 1);
     const int BIT = 36; // [33,36] all right
@@ -2508,7 +2522,7 @@ char* xjb32(float v,char* buf)
 #if yy_is_real_gcc
     // use this code to prevent gcc compiler generate branch instructions
     //dec_sig_len_ofs = ( ( ((2+8 - tz)*256) + 2+8 + D9 ) >> (up_down ? 8 : 0)) & 0xff;
-    dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
+    //dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     u32 dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     // when m==0 => up_down = 0; m==0 equal to v < 1e-44; only contain 6 value : 1e-45,3e-45,4e-45,6e-45,7e-45,8e-45 ;
     // when m=0 , tz = clz(0)/8 is not sure in some machine. but we can prove  ( 7*256 + 7 - (tz<<8)  + D9 ) & 0xff is always equal to 7+D9; Even if tz is a random value
@@ -2518,7 +2532,7 @@ char* xjb32(float v,char* buf)
     // (2) dec_sig_len_ofs3 = up_down ? 7 - tz : 7 + D9;
 #else
     // icpx clang use this code to generate cmov instructions
-    dec_sig_len_ofs = up_down ? 2+8 - tz : 2+8 + D9;// when mr = 0, up_down = 0, so can avoid use tz
+    //dec_sig_len_ofs = up_down ? 2+8 - tz : 2+8 + D9;// when mr = 0, up_down = 0, so can avoid use tz
     u32 dec_sig_len_ofs3 = up_down ? 7 - tz : 7 + D9;
 #endif
     k += 7 + D9;
@@ -2667,7 +2681,7 @@ char* xjb32(float v,char* buf)
 0x37332b65, // e10 = 37
 0x38332b65, // e10 = 38
 };
-    //static const u32 *exp_ptr = (u32*)&exp_result_precalc[45];
+    static const u32 *exp_ptr = (u32*)&exp_result_precalc[45];
     //u32 exp_result = exp_ptr[e10];
     if(m < (u32)1e6 )[[unlikely]]
     //if( (ASCII_8 & 0x0f) == 0 )[[unlikely]]
@@ -2698,8 +2712,8 @@ char* xjb32(float v,char* buf)
         u64 exp_result = e | ( bc_ASCII << 16 );
         exp_result = ( e10_DN <= e10 && e10 <= e10_UP ) ? 0 : exp_result;// e10_DN<=e10 && e10<=e10_UP : no need to print exponent
 #else
-        //u64 exp_result = exp_ptr[e10];
-        u64 exp_result = exp_result_precalc[45 + e10];
+        u64 exp_result = exp_ptr[e10];
+        //u64 exp_result = exp_result_precalc[45 + e10];
 #endif
     buf += exp_pos;
     //*(u64*)buf = exp_result;// contain '\0';

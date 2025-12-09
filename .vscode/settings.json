@@ -41,6 +41,8 @@
         "algorithm": "cpp",
         "ratio": "cpp",
         "queue": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "text_encoding": "cpp",
+        "unordered_map": "cpp"
     }
 }
