@@ -99,3 +99,35 @@ for i in range(-292-1,325,1):
     result = num + round_up
     print(hex(result >> 64),end=",")
     print(hex(result & ((2**64) - 1)),", //",i,end='\n')
+
+
+print("\ngenerate xjb64_comp lut:")
+def get_pow10(i):
+    e10 = int(abs(i))
+    e2 = int(abs(math.floor(i*log2_10) - BIT))
+    round_up = 0
+    if(i<0):
+        num = 2**e2//10**e10
+        round_up = 1
+    elif(i >= ans):
+        num = 10**e10//2**e2
+        round_up = 0 if(num * (2**e2) == 10**e10) else 1
+    else:
+        num = 10**e10*2**e2
+    result = num + round_up
+    return result
+ratio = 27
+start_base = math.floor(-293 / ratio) #-11
+end_base = math.floor(323 / ratio) #11
+#print pow10_base lookup table
+for base in range(start_base, end_base+1):
+    pow10_base = get_pow10(base * ratio)
+    hi = pow10_base >> 64
+    lo = pow10_base & ((2**64) - 1)
+    print("0x{:016x}, 0x{:016x},".format(hi, lo), "// e10 = ", base,"*",ratio,"=",base*ratio)
+#print pow5 lookup table
+for i in range(0,ratio+1):
+    p5 = 5**i
+    clz = (64 - p5.bit_length())
+    p5_rlz = p5 << clz
+    print("0x{:016x},// = (5**{:2d}) << clz(5**{:2d}) = (5**{:2d}) << {:2d} ; e10 = {} ".format(p5_rlz,i,i,i,clz,i))
