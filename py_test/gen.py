@@ -3,7 +3,8 @@
 import math
 log2_10 = math.log2(10)
 print("generate xjb32 lut:")
-for i in range(-32,45,1):
+#for i in range(-32,45,1): # [-32,44]
+for i in range(44,-33,-1): # [44,-32]
     e10 = abs(i)
     e2 = abs(math.floor(i*log2_10) - 63)
     round_up = 0 if(i>=0 and i<=27) else 1
@@ -23,7 +24,7 @@ for i in range(-32,45,1):
 #     e2 = abs(math.floor(i*log2_10) - 96)
 #     pow2=math.floor(i*log2_10) - 95
 #     num=0
-#     if(i<0):         
+#     if(i<0):
 #         num = 2**e2//10**e10
 #     elif(i >= 29):
 #         num = 10**e10//2**e2
@@ -51,7 +52,7 @@ for i in range(-32,45,1):
 #     e2 = abs(math.floor(i*log2_10) - BIT)
 #     num=0
 #     round_up = 0
-#     if(i<0):         
+#     if(i<0):
 #         num = 2**e2//10**e10
 #         round_up = 1
 #         r= ((num+1)*10**e10 - (2**e2)) / (2**e2)
@@ -87,7 +88,7 @@ for i in range(-292-1,325,1):
     e10 = abs(i)
     e2 = abs(math.floor(i*log2_10) - BIT)
     round_up = 0
-    if(i<0):         
+    if(i<0):
         num = 2**e2//10**e10
         round_up = 1
     elif(i >= ans):
