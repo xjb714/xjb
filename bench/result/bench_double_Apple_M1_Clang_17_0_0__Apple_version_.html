@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<title>Report</title>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/highcharts.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/modules/series-label.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/modules/exporting.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/modules/export-data.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/modules/offline-exporting.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/sortable/0.8.0/js/sortable.min.js'></script>
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.0/css/bulma.min.css' />
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/sortable/0.8.0/css/sortable-theme-bootstrap.min.css' />
+<script>window.onload=Sortable.init</script>
+<style type='text/css'>
+hr {
+    height: 1px;
+    margin: 5px 0; 
+    background-color: #999999; 
+}
+.table thead {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+.highcharts-data-table table, th, td { 
+    border: 1px solid gray;
+    padding: 2pt;
+}
+.highcharts-data-table table {
+    margin: auto;
+}
+table .number { 
+    align-items: initial;
+    border-radius: initial;
+    display: table-cell;
+    font-size: initial;
+    height: initial;
+    justify-content: initial;
+    margin-right: initial;
+    min-width: initial;
+    padding: 2pt;
+    vertical-align: initial;
+    text-align: initial;
+    background-color: initial;
+}
+.table.is-narrow td, .table.is-narrow th {
+    padding: .1em .5em;
+}
+</style>
+</head>
+
+<body>
+<nav class='navbar is-light is-fixed-top' role='navigation' aria-label='main navigation'>
+    <div class='navbar-brand'>
+        <a class='navbar-item' href='#'>Report</a>
+        <a role='button' class='navbar-burger burger' aria-label='menu' data-target='main-menu'
+            onclick='document.querySelector(".navbar-menu").classList.toggle("is-active");'>
+            <span aria-hidden='true'></span>
+            <span aria-hidden='true'></span>
+            <span aria-hidden='true'></span>
+        </a>
+    </div>
+    <div id='main-menu' class='navbar-menu'>
+        <div class='navbar-start'>
+            <div class='navbar-item has-dropdown is-hoverable'>
+                <a class='navbar-link'>Info</a>
+                <div class='navbar-dropdown'>
+                    <a class='navbar-item'>Compiler: Clang 17.0.0 (Apple version)</a>
+                    <a class='navbar-item'>OS: macOS 26.1 (64-bit)</a>
+                    <a class='navbar-item'>CPU: Apple M1</a>
+                    <a class='navbar-item'>CPU Frequency: 3207.61 MHz</a>
+                </div>
+            </div>
+            <div class='navbar-item has-dropdown is-hoverable'>
+                <a class='navbar-link'>Charts</a>
+                <div class='navbar-dropdown'>
+                    <a class='navbar-item' href='#chart_0'>random</a>
+                    <a class='navbar-item' href='#chart_1'>random length</a>
+                    <a class='navbar-item' href='#chart_2'>fixed length</a>
+                    <a class='navbar-item' href='#chart_3'>nomalized</a>
+                    <a class='navbar-item' href='#chart_4'>nomalized (random len)</a>
+                    <a class='navbar-item' href='#chart_5'>nomalized (fixed len)</a>
+                    <a class='navbar-item' href='#chart_6'>integer</a>
+                    <a class='navbar-item' href='#chart_7'>integer (random len)</a>
+                    <a class='navbar-item' href='#chart_8'>integer (fixed len)</a>
+                    <a class='navbar-item' href='#chart_9'>subnormal</a>
+                    <a class='navbar-item' href='#chart_10'>float</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<a name='chart_0'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_0' style='width: 640px; height: 420px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_0', {
+    chart: { type: 'bar' },
+    title: { text: 'random' },
+    subtitle: { text: 'random double number in all binary range, ignore nan and inf' },
+    credits: { enabled: false },
+    xAxis: { allowDecimals: true, categories: ['schubfach_vitaut', 'fmt_full', 'dragonbox_comp', 'ryu', 'fmt_comp', 'schubfach', 'dragonbox_full', 'schubfach_xjb', 'xjb64_comp', 'yyjson', 'yy_double', 'xjb64', 'null'], type: 'linear' },
+    yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
+    tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
+    plotOptions: {
+        bar: { groupPadding: 0.000000, pointPadding: 0.100000, borderWidth: 0.000000, colorByPoint: true },
+        series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
+    },
+    series: [
+        { data: [108.110374, 102.381645, 100.761269, 100.271416, 99.214294, 86.224556, 80.619957, 71.810638, 55.788353, 51.689350, 47.918694, 32.103298, 3.000508] }
+    ]
+});
+</script>
+
+<a name='chart_1'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_1' style='width: 640px; height: 420px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_1', {
+    chart: { type: 'bar' },
+    title: { text: 'random length' },
+    subtitle: { text: 'random double number with random significant digit count' },
+    credits: { enabled: false },
+    xAxis: { allowDecimals: true, categories: ['schubfach_vitaut', 'ryu', 'fmt_comp', 'fmt_full', 'dragonbox_comp', 'schubfach_xjb', 'schubfach', 'dragonbox_full', 'yy_double', 'yyjson', 'xjb64_comp', 'xjb64', 'null'], type: 'linear' },
+    yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
+    tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
+    plotOptions: {
+        bar: { groupPadding: 0.000000, pointPadding: 0.100000, borderWidth: 0.000000, colorByPoint: true },
+        series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
+    },
+    series: [
+        { data: [165.073303, 146.091888, 126.565903, 120.758423, 111.118889, 106.480652, 104.985733, 92.369720, 80.650658, 79.472076, 55.564117, 32.343552, 3.105953] }
+    ]
+});
+</script>
+
+<a name='chart_2'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_2' style='width: 800px; height: 540px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_2', {
+    chart: { type: 'line' },
+    title: { text: 'fixed length' },
+    subtitle: { text: 'random double number with fixed significant digit count' },
+    credits: { enabled: false },
+    xAxis: { title: { text: 'digit count' }, tickInterval: 1.000000, allowDecimals: true, type: 'linear' },
+    yAxis: { title: { text: 'average CPU cycles' }, allowDecimals: true, type: 'logarithmic' },
+    tooltip: {valueDecimals: 2, shared: true, crosshairs: true, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: true },
+    plotOptions: {
+        line: { pointStart: 1.000000, pointInterval: 1.000000 },
+        series: { label: { enabled: false}, dataLabels: { enabled: false , allowOverlap: true} }
+    },
+    series: [
+        { name: 'ryu', data: [150.113480, 146.564392, 144.850571, 141.329514, 136.624542, 134.236679, 117.712532, 116.796898, 110.188576, 117.548363, 105.237999, 101.584801, 96.539467, 94.925758, 90.423660, 87.068115, 78.842079] },
+        { name: 'fmt_comp', data: [67.347252, 78.018539, 70.850960, 77.004135, 69.789833, 76.763878, 68.320282, 82.433876, 80.550552, 87.918343, 79.741699, 85.748047, 77.975830, 83.309471, 76.140549, 81.693092, 79.060974] },
+        { name: 'fmt_full', data: [68.604576, 79.249176, 70.003395, 77.275085, 68.838158, 77.955803, 68.451080, 77.305786, 80.585251, 87.934364, 79.456062, 85.674637, 78.026550, 83.436272, 76.392822, 81.854599, 78.649872] },
+        { name: 'dragonbox_comp', data: [73.637901, 78.958199, 73.751358, 78.580467, 73.483078, 79.609558, 74.019638, 78.810043, 73.907524, 79.541481, 74.509491, 80.885574, 75.042053, 80.960320, 75.127480, 81.531586, 58.671406] },
+        { name: 'schubfach_vitaut', data: [68.276230, 66.439621, 65.765579, 65.920410, 63.823521, 62.886532, 62.507462, 61.302189, 61.258141, 76.581017, 75.433136, 73.839455, 73.061295, 72.763649, 71.629112, 77.899750, 85.902878] },
+        { name: 'schubfach_xjb', data: [58.503227, 60.614792, 59.668461, 59.579033, 59.639095, 62.746384, 62.750385, 62.871849, 64.019730, 68.939598, 69.115784, 68.664642, 69.069069, 71.099220, 71.048500, 70.991104, 64.125175] },
+        { name: 'schubfach', data: [57.762444, 58.708778, 58.883629, 57.678352, 57.539539, 61.047253, 62.257866, 61.142017, 61.986912, 65.668137, 65.589386, 65.850998, 65.713524, 67.639557, 69.051720, 68.043983, 63.918289] },
+        { name: 'dragonbox_full', data: [58.129498, 62.208481, 58.205578, 63.158817, 58.041405, 63.730091, 59.215981, 63.962334, 58.991745, 63.706062, 61.529095, 64.362762, 59.703163, 65.518646, 59.676468, 65.700172, 45.796452] },
+        { name: 'xjb64_comp', data: [56.134052, 55.590813, 55.787018, 55.582802, 55.833736, 55.752316, 56.019264, 56.796085, 55.580135, 55.572124, 55.574795, 56.128716, 55.889793, 55.570789, 55.578800, 55.944519, 55.576130] },
+        { name: 'yyjson', data: [49.677891, 48.356491, 48.855686, 48.291088, 56.824116, 49.852741, 49.515049, 49.454987, 56.287548, 51.765430, 50.694965, 55.251785, 57.687698, 51.894901, 51.814816, 51.838844, 52.031044] },
+        { name: 'yy_double', data: [39.480434, 39.025288, 39.149418, 39.680645, 48.177635, 42.315434, 41.525265, 41.706791, 49.565769, 44.963570, 44.923527, 45.036980, 54.089222, 47.887997, 47.977425, 47.875984, 49.786003] },
+        { name: 'xjb64', data: [32.603825, 32.710606, 32.262131, 32.100628, 32.702599, 32.104633, 33.203129, 32.091286, 32.706600, 32.091286, 32.091286, 32.092617, 32.135330, 32.080605, 32.099293, 32.097958, 32.360901] },
+        { name: 'null', data: [3.000508, 3.012520, 3.000508, 3.000508, 3.000508, 2.999173, 3.000508, 2.999173, 3.001842, 3.001842, 2.999173, 3.000508, 3.001842, 3.003177, 2.999173, 3.000508, 3.001842] }
+    ]
+});
+</script>
+
+<a name='chart_3'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_3' style='width: 640px; height: 420px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_3', {
+    chart: { type: 'bar' },
+    title: { text: 'nomalized' },
+    subtitle: { text: 'random double number in range 0.0 to 1.0' },
+    credits: { enabled: false },
+    xAxis: { allowDecimals: true, categories: ['schubfach_vitaut', 'fmt_full', 'fmt_comp', 'ryu', 'schubfach', 'dragonbox_comp', 'schubfach_xjb', 'dragonbox_full', 'xjb64_comp', 'yy_double', 'yyjson', 'xjb64', 'null'], type: 'linear' },
+    yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
+    tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
+    plotOptions: {
+        bar: { groupPadding: 0.000000, pointPadding: 0.100000, borderWidth: 0.000000, colorByPoint: true },
+        series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
+    },
+    series: [
+        { data: [107.233444, 95.451653, 95.023193, 83.095909, 76.626396, 76.262016, 68.225510, 61.473034, 44.049267, 42.953442, 41.840263, 32.916157, 3.056567] }
+    ]
+});
+</script>
+
+<a name='chart_4'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_4' style='width: 640px; height: 420px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_4', {
+    chart: { type: 'bar' },
+    title: { text: 'nomalized (random len)' },
+    subtitle: { text: 'random double number in range 0.0 to 1.0, with random significant digit count' },
+    credits: { enabled: false },
+    xAxis: { allowDecimals: true, categories: ['schubfach_vitaut', 'ryu', 'fmt_full', 'fmt_comp', 'schubfach_xjb', 'schubfach', 'dragonbox_comp', 'dragonbox_full', 'yy_double', 'yyjson', 'xjb64_comp', 'xjb64', 'null'], type: 'linear' },
+    yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
+    tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
+    plotOptions: {
+        bar: { groupPadding: 0.000000, pointPadding: 0.100000, borderWidth: 0.000000, colorByPoint: true },
+        series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
+    },
+    series: [
+        { data: [158.745270, 128.004761, 125.534142, 125.004250, 103.302620, 102.920883, 97.140099, 80.435760, 74.400047, 72.870422, 43.053547, 33.195118, 3.057902] }
+    ]
+});
+</script>
+
+<a name='chart_5'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_5' style='width: 800px; height: 540px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_5', {
+    chart: { type: 'line' },
+    title: { text: 'nomalized (fixed len)' },
+    subtitle: { text: 'random double number in range 0.0 to 1.0, with fixed significant digit count' },
+    credits: { enabled: false },
+    xAxis: { title: { text: 'digit count' }, tickInterval: 1.000000, allowDecimals: true, type: 'linear' },
+    yAxis: { title: { text: 'average CPU cycles' }, allowDecimals: true, type: 'logarithmic' },
+    tooltip: {valueDecimals: 2, shared: true, crosshairs: true, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: true },
+    plotOptions: {
+        line: { pointStart: 1.000000, pointInterval: 1.000000 },
+        series: { label: { enabled: false}, dataLabels: { enabled: false , allowOverlap: true} }
+    },
+    series: [
+        { name: 'ryu', data: [134.662460, 123.948463, 121.337700, 118.100945, 117.784607, 112.740608, 96.847794, 89.573433, 89.072899, 96.590187, 80.988350, 78.418961, 75.906975, 73.604538, 72.001503, 67.883820, 78.087944] },
+        { name: 'schubfach_xjb', data: [66.638496, 64.871300, 65.351807, 64.027740, 66.239410, 71.713203, 67.340576, 67.510086, 71.351486, 74.031654, 74.181145, 74.267906, 75.146164, 73.059959, 72.987885, 79.374641, 63.093414] },
+        { name: 'fmt_full', data: [52.123142, 75.577293, 52.598312, 75.652039, 52.451492, 75.724113, 52.634350, 77.186996, 63.932972, 86.491501, 66.340851, 87.308365, 66.395576, 85.530487, 66.084579, 86.898598, 65.554688] },
+        { name: 'schubfach', data: [65.429222, 65.975128, 64.288010, 64.577652, 66.320831, 68.137421, 67.084305, 66.946823, 69.436127, 73.520447, 74.903244, 76.225975, 76.715828, 73.782059, 73.851463, 75.562607, 58.331043] },
+        { name: 'fmt_comp', data: [53.934391, 77.216354, 52.622337, 75.673393, 52.661045, 74.661652, 52.642361, 77.272415, 63.783478, 86.546227, 65.026131, 86.185844, 65.152931, 83.525696, 64.916679, 84.358582, 64.872635] },
+        { name: 'schubfach_vitaut', data: [61.362251, 59.458904, 58.121490, 57.219200, 55.301170, 55.007526, 52.719776, 51.581238, 50.896511, 71.001785, 72.080254, 71.900063, 69.115784, 66.003159, 66.783989, 84.901825, 81.976059] },
+        { name: 'dragonbox_comp', data: [37.845371, 60.541382, 36.845646, 65.410538, 39.058655, 66.858734, 40.000984, 65.724197, 40.836536, 67.028244, 43.519375, 69.133141, 45.003613, 72.696907, 46.777489, 73.376297, 47.610371] },
+        { name: 'yy_double', data: [39.727364, 36.808273, 36.442554, 35.656387, 58.097466, 37.093910, 38.748993, 39.934250, 59.094517, 41.204926, 41.096813, 41.981747, 67.331230, 44.318886, 43.522045, 42.383507, 42.230011] },
+        { name: 'xjb64_comp', data: [43.264439, 42.671810, 43.074905, 43.056217, 43.664860, 42.578381, 42.565033, 42.537003, 42.599735, 43.523380, 43.825031, 43.508698, 43.556747, 43.401917, 43.523380, 43.416599, 43.961174] },
+        { name: 'yyjson', data: [36.993805, 35.213253, 35.063763, 35.241283, 59.803268, 39.537830, 37.817341, 36.997807, 58.473862, 40.322659, 41.449184, 41.268993, 64.157211, 41.901665, 41.825581, 43.056217, 43.084248] },
+        { name: 'dragonbox_full', data: [25.604422, 46.370392, 26.193045, 50.355942, 27.842789, 53.388481, 29.025373, 52.093781, 29.846243, 53.608715, 33.169758, 58.730133, 35.433487, 61.925514, 36.786919, 60.606785, 36.393169] },
+        { name: 'xjb64', data: [34.057365, 33.666283, 33.137726, 34.471134, 32.621178, 32.286156, 32.671898, 32.534420, 32.946857, 33.881176, 32.383595, 32.902809, 32.295502, 32.878784, 33.424694, 34.739418, 32.336876] },
+        { name: 'null', data: [3.000508, 3.001842, 3.009851, 3.247436, 3.000508, 3.000508, 2.999173, 3.000508, 2.997838, 3.000508, 3.000508, 3.001842, 2.999173, 3.000508, 2.999173, 3.000508, 3.000508] }
+    ]
+});
+</script>
+
+<a name='chart_6'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_6' style='width: 640px; height: 420px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_6', {
+    chart: { type: 'bar' },
+    title: { text: 'integer' },
+    subtitle: { text: 'random double number from integer' },
+    credits: { enabled: false },
+    xAxis: { allowDecimals: true, categories: ['fmt_full', 'fmt_comp', 'schubfach', 'schubfach_vitaut', 'schubfach_xjb', 'dragonbox_comp', 'dragonbox_full', 'xjb64_comp', 'ryu', 'xjb64', 'yy_double', 'yyjson', 'null'], type: 'linear' },
+    yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
+    tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
+    plotOptions: {
+        bar: { groupPadding: 0.000000, pointPadding: 0.100000, borderWidth: 0.000000, colorByPoint: true },
+        series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
+    },
+    series: [
+        { data: [104.856262, 104.426476, 78.061249, 77.668839, 76.057800, 73.954239, 59.962105, 57.548882, 34.360352, 32.892132, 19.419210, 19.360483, 3.064575] }
+    ]
+});
+</script>
+
+<a name='chart_7'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_7' style='width: 640px; height: 420px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_7', {
+    chart: { type: 'bar' },
+    title: { text: 'integer (random len)' },
+    subtitle: { text: 'random double number from integer, with random digit count' },
+    credits: { enabled: false },
+    xAxis: { allowDecimals: true, categories: ['fmt_full', 'fmt_comp', 'schubfach_vitaut', 'schubfach_xjb', 'schubfach', 'dragonbox_comp', 'dragonbox_full', 'ryu', 'xjb64_comp', 'yy_double', 'yyjson', 'xjb64', 'null'], type: 'linear' },
+    yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
+    tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
+    plotOptions: {
+        bar: { groupPadding: 0.000000, pointPadding: 0.100000, borderWidth: 0.000000, colorByPoint: true },
+        series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
+    },
+    series: [
+        { data: [133.367767, 132.400070, 130.943863, 103.346664, 102.766052, 94.034149, 78.022545, 55.526745, 46.256939, 44.445686, 42.559692, 32.906815, 3.120635] }
+    ]
+});
+</script>
+
+<a name='chart_8'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_8' style='width: 800px; height: 540px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_8', {
+    chart: { type: 'line' },
+    title: { text: 'integer (fixed len)' },
+    subtitle: { text: 'random double number from integer, with fixed digit count' },
+    credits: { enabled: false },
+    xAxis: { title: { text: 'digit count' }, tickInterval: 1.000000, allowDecimals: true, type: 'linear' },
+    yAxis: { title: { text: 'average CPU cycles' }, allowDecimals: true, type: 'logarithmic' },
+    tooltip: {valueDecimals: 2, shared: true, crosshairs: true, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: true },
+    plotOptions: {
+        line: { pointStart: 1.000000, pointInterval: 1.000000 },
+        series: { label: { enabled: false}, dataLabels: { enabled: false , allowOverlap: true} }
+    },
+    series: [
+        { name: 'fmt_full', data: [61.438332, 77.272415, 55.609497, 65.916405, 56.166088, 79.755043, 56.004581, 76.252670, 67.568817, 74.883224, 68.800789, 90.901505, 69.003670, 84.278496, 70.367775, 86.024345, 73.736679] },
+        { name: 'fmt_comp', data: [60.395897, 76.283371, 54.484306, 65.297081, 57.095070, 78.334877, 55.123650, 75.012695, 66.300812, 73.732674, 68.338966, 89.466652, 68.214836, 81.135170, 69.037041, 84.386612, 75.088776] },
+        { name: 'schubfach_xjb', data: [64.029076, 67.389961, 66.332840, 52.327358, 63.497845, 69.514877, 56.098015, 66.838715, 73.317566, 62.175110, 71.554367, 75.984390, 59.874008, 73.362946, 77.508667, 73.960915, 58.892971] },
+        { name: 'schubfach', data: [53.726173, 64.566978, 65.666801, 51.541195, 60.999199, 68.640617, 54.309456, 63.242908, 70.992439, 59.972782, 69.441467, 74.450768, 56.168758, 70.155556, 74.715042, 72.010849, 58.601997] },
+        { name: 'dragonbox_comp', data: [43.970520, 60.008820, 37.785309, 50.226471, 39.600563, 70.166229, 40.919289, 62.963947, 42.770580, 50.477402, 42.741219, 74.912590, 49.066578, 51.666660, 45.840496, 70.999115, 68.173454] },
+        { name: 'xjb64_comp', data: [47.047108, 43.712914, 43.744946, 43.515369, 43.568760, 43.387234, 43.336514, 43.372551, 43.580772, 43.437954, 43.412594, 44.435009, 43.435284, 43.535393, 43.425941, 58.784859, 56.666618] },
+        { name: 'schubfach_vitaut', data: [40.397404, 38.470032, 35.350731, 33.725014, 34.030670, 32.877449, 32.211411, 31.191666, 30.759209, 48.447254, 49.695240, 45.277233, 43.651516, 43.073570, 41.987087, 62.898544, 68.097374] },
+        { name: 'dragonbox_full', data: [34.156136, 46.200878, 26.002176, 37.298126, 27.889505, 54.153290, 29.508553, 48.447254, 29.888954, 37.298126, 32.183380, 57.012314, 34.585922, 53.504604, 36.188953, 56.491764, 53.287041] },
+        { name: 'xjb64', data: [35.546940, 32.558445, 32.045902, 32.294167, 32.267471, 31.987173, 32.387596, 32.898804, 32.850754, 32.858761, 33.037617, 32.916157, 32.866772, 32.869442, 32.918827, 32.848083, 33.599545] },
+        { name: 'ryu', data: [42.137913, 29.516560, 30.664442, 29.572620, 29.001348, 29.608658, 27.997620, 27.000565, 27.004570, 37.020500, 25.002451, 25.512323, 25.497643, 24.997112, 26.134315, 31.796305, 69.154495] },
+        { name: 'yy_double', data: [8.192667, 8.168642, 9.519404, 9.524743, 11.218535, 11.238557, 12.236946, 12.232942, 14.315145, 14.288449, 16.322601, 16.402687, 18.272665, 17.905609, 19.006775, 23.972027, 71.438248] },
+        { name: 'yyjson', data: [8.171311, 8.156630, 9.233768, 9.220422, 11.211862, 11.226543, 12.301014, 12.289001, 14.062878, 14.160315, 15.904826, 15.999594, 17.812178, 17.856224, 18.998766, 23.200544, 66.016510] },
+        { name: 'null', data: [3.059237, 3.060571, 3.144660, 3.057902, 3.216737, 3.057902, 3.059237, 3.056567, 3.083262, 3.056567, 3.055232, 3.057902, 3.056567, 3.108622, 3.072584, 3.016525, 3.095275] }
+    ]
+});
+</script>
+
+<a name='chart_9'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_9' style='width: 640px; height: 420px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_9', {
+    chart: { type: 'bar' },
+    title: { text: 'subnormal' },
+    subtitle: { text: 'random subnormal double number' },
+    credits: { enabled: false },
+    xAxis: { allowDecimals: true, categories: ['schubfach_vitaut', 'ryu', 'schubfach', 'fmt_full', 'fmt_comp', 'schubfach_xjb', 'dragonbox_comp', 'dragonbox_full', 'xjb64_comp', 'yy_double', 'yyjson', 'xjb64', 'null'], type: 'linear' },
+    yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
+    tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
+    plotOptions: {
+        bar: { groupPadding: 0.000000, pointPadding: 0.100000, borderWidth: 0.000000, colorByPoint: true },
+        series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
+    },
+    series: [
+        { data: [136.086639, 97.002625, 95.368896, 92.552582, 92.365715, 82.823624, 79.859154, 64.366760, 57.129772, 49.771320, 41.726810, 34.644653, 3.295486] }
+    ]
+});
+</script>
+
+<a name='chart_10'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_10' style='width: 640px; height: 420px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_10', {
+    chart: { type: 'bar' },
+    title: { text: 'float' },
+    subtitle: { text: 'random float number' },
+    credits: { enabled: false },
+    xAxis: { allowDecimals: true, categories: ['schubfach_vitaut', 'fmt_comp', 'fmt_full', 'ryu', 'dragonbox_comp', 'schubfach', 'dragonbox_full', 'schubfach_xjb', 'xjb64_comp', 'yy_double', 'yyjson', 'xjb64', 'null'], type: 'linear' },
+    yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
+    tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
+    plotOptions: {
+        bar: { groupPadding: 0.000000, pointPadding: 0.100000, borderWidth: 0.000000, colorByPoint: true },
+        series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
+    },
+    series: [
+        { data: [113.418655, 113.250481, 110.641052, 102.930229, 100.998848, 93.597687, 84.754997, 77.643478, 57.817165, 56.880177, 53.922379, 32.659885, 3.000508] }
+    ]
+});
+</script>
+
+</body>
+</html>

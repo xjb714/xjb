@@ -261,7 +261,7 @@ void bench_double_single_impl(int i)
     // void (*func)(double, unsigned long long *, int *) = double_to_decimal_algorithm_set[i].second;
     unsigned long long *dec_p = &dec[0];
     int *e10_p = &e10[0];
-    printf("%d. bench %16s : ", i, name.c_str());
+    printf("%2d. bench %16s : ", i, name.c_str());
 
     auto t1 = getns();
 
@@ -368,7 +368,7 @@ void bench_float_single_impl(int i)
     // void (*func)(float*, unsigned int *, int *) = algorithm_float_set[i].second;
     unsigned int *dec_p = &dec_float[0];
     int *e10_p = &e10_float[0];
-    printf("%d. bench %16s : ", i, name.c_str());
+    printf("%2d. bench %16s : ", i, name.c_str());
 
     auto t1 = getns();
 
@@ -699,6 +699,7 @@ void check_double()
     check_rand_double(); // random double
     printf("check finish\n");
 }
+#if USE_YYBENCH && BENCH_STR
 std::string getFileName(char* float_or_double)
 {
     std::string fileName = std::string("result/bench");
@@ -708,6 +709,8 @@ std::string getFileName(char* float_or_double)
     fileName += std::string(".html");
     return fileName;
 }
+#endif
+
 void bench_double()
 {
 
