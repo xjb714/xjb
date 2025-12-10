@@ -2110,11 +2110,13 @@ char* xjb64(double v,char* buf)
         u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
         u128 cb = c << (h + 1 + offset);
         u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
+        //printf("xjb64 pow10_hi = %llx, pow10_lo = %llx\n",p10[0],p10[1]);
         u64 dot_one = hi128 >> offset;   // == floor(2**64*n)
         u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
         u64 up = (half_ulp  > ~0 - dot_one);
         u64 down = ( (half_ulp >> (1 - regular )) > dot_one );
         m = (hi128 >> (offset + 64)) + up;
+        //printf("xjb64 hi128 = %llx %llx\n",hi128>>64,(u64)hi128);
         u64 up_down = up + down;
         D17 = (m >= (u64)1e15);
         byte16_reg ASCII_16;
@@ -2153,6 +2155,7 @@ char* xjb64(double v,char* buf)
         u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) + (u64)('0' + '0' * 256);
         if(!regular)[[unlikely]]
             one += (bitarray_irregular[ieee_exponent/64]>>(ieee_exponent%64)) & 1;
+        //printf("xjb64 dot_one = %llx, one = %llx\n",dot_one,one - (u64)('0' + '0' * 256));
 #endif
 
         // when -3<=e10 && e10 <= 15 ; we use %lf format print float number

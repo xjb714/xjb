@@ -30,6 +30,7 @@ int main()
         M_E,
         M_PI,
         0,
+        9999999999990000
     };
     char buf_full_double[33],buf_full_float[24];
     char buf_comp_double[33],buf_comp_float[24];

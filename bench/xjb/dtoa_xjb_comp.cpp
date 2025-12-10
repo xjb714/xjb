@@ -945,6 +945,7 @@ char* xjb64(double v,char* buf)
         u64 pow10_hi;
         u128 hi128;
         int h;
+        //printf("get_e10 = %d, ratio = %d\n",get_e10,ratio);
         if( 0 <= get_e10 && get_e10 <= ratio )  // direct use the pow5_rlz table value ; likely
         {
             //fast path ; likely
@@ -972,10 +973,12 @@ char* xjb64(double v,char* buf)
             u128 pow10 = pow5_rlz_v * pow10_base_high + ((pow5_rlz_v * pow10_base_low) >> 64) ;// u64 * u128
             pow10_hi = pow10 >> 64;
             u64 pow10_lo = pow10;
+            //printf("pow10_hi = %llx, pow10_lo = %llx\n",pow10_hi,pow10_lo);
             int alpha = ((( (base + base_start) * ratio) * 217707) >> 16) + ((pow5_offset * 217707) >> 16);
             h = 1 + alpha + q;
             u128 cb = c << (h + offset + 1);
             hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64)); // u64 * u128
+            //printf("hi128 = %llx %llx\n",(u64)(hi128>>64),(u64)hi128);
         }
         u64 dot_one = hi128 >> offset;   // == floor(2**64*n)
         //u64 half_ulp = (pow10_hi >> (-h) ) + ((c + 1) & 1) ;
@@ -985,6 +988,7 @@ char* xjb64(double v,char* buf)
         m = (hi128 >> (offset + 64)) + up;
         u64 up_down = up + down;
         D17 = (m >= (u64)1e15);
+        //printf("m = %lld, up = %lld, down = %lld, up_down = %lld, D17 = %lld ",m,up,down,up_down,D17);
         byte16_reg ASCII_16;
         u64 mr = D17 ? m : m * 10;//remove left zero
         tz = endcode_16digit_fast(mr,&ASCII_16);// convert mr to ASCII , and return tail zero number.
@@ -1008,11 +1012,12 @@ char* xjb64(double v,char* buf)
         dec_sig_len = up_down  ?  16 - tz : 16 + D17;
         //u64 dec_sig_len_1 = up_down  ?  16+1 - tz : 16+1 + D17;
 #endif
-
+       
 #endif
         // in fact : dec_sig_len = (one > 0) ? 16 + D17 : 16 - tz; add 2 for calc the offset in the array.
         k += 15 + D17;
         e10 = k;
+        //printf("dec_sig_len = %lld e10= %d\n",dec_sig_len,e10);
 
 // calc one and determine one is 0 or not
 #ifdef __amd64__
@@ -1022,8 +1027,9 @@ char* xjb64(double v,char* buf)
         if(!regular)[[unlikely]]
             if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
                  one = (((dot_one >> 4) * 10) >> 60) + 1 + (u64)('0' + '0' * 256);
+        if(one == 10 + (u64)('0' + '0' * 256))one = (u64)('0' + '0' * 256);
 #else // for apple M1 , better performance
-        u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) + (u64)('0' + '0' * 256);
+        u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
         static const u64 bitarray_irregular[32] = {
         0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000,
         0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000,
@@ -1035,6 +1041,10 @@ char* xjb64(double v,char* buf)
         0x0000000000000000, 0x0000000040000000, 0x0000000000000000, 0x0000000000008000};
         if(!regular)[[unlikely]]
             one += (bitarray_irregular[ieee_exponent/64]>>(ieee_exponent%64)) & 1;
+        if(one == 10) one = 0;
+        one += (u64)('0' + '0' * 256);
+        //if(one == 10 + (u64)('0' + '0' * 256))one = (u64)('0' + '0' * 256);
+        //printf("xjb_comp dot_one = %llx, one = %llx\n",dot_one,one - (u64)('0' + '0' * 256));
 #endif
 
         // when -3<=e10 && e10 <= 15 ; we use %lf format print float number
@@ -1082,6 +1092,7 @@ char* xjb64(double v,char* buf)
         u64 exp_pos = (0<=e10 && e10<= e10_UP) ? (e10+3 > dec_sig_len+1 ? e10+3 : dec_sig_len+1) : (
             dec_sig_len + ( (1 - ( e10_DN <= e10 && e10 <= -1 )) > (dec_sig_len == 1) )
         );
+        //printf("first_sig_pos = %lld dot_pos = %lld move_pos = %lld exp_pos = %lld\n",first_sig_pos,dot_pos,move_pos,exp_pos);
 #endif
         char * buf_origin = buf;
         buf += first_sig_pos;

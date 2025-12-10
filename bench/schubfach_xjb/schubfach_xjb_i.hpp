@@ -35,9 +35,13 @@ void schubfach_xjb_f32_to_dec(float v,unsigned int* dec,int* e10){
 }
 
 char* schubfach_xjb_f64_to_str(double v,char* buffer){
-    return xjb::Dtoa(buffer, v);
+    char* buf_end = xjb::Dtoa(buffer, v);
+    *buf_end = '\0';
+    return buf_end;
 }
 
 char* schubfach_xjb_f32_to_str(float v,char* buffer){
-    return schubfach_32::Ftoa(buffer, v);
+    char* buf_end = schubfach_32::Ftoa(buffer, v);
+    *buf_end = '\0';
+    return buf_end;
 }

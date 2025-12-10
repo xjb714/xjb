@@ -4,6 +4,15 @@
 #include <random>
 #include <stdint.h>
 
+#include "util/get_cpu_name.cpp"
+
+#include "util/check_float_multi_thread.cpp" // use multi-thread to check float algorithm
+
+#define USE_YYBENCH 1
+#if USE_YYBENCH
+    #include "util/benchmark.cpp"
+#endif
+
 #ifndef BENCH_DOUBLE
     #define BENCH_DOUBLE 1
 #endif
@@ -21,22 +30,17 @@ const int is_bench_float_to_decimal = !BENCH_STR;
 const int is_bench_double_to_string = BENCH_STR;
 const int is_bench_float_to_string = BENCH_STR;
 
-// double and float
+// double and float algorithm set
 #include "schubfach/schubfach_i.hpp"
+#include "schubfach_vitaut/schubfach_vitaut_i.hpp"
 #include "schubfach_xjb/schubfach_xjb_i.hpp"
 #include "dragonbox/dragonbox_i.hpp"
 #include "ryu/ryu_i.hpp"
 #include "teju/teju_i.hpp"
 #include "yy/yy_i.hpp"
-#include "xjb/xjb64_i.hpp"
-#include "xjb/dtoa_xjb64_xjb32.cpp"
-#include "xjb/dtoa_xjb_comp.cpp"
+#include "xjb/xjb_i.hpp"
 #include "fmt/fmt_i.hpp"
-// #include "ldouble/ldouble_i.hpp"
-// #include "json/jnum.c"
 
-// float
-#include "xjb/xjb32_i.hpp"
 
 const int N = (int)(1e7);
 const int N_double = N; // double data size
@@ -166,6 +170,7 @@ void init_double()
     double_to_string_algorithm_set.push_back(std::string("fmt_full"));        // 8
     double_to_string_algorithm_set.push_back(std::string("xjb64"));           // 9
     double_to_string_algorithm_set.push_back(std::string("xjb64_comp"));      // 10
+    double_to_string_algorithm_set.push_back(std::string("schubfach_vitaut"));// 11
 
     // algorithm_set.push_back({std::string("ldouble"), ldouble_f64_to_dec});
 
@@ -331,10 +336,13 @@ void bench_double_single_impl(int i)
                 fmt_full_f64_to_str(data[j], buffer);
         if (i == 9)
             for (int j = 0; j < N; ++j)
-                xjb64_32::xjb64(data[j], buffer);
+                xjb64_f64_to_str(data[j], buffer);
         if (i == 10)
             for (int j = 0; j < N; ++j)
-                xjb64_32_comp::xjb64(data[j], buffer);
+                xjb64_comp_f64_to_str(data[j], buffer);
+        if (i == 11)
+            for (int j = 0; j < N; ++j)
+                schubfach_vitaut_f64_to_str(data[j], buffer);
     }
 
     auto t2 = getns();
@@ -411,10 +419,10 @@ void bench_float_single_impl(int i)
                 schubfach_xjb_f32_to_str(data_float[j], buffer);
         if (i == 3)
             for (int j = 0; j < N; ++j)
-                xjb64_32::xjb32(data_float[j], buffer);
+                xjb32_f32_to_str(data_float[j], buffer);
         if (i == 4)
             for (int j = 0; j < N; ++j)
-                xjb64_32_comp::xjb32(data_float[j], buffer);
+                xjb32_comp_f32_to_str(data_float[j], buffer);
         if (i == 5)
             for (int j = 0; j < N; ++j)
                 yyjson_f32_to_str(data_float[j], buffer);
@@ -528,7 +536,7 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
 void check_subnormal()
 {
     unsigned error_sum = 0;
-    const unsigned long NUM = 1 << 30;
+    const unsigned long NUM = 10000 * 10000;
     for (unsigned long i = 0; i < NUM; ++i)
     {
         u64 rnd = gen() & ((1ull << 52) - 1);
@@ -547,19 +555,29 @@ void check_subnormal()
 void check_all_float_number()
 {
     printf("check xjb32 algorithm ; check all float number start\n");
-    unsigned error_sum = 0;
-    for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)
-    {
-        float f = *(float *)&i;
-        error_sum += check_xjb32_and_schubfach32_xjb(f);
-    }
+    //unsigned error_sum = 0;
+    auto t1 = getns();
+    // #pragma parallel omp for reduce(+:error_sum)
+    // for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)
+    // {
+    //     float f = *(float *)&i;
+    //     error_sum += check_xjb32_and_schubfach32_xjb(f);
+    // }
+    uint32_t start = 0x00000001u;
+    uint32_t end = 0x7F7FFFFFu;
+    int num_threads = 4;
+
+    uint64_t error_sum = parallel_reduce_pthreads(start, end,
+                                                  check_xjb32_and_schubfach32_xjb,
+                                                  num_threads);
+    auto t2 = getns();
     if (error_sum == 0)
     {
-        printf("check_all_float ok\n");
+        printf("check_all_float ok, cost %.3lf second\n",(t2-t1)/1e9);
     }
     else
     {
-        printf("check_all_float fail error sum = %u\n", error_sum);
+        printf("check_all_float fail error sum = %llu , cost %.3lf second\n", (unsigned long long)error_sum, (double)(t2-t1)/1e9);
     }
 }
 void check_float()
@@ -654,7 +672,7 @@ void check_special_value(){
 void check_rand_double()
 {
     unsigned long long error_sum = 0;
-    const unsigned long NUM = 1 << 30; // 1e9
+    const unsigned long NUM = 10000 * 10000; // 1e8
     for (unsigned long i = 0; i < NUM; ++i)
     {
         double d = gen_double_filter_NaN_Inf();
@@ -684,11 +702,26 @@ void check_double()
 
 void bench_double()
 {
+
+
     init_double();
 
     bench_double_all_algorithm();
 
     free_double();
+
+#if USE_YYBENCH && BENCH_STR
+    printf("\n use yy_bench to generate html report\n");
+    // benchmark src from https://github.com/ibireme/c_numconv_benchmark. thanks for yy.
+    printf("bench_double start , may cost long time , please wait\n");
+    std::string fileName = std::string("bench_double_result_") + getCPUName() + std::string(".html");
+    
+    benchmark_double(fileName.c_str());
+    
+    printf("bench_double finish , please open %s\n", fileName.c_str());
+#else
+
+#endif
 }
 void bench_float()
 {
@@ -697,6 +730,19 @@ void bench_float()
     bench_float_all_algorithm();
 
     free_float();
+
+#if USE_YYBENCH && BENCH_STR
+    printf("\nuse yy_bench to generate html report");
+    // benchmark src from https://github.com/ibireme/c_numconv_benchmark. thanks for yy.
+    printf("bench_float start , may cost long time , please wait\n");
+    std::string fileName = std::string("bench_float_result_") + getCPUName() + std::string(".html");
+    
+    benchmark_float(fileName.c_str());
+    
+    printf("bench_float finish , please open %s\n", fileName.c_str());
+#else
+
+#endif
 }
 int main()
 {
@@ -710,7 +756,7 @@ int main()
 #if BENCH_DOUBLE
     bench_double();
 
-    check_double(); // check double correctness , may cost long time
+    //check_double(); // check double correctness , may cost long time
 #endif
 
     return 0;

@@ -42,7 +42,7 @@ static inline Dest ReinterpretBits(Source source)
 }
 
 namespace {
-struct Double
+struct Double64
 {
     static_assert(std::numeric_limits<double>::is_iec559
                && std::numeric_limits<double>::digits == 53
@@ -65,8 +65,8 @@ struct Double
 
     bits_type bits;
 
-    explicit Double(bits_type bits_) : bits(bits_) {}
-    explicit Double(value_type value) : bits(ReinterpretBits<bits_type>(value)) {}
+    explicit Double64(bits_type bits_) : bits(bits_) {}
+    explicit Double64(value_type value) : bits(ReinterpretBits<bits_type>(value)) {}
 
     bits_type PhysicalSignificand() const {
         return bits & SignificandMask;
@@ -150,7 +150,7 @@ struct uint64x2 {
 };
 }
 
-static inline uint64x2 ComputePow10_Double(int32_t k)
+static inline uint64x2 ComputePow10_Double64(int32_t k)
 {
     // There are unique beta and r such that 10^k = beta 2^r and
     // 2^127 <= beta < 2^128, namely r = floor(log_2 10^k) - 127 and
@@ -880,10 +880,10 @@ FloatingDecimal64 ToDecimal64(uint64_t ieee_significand, uint64_t ieee_exponent)
     int32_t q;
     if ( ieee_exponent != 0)[[likely]]
     {
-        c = Double::HiddenBit | ieee_significand;
-        q = static_cast<int32_t>(ieee_exponent) - Double::ExponentBias;
+        c = Double64::HiddenBit | ieee_significand;
+        q = static_cast<int32_t>(ieee_exponent) - Double64::ExponentBias;
 
-        // if (0 <= -q && -q < Double::SignificandSize && MultipleOfPow2(c, -q))
+        // if (0 <= -q && -q < Double64::SignificandSize && MultipleOfPow2(c, -q))
         // {
         //     return {c >> -q, 0};
         // }
@@ -891,7 +891,7 @@ FloatingDecimal64 ToDecimal64(uint64_t ieee_significand, uint64_t ieee_exponent)
     else
     {
         c = ieee_significand;
-        q = 1 - Double::ExponentBias;
+        q = 1 - Double64::ExponentBias;
     }
 
     const bool is_even = (c % 2 == 0);
@@ -915,7 +915,7 @@ FloatingDecimal64 ToDecimal64(uint64_t ieee_significand, uint64_t ieee_exponent)
     //SF_ASSERT(h >= 1);
     //SF_ASSERT(h <= 4);
 
-    const uint64x2 pow10 = ComputePow10_Double(-k);
+    const uint64x2 pow10 = ComputePow10_Double64(-k);
     const uint64_t vbl = RoundToOdd(pow10, cbl << h);
     const uint64_t vb  = RoundToOdd(pow10, cb  << h);
     const uint64_t vbr = RoundToOdd(pow10, cbr << h);
@@ -1299,19 +1299,19 @@ static inline char* FormatDigits(char* buffer, uint64_t digits, int32_t decimal_
             buffer += 2;
         }
     }
-    *buffer++ = '\0';
+    //*buffer++ = '\0';
 
     return buffer;
 }
 
 static inline char* ToChars(char* buffer, double value, bool force_trailing_dot_zero = false)
 {
-    const Double v(value);
+    const Double64 v(value);
 
     const uint64_t significand = v.PhysicalSignificand();
     const uint64_t exponent = v.PhysicalExponent();
 
-    if (exponent != Double::MaxIeeeExponent) // [[likely]]
+    if (exponent != Double64::MaxIeeeExponent) // [[likely]]
     {
         // Finite
 

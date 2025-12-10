@@ -46,7 +46,7 @@ namespace xjb
 
     namespace
     {
-        struct Double
+        struct Double64
         {
             static_assert(std::numeric_limits<double>::is_iec559 && std::numeric_limits<double>::digits == 53 && std::numeric_limits<double>::max_exponent == 1024,
                           "IEEE-754 double-precision implementation required");
@@ -67,8 +67,8 @@ namespace xjb
 
             bits_type bits;
 
-            explicit Double(bits_type bits_) : bits(bits_) {}
-            explicit Double(value_type value) : bits(ReinterpretBits<bits_type>(value)) {}
+            explicit Double64(bits_type bits_) : bits(bits_) {}
+            explicit Double64(value_type value) : bits(ReinterpretBits<bits_type>(value)) {}
 
             bits_type PhysicalSignificand() const
             {
@@ -161,7 +161,7 @@ namespace xjb
         };
     }
 
-    static inline uint64x2 ComputePow10_Double(int32_t k)
+    static inline uint64x2 ComputePow10_Double64(int32_t k)
     {
         // There are unique beta and r such that 10^k = beta 2^r and
         // 2^127 <= beta < 2^128, namely r = floor(log_2 10^k) - 127 and
@@ -904,9 +904,9 @@ namespace xjb
         int32_t q;
         if ( __builtin_expect(ieee_exponent != 0 , 1))
         {
-            c = Double::HiddenBit | ieee_significand;
-            q = static_cast<int32_t>(ieee_exponent) - Double::ExponentBias;
-            // if (0 <= -q && -q < Double::SignificandSize && MultipleOfPow2(c, -q))
+            c = Double64::HiddenBit | ieee_significand;
+            q = static_cast<int32_t>(ieee_exponent) - Double64::ExponentBias;
+            // if (0 <= -q && -q < Double64::SignificandSize && MultipleOfPow2(c, -q))
             // {
             //     return {c >> -q, 0};
             // }
@@ -914,7 +914,7 @@ namespace xjb
         else
         {
             c = ieee_significand;
-            q = 1 - Double::ExponentBias; //-1074
+            q = 1 - Double64::ExponentBias; //-1074
         }
         bool lower_boundary_is_closer = (ieee_significand == 0);
         uint64_t cbl = 4 * c - 2 + lower_boundary_is_closer;//(c-0.5)*4 or (c-0.25)*4
@@ -926,7 +926,7 @@ namespace xjb
         else
             k = FloorDivPow2(q * 1262611 , 22);
         int32_t h = q + FloorLog2Pow10(-k) + 1; //[1,4]
-        uint64x2 pow10 = ComputePow10_Double(-k);
+        uint64x2 pow10 = ComputePow10_Double64(-k);
         uint64_t vbl= RoundToOdd(pow10, cbl << h);//if(y1&1==0 && y0>1)y1++;
         uint64_t vb = RoundToOdd(pow10, cb << h); // c * 2 ^ (2 + h)
         uint64_t vbr= RoundToOdd(pow10, cbr << h);
@@ -956,9 +956,9 @@ namespace xjb
         int32_t q;
         if ( __builtin_expect(ieee_exponent != 0 , 1))
         {
-            c = Double::HiddenBit | ieee_significand;
-            q = static_cast<int32_t>(ieee_exponent) - Double::ExponentBias;
-            // if (0 <= -q && -q < Double::SignificandSize && MultipleOfPow2(c, -q))
+            c = Double64::HiddenBit | ieee_significand;
+            q = static_cast<int32_t>(ieee_exponent) - Double64::ExponentBias;
+            // if (0 <= -q && -q < Double64::SignificandSize && MultipleOfPow2(c, -q))
             // {
             //     return {c >> -q, 0};
             // }
@@ -966,7 +966,7 @@ namespace xjb
         else
         {
             c = ieee_significand;
-            q = 1 - Double::ExponentBias; //-1074
+            q = 1 - Double64::ExponentBias; //-1074
         }
         bool lower_boundary_is_closer = (ieee_significand == 0);
         uint64_t cbl = 4 * c - 2 + lower_boundary_is_closer;//(c-0.5)*4 or (c-0.25)*4
@@ -978,7 +978,7 @@ namespace xjb
         else
             k = FloorDivPow2(q * 1262611 , 22);
         int32_t h = q + FloorLog2Pow10(-k) + 1; //[1,4]
-        uint64x2 pow10 = ComputePow10_Double(-k);
+        uint64x2 pow10 = ComputePow10_Double64(-k);
         pow10.lo &= -2;
         uint64_t vbl= RoundToOdd_1(pow10, cbl << h);//if(y1&1==0 && y0>1)y1++;
         uint64_t vb = RoundToOdd_1(pow10, cb << h); // c * 2 ^ (2 + h)
@@ -1676,19 +1676,19 @@ namespace xjb
                 buffer += 2;
             }
         }
-        *buffer++ = '\0';
+        //*buffer++ = '\0';
 
         return buffer;
     }
 
     static inline char *ToChars(char *buffer, double value, bool force_trailing_dot_zero = false)
     {
-        const Double v(value);
+        const Double64 v(value);
 
         const uint64_t significand = v.PhysicalSignificand();
         const uint64_t exponent = v.PhysicalExponent();
 
-        if (exponent != Double::MaxIeeeExponent) // [[likely]]
+        if (exponent != Double64::MaxIeeeExponent) // [[likely]]
         {
             // Finite
 

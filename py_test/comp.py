@@ -170,7 +170,7 @@ for i in range(0,ratio+1):
     clz = (64 - p5.bit_length())
     p5_rlz = p5 << clz
     pow5_rlz.append(p5_rlz)
-    #print("0x{:016x},// = (5**{:2d}) << clz(5**{:2d}) = (5**{:2d}) << {:2d} ; e10 = {} ".format(p5_rlz,i,i,i,clz,i))
+    print("0x{:016x},// = (5**{:2d}) << clz(5**{:2d}) = (5**{:2d}) << {:2d} ; e10 = {} ".format(p5_rlz,i,i,i,clz,i))
 
 # for i in range(0,14):
 #     p5_rlz = pow5_rlz[i*2]

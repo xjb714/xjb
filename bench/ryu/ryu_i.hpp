@@ -33,7 +33,7 @@ char* ryu_f64_to_str(double v,char* buffer)
     return buffer+len;
 }
 
-char* ryu_f32_to_str(double v,char* buffer)
+char* ryu_f32_to_str(float v,char* buffer)
 {
     int len = f2s_buffered_n(v,buffer);
     buffer[len] = '\0';

@@ -8,8 +8,8 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
     unsigned long long vi = *(unsigned  long long*)&v;
     unsigned long long sig = vi & ((1ull<<52) - 1);
     //unsigned long long exp = (vi>>52) & 2047;
-    unsigned long long exp = (vi & (2047ull<<52) ) >> 52;
-    //unsigned long long exp = (vi << 1 ) >> 53;
+    //unsigned long long exp = (vi & (2047ull<<52) ) >> 52;
+    unsigned long long exp = (vi << 1 ) >> 53;
 
     typedef __uint128_t u128;
     typedef uint64_t u64;
@@ -726,8 +726,8 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
         if(regular)[[likely]] {
             one = (half_ulp > dot_one) ? 0 : one;
         }else{
+            one = ((half_ulp >> 1) > dot_one) ? 0 : one;
             one += (bitarray_irregular[exp/64]>>(exp%64)) & 1;
-            one = ((half_ulp>>1) > dot_one) ? 0 : one;
         }
         one = (half_ulp  > ~0 - dot_one) ? 10 : one;
         //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
@@ -742,7 +742,7 @@ static inline void xjb64_comp_f64_to_dec(double v,unsigned long long* dec,int *e
 {
     unsigned long long vi = *(unsigned  long long*)&v;
     unsigned long long sig = vi & ((1ull<<52) - 1);
-    unsigned long long exp = (vi & (2047ull<<52) ) >> 52;
+    unsigned long long exp = (vi << 1 ) >> 53;
 
     typedef __uint128_t u128;
     typedef uint64_t u64;
@@ -886,7 +886,6 @@ static inline void xjb64_comp_f64_to_dec(double v,unsigned long long* dec,int *e
             u128 cb = c << (h + offset + 1);
             hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64)); // u64 * u128
         }
-        //if(h > 0) h = 0;//for irregular double number
 
         // int h = q + (((-1 - k) * 217707) >> 16);
         // u64 *p10 = (u64 *)&pow10_ptr[(-1 - k) * 2];

@@ -100,14 +100,19 @@ void yyjson_f32_to_dec(float v, unsigned int *dec, int *e10)
 
 char *yy_double_f64_to_str(double v, char *buffer)
 {
-    return yy_double::yy_double_to_string(v, buffer);
+    char* buf_end = yy_double::yy_double_to_string(v, buffer);
+    *buf_end = '\0';
+    return buf_end;
 }
 
 char *yyjson_f64_to_str(double v, char *buffer)
 {
 #if use_yyjson
     // src from yyjson.c
-    return (char *)write_f64_raw((u8 *)buffer, *(u64 *)&v, YYJSON_WRITE_INF_AND_NAN_AS_NULL);
+    //return (char *)write_f64_raw((u8 *)buffer, *(u64 *)&v, YYJSON_WRITE_INF_AND_NAN_AS_NULL);
+    char* buf_end = (char*)write_f64_raw((u8 *)buffer, *(u64 *)&v, YYJSON_WRITE_INF_AND_NAN_AS_NULL);
+    *buf_end = '\0';
+    return buf_end;
 #else
     return buffer;
 #endif
