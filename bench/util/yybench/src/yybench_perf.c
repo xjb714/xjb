@@ -195,6 +195,7 @@ fail:
     if (buffer) free(buffer);
     if (ids) free(ids);
     if (counters) free(counters);
+    return false;
 }
 
 bool perf_open_test(u64 ev) {

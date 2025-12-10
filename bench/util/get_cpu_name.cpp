@@ -29,6 +29,21 @@
     #endif
 #endif
 
+std::string keepAlnumOnly(const std::string& str) {
+    std::string result = str;
+    
+    for (char& c : result) {
+        // 检查是否为字母或数字
+        if (!std::isalnum(static_cast<unsigned char>(c))) {
+            c = '_';
+        }
+    }
+    
+    return result;
+}
+
+
+
 // 跨平台获取 CPU 名称的函数
 std::string getCPUName() {
     std::string cpuName = "Unknown CPU";
@@ -218,7 +233,7 @@ std::string getCPUName() {
         cpuName = cpuName.substr(start, end - start + 1);
     }
     
-    return cpuName;
+    return keepAlnumOnly(cpuName);
 }
 
 // 辅助函数：获取架构信息

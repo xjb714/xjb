@@ -457,6 +457,16 @@ static void dtoa_func_benchmark_all(const char *output_path) {
 }
 
 static void dtoa_func_verify_all(void) {
+
+    printf("\nIf the compiler is an intel compiler, there may be errors in the verification process. Please ignore them.\n");
+    printf("The google_double_to_string function is not working properly on icpx compiler. example : 3.3156184e-316\n");
+    double test_value = 3.3156184e-316;
+    char buf_test[64];
+    google_double_to_string(test_value, buf_test);
+    printf("test value: %.16le buf = %s\n", test_value, buf_test);
+    printf("if buf content is '3.3156184e-316' , the test is passed.\n");
+    printf("if buf content is '0' , the test is failed.\n\n");
+
     for (int i = 1; i < func_count; i++) { // skip null func
         const char *name = func_name_arr[i];
         dtoa_func func = func_arr[i];
@@ -647,12 +657,10 @@ static void ftoa_func_benchmark_all(const char *output_path) {
     //     "random float number",
     //     (void*)rand_f64_from_f32, false
     // };
-
     char buf[64];
     f32 *vals = (f32 *)malloc(num_per_case * sizeof(f32));
     yy_report *report = yy_report_new();
     yy_report_add_env_info(report);
-
     for (int d = 0; d < dataset_num; d++) {
         dataset_t dataset = dataset_arr[d];
         printf("run benchmark %s...", dataset.name);
@@ -720,7 +728,6 @@ static void ftoa_func_benchmark_all(const char *output_path) {
             op.tooltip.value_decimals = 2;
             op.width = 640;
             op.height = 420;
-
             yy_random_reset();
             if (dataset.func_has_len) {
                 for (int i = 0; i < num_per_case; i++) {
@@ -731,7 +738,6 @@ static void ftoa_func_benchmark_all(const char *output_path) {
                     vals[i] = ((fill_func_f32)dataset.fill_func_f32)();
                 }
             }
-
             for (int f = 0; f < func_count_float; f++) {
                 const char *func_name = func_name_arr_float[f];
                 ftoa_func func = func_arr_float[f];
@@ -768,8 +774,8 @@ static void ftoa_func_benchmark_all(const char *output_path) {
     free(vals);
 }
 
-static char * null_f64_to_str(double val, char *buf) {}
-static char * null_f32_to_str(float val, char *buf) {}
+static char * null_f64_to_str(double val, char *buf) {return buf;}
+static char * null_f32_to_str(float val, char *buf) {return buf;}
 
 /*
  This benchmark is somewhat unfair, because different algorithm use different
@@ -790,7 +796,7 @@ static void dtoa_func_register_all(void) {
 #define dtoa_func_register(name) \
     extern char * name##_f64_to_str(double val, char *buf); \
     func_arr[func_count] = name##_f64_to_str; \
-    func_name_arr[func_count] = #name; \
+    func_name_arr[func_count] = (char*)(#name); \
     func_count++; \
     if ((int)strlen(#name) > func_name_max) func_name_max = (int)strlen(#name);
 
@@ -847,42 +853,12 @@ static void ftoa_func_register_all(void) {
     #define ftoa_func_register(name) \
         extern char * name##_f32_to_str(float val, char *buf); \
         func_arr_float[func_count_float] = name##_f32_to_str; \
-        func_name_arr_float[func_count_float] = #name; \
+        func_name_arr_float[func_count_float] = (char*)(#name); \
         func_count_float++; \
         if ((int)strlen(#name) > func_name_max_float) func_name_max_float = (int)strlen(#name);
     
         ftoa_func_register(null) // no need to verify
-        
-        // if (i == 0)
-        //     for (int j = 0; j < N; ++j)
-        //         ryu_f32_to_str(data_float[j], buffer);
-        // if (i == 1)
-        //     for (int j = 0; j < N; ++j)
-        //         schubfach_f32_to_str(data_float[j], buffer);
-        // if (i == 2)
-        //     for (int j = 0; j < N; ++j)
-        //         schubfach_xjb_f32_to_str(data_float[j], buffer);
-        // if (i == 3)
-        //     for (int j = 0; j < N; ++j)
-        //         xjb32_f32_to_str(data_float[j], buffer);
-        // if (i == 4)
-        //     for (int j = 0; j < N; ++j)
-        //         xjb32_comp_f32_to_str(data_float[j], buffer);
-        // if (i == 5)
-        //     for (int j = 0; j < N; ++j)
-        //         yyjson_f32_to_str(data_float[j], buffer);
-        // if (i == 6)
-        //     for (int j = 0; j < N; ++j)
-        //         dragonbox_comp_f32_to_str(data_float[j], buffer);
-        // if (i == 7)
-        //     for (int j = 0; j < N; ++j)
-        //         dragonbox_full_f32_to_str(data_float[j], buffer);
-        // if (i == 8)
-        //     for (int j = 0; j < N; ++j)
-        //         fmt_comp_f32_to_str(data_float[j], buffer);
-        // if (i == 9)
-        //     for (int j = 0; j < N; ++j)
-        //         fmt_full_f32_to_str(data_float[j], buffer);
+
         ftoa_func_register(ryu)
         ftoa_func_register(schubfach)
         ftoa_func_register(schubfach_xjb)
@@ -894,52 +870,6 @@ static void ftoa_func_register_all(void) {
         ftoa_func_register(fmt_comp)
         ftoa_func_register(fmt_full)
 
-        
-        // dtoa_func_register(dragonbox_comp)
-        // dtoa_func_register(dragonbox_full)
-        // dtoa_func_register(fmt_comp)
-        // dtoa_func_register(fmt_full)
-        // dtoa_func_register(ryu)
-        // dtoa_func_register(schubfach)
-        // dtoa_func_register(schubfach_xjb)
-        // dtoa_func_register(yy_double)
-        // dtoa_func_register(yyjson)
-        // dtoa_func_register(xjb64)
-        // dtoa_func_register(xjb64_comp)
-        // dtoa_func_register(schubfach_vitaut)
-    
-        
-    
-        // dtoa_func_register(null) /* used to meansure the benchmark overhead */
-        // dtoa_func_register(david_gay)
-        // dtoa_func_register(google)
-        // dtoa_func_register(swift)
-        // dtoa_func_register(fmtlib)
-        // dtoa_func_register(fpconv)
-        // dtoa_func_register(grisu3)
-        // dtoa_func_register(schubfach)
-        // dtoa_func_register(erthink)
-        // dtoa_func_register(grisu_exact)
-        // dtoa_func_register(dragonbox)
-        // dtoa_func_register(ryu_mod)
-        // dtoa_func_register(yy)
-        // dtoa_func_register(xjb64)
-    
-    // #ifndef _MSC_VER
-    //     dtoa_func_register(milo)
-    //     dtoa_func_register(emyg)
-    //     dtoa_func_register(ryu)
-    // #endif
-    
-    // #ifdef HAVE_SSE2
-    //     dtoa_func_register(xjb_sse)
-    // #endif
-    
-    // #ifdef HAVE_AVX512
-    //     dtoa_func_register(xjb_avx512)
-    // #endif
-    
-        // dtoa_func_register(printf) // not shortest, too slow
     }
 
 void benchmark_double(const char *output_file_path) {

@@ -1,5 +1,5 @@
 
-BENCH_DOUBLE = 0 # 0 : float, 1 : double
+BENCH_DOUBLE = 1 # 0 : float, 1 : double
 
 BENCH_F_TO_STR = 1 # 0 : float/double to decimal , 1 : float/double to string
 
@@ -13,6 +13,22 @@ i:
 c:
 	clang++ -O3 -std=c++20 -march=native main.cpp util/yybench/src/yybench.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang
 	./main_clang
+
+
+# on x86-64 
+all_result_x64:
+	echo "benchmarking float/double to string on x86-64, may cost a few minutes..."
+	$(MAKE) g BENCH_DOUBLE=0 BENCH_F_TO_STR=1
+	$(MAKE) i BENCH_DOUBLE=0 BENCH_F_TO_STR=1
+	$(MAKE) c BENCH_DOUBLE=0 BENCH_F_TO_STR=1
+	$(MAKE) g BENCH_DOUBLE=1 BENCH_F_TO_STR=1
+	$(MAKE) i BENCH_DOUBLE=1 BENCH_F_TO_STR=1
+	$(MAKE) c BENCH_DOUBLE=1 BENCH_F_TO_STR=1
+
+# on apple M1
+all_result_arm64:
+	$(MAKE) g BENCH_DOUBLE=0 BENCH_F_TO_STR=1
+	$(MAKE) g BENCH_DOUBLE=1 BENCH_F_TO_STR=1
 
 
 # c1:#clang without AVX512, generate AVX2 code on x86-64 AMD zen4

@@ -201,7 +201,7 @@ defined(_M_IX86) || defined(_M_AMD64)
             if (res[i] == '\r' || res[i] == '\n') res[i] = '\0';
         }
     } else {
-        res = "Unknown CPU";
+        res = (char*)"Unknown CPU";
     }
     finished = true;
     return res;

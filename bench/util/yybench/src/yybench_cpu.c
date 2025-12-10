@@ -39,7 +39,7 @@ void yy_cpu_spin(f64 second) {
     f64 end = yy_time_get_seconds() + second;
     while(yy_time_get_seconds() < end) {
         volatile int x = 0;
-        while (x < 1000) x++;
+        while (x < 1000) x = x + 1;
     }
 }
 
