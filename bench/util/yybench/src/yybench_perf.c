@@ -160,15 +160,15 @@ static bool perf_capacity_grow(yy_perf *perf, u32 capacity) {
     u64 *ids = NULL;
     u64 *counters = NULL;
 
-    events = calloc(capacity, sizeof(u64));
+    events = (u64*)calloc(capacity, sizeof(u64));
     if (!events) goto fail;
-    names = calloc(capacity, sizeof(char *));
+    names = (const char**)calloc(capacity, sizeof(char *));
     if (!names) goto fail;
-    buffer = calloc((capacity + 1) * 2, sizeof(u64));
+    buffer = (u64*)calloc((capacity + 1) * 2, sizeof(u64));
     if (!buffer) goto fail;
-    ids = calloc(capacity, sizeof(u64));
+    ids = (u64*)calloc(capacity, sizeof(u64));
     if (!ids) goto fail;
-    counters = calloc(capacity, sizeof(u64));
+    counters = (u64*)calloc(capacity, sizeof(u64));
     if (!counters) goto fail;
     if (perf->count) {
         memcpy(events, perf->events, perf->count * sizeof(u64));
@@ -229,8 +229,8 @@ bool yy_perf_load(bool print_message_on_error) {
 
 yy_perf *yy_perf_new(void) {
     yy_perf *perf = (yy_perf *)calloc(1, sizeof(yy_perf));
-    if (!perf) return NULL;
-    if (!perf_capacity_grow(perf, 8)) return false;
+    if (!perf) return (yy_perf *)NULL;
+    if (!perf_capacity_grow(perf, 8)) return (yy_perf *)false;
     return perf;
 }
 
@@ -388,11 +388,11 @@ bool yy_perf_is_counting(yy_perf *perf) {
 }
 
 u64 *yy_perf_get_counters(yy_perf *perf) {
-    if (!perf) return false;
-    if (!perf->is_opened) return false;
+    if (!perf) return (u64*)false;
+    if (!perf->is_opened) return (u64*)false;
 
     // read counter data
-    if (read(perf->fd, perf->buffer, (perf->count * 2 + 1) * sizeof(u64)) == -1) return false;
+    if (read(perf->fd, perf->buffer, (perf->count * 2 + 1) * sizeof(u64)) == -1) return (u64*)false;
 
     // data layout: [count, val1, id1, val2, id2, ...]
     for (u32 i = 0; i < perf->count; i++) {

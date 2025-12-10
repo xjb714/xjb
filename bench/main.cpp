@@ -711,10 +711,12 @@ void bench_double()
     free_double();
 
 #if USE_YYBENCH && BENCH_STR
-    printf("\n use yy_bench to generate html report\n");
+    printf("\nuse yy_bench to generate html report\n");
     // benchmark src from https://github.com/ibireme/c_numconv_benchmark. thanks for yy.
     printf("bench_double start , may cost long time , please wait\n");
-    std::string fileName = std::string("bench_double_result_") + getCPUName() + std::string(".html");
+    //std::string fileName = std::string("bench_double_result_") + getCPUName() + std::string(".html");
+    //std::string fileName = std::string("bench_double_result_") + "Apple_M1" + std::string(".html");
+    std::string fileName = std::string("bench_double_result_") + "AMD_7840H" + std::string(".html");
     
     benchmark_double(fileName.c_str());
     
@@ -732,10 +734,12 @@ void bench_float()
     free_float();
 
 #if USE_YYBENCH && BENCH_STR
-    printf("\nuse yy_bench to generate html report");
+    printf("\nuse yy_bench to generate html report\n");
     // benchmark src from https://github.com/ibireme/c_numconv_benchmark. thanks for yy.
     printf("bench_float start , may cost long time , please wait\n");
-    std::string fileName = std::string("bench_float_result_") + getCPUName() + std::string(".html");
+    //std::string fileName = std::string("bench_float_result_") + getCPUName() + std::string(".html");
+    //std::string fileName = std::string("bench_float_result_") + "Apple_M1" + std::string(".html");
+    std::string fileName = std::string("bench_float_result_") + "AMD_7840H" + std::string(".html");
     
     benchmark_float(fileName.c_str());
     
