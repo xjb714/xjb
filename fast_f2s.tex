@@ -1,0 +1,2862 @@
+%  LaTeX support: latex@mdpi.com 
+%  For support, please attach all files needed for compiling as well as the log file, and specify your operating system, LaTeX version, and LaTeX editor.
+
+%=================================================================
+\documentclass[algorithms,article,submit,pdftex,moreauthors]{Definitions/mdpi} 
+%\documentclass[preprints,article,submit,pdftex,moreauthors]{Definitions/mdpi} 
+% For posting an early version of this manuscript as a preprint, you may use "preprints" as the journal. Changing "submit" to "accept" before posting will remove line numbers.
+
+%--------------------
+% Class Options:
+%--------------------
+%----------
+% journal
+%----------
+% Choose between the following MDPI journals:
+% accountaudit, acoustics, actuators, addictions, adhesives, admsci, adolescents, aerobiology, aerospace, agriculture, agriengineering, agrochemicals, agronomy, ai, air, algorithms, allergies, alloys, amh, analytica, analytics, anatomia, anesthres, animals, antibiotics, antibodies, antioxidants, applbiosci, appliedchem, appliedmath, appliedphys, applmech, applmicrobiol, applnano, applsci, aquacj, architecture, arm, arthropoda, arts, asc, asi, astronomy, atmosphere, atoms, audiolres, automation, axioms, bacteria, batteries, bdcc, behavsci, beverages, biochem, bioengineering, biologics, biology, biomass, biomechanics, biomed, biomedicines, biomedinformatics, biomimetics, biomolecules, biophysica, biosensors, biosphere, biotech, birds, blockchains, bloods, blsf, brainsci, breath, buildings, businesses, cancers, carbon, cardiogenetics, catalysts, cells, ceramics, challenges, chemengineering, chemistry, chemosensors, chemproc, children, chips, cimb, civileng, cleantechnol, climate, clinbioenerg, clinpract, clockssleep, cmd, cmtr, coasts, coatings, colloids, colorants, commodities, complications, compounds, computation, computers, condensedmatter, conservation, constrmater, cosmetics, covid, crops, cryo, cryptography, crystals, csmf, ctn, curroncol, cyber, dairy, data, ddc, dentistry, dermato, dermatopathology, designs, devices, diabetology, diagnostics, dietetics, digital, disabilities, diseases, diversity, dna, drones, dynamics, earth, ebj, ecm, ecologies, econometrics, economies, education, eesp, ejihpe, electricity, electrochem, electronicmat, electronics, encyclopedia, endocrines, energies, eng, engproc, ent, entomology, entropy, environments, epidemiologia, epigenomes, esa, est, famsci, fermentation, fibers, fintech, fire, fishes, fluids, foods, forecasting, forensicsci, forests, fossstud, foundations, fractalfract, fuels, future, futureinternet, futureparasites, futurepharmacol, futurephys, futuretransp, galaxies, games, gases, gastroent, gastrointestdisord, gastronomy, gels, genealogy, genes, geographies, geohazards, geomatics, geometry, geosciences, geotechnics, geriatrics, glacies, grasses, greenhealth, gucdd, hardware, hazardousmatters, healthcare, hearts, hemato, hematolrep, heritage, higheredu, highthroughput, histories, horticulturae, hospitals, humanities, humans, hydrobiology, hydrogen, hydrology, hygiene, idr, iic, ijerph, ijfs, ijgi, ijmd, ijms, ijns, ijpb, ijt, ijtm, ijtpp, ime, immuno, informatics, information, infrastructures, inorganics, insects, instruments, inventions, iot, j, jal, jcdd, jcm, jcp, jcs, jcto, jdad, jdb, jeta, jfb, jfmk, jimaging, jintelligence, jlpea, jmahp, jmmp, jmms, jmp, jmse, jne, jnt, jof, joitmc, joma, jop, jor, journalmedia, jox, jpbi, jpm, jrfm, jsan, jtaer, jvd, jzbg, kidney, kidneydial, kinasesphosphatases, knowledge, labmed, laboratories, land, languages, laws, life, lights, limnolrev, lipidology, liquids, literature, livers, logics, logistics, lubricants, lymphatics, machines, macromol, magnetism, magnetochemistry, make, marinedrugs, materials, materproc, mathematics, mca, measurements, medicina, medicines, medsci, membranes, merits, metabolites, metals, meteorology, methane, metrics, metrology, micro, microarrays, microbiolres, microelectronics, micromachines, microorganisms, microplastics, microwave, minerals, mining, mmphys, modelling, molbank, molecules, mps, msf, mti, multimedia, muscles, nanoenergyadv, nanomanufacturing, nanomaterials, ncrna, ndt, network, neuroglia, neurolint, neurosci, nitrogen, notspecified, nursrep, nutraceuticals, nutrients, obesities, oceans, ohbm, onco, oncopathology, optics, oral, organics, organoids, osteology, oxygen, parasites, parasitologia, particles, pathogens, pathophysiology, pediatrrep, pets, pharmaceuticals, pharmaceutics, pharmacoepidemiology, pharmacy, philosophies, photochem, photonics, phycology, physchem, physics, physiologia, plants, plasma, platforms, pollutants, polymers, polysaccharides, populations, poultry, powders, preprints, proceedings, processes, prosthesis, proteomes, psf, psych, psychiatryint, psychoactives, psycholint, publications, purification, quantumrep, quaternary, qubs, radiation, reactions, realestate, receptors, recycling, regeneration, religions, remotesensing, reports, reprodmed, resources, rheumato, risks, robotics, rsee, ruminants, safety, sci, scipharm, sclerosis, seeds, sensors, separations, sexes, signals, sinusitis, siuj, skins, smartcities, sna, societies, socsci, software, soilsystems, solar, solids, spectroscj, sports, standards, stats, std, stresses, surfaces, surgeries, suschem, sustainability, symmetry, synbio, systems, tae, targets, taxonomy, technologies, telecom, test, textiles, thalassrep, therapeutics, thermo, timespace, tomography, tourismhosp, toxics, toxins, transplantology, transportation, traumacare, traumas, tropicalmed, universe, urbansci, uro, vaccines, vehicles, venereology, vetsci, vibration, virtualworlds, viruses, vision, waste, water, wem, wevj, wild, wind, women, world, youth, zoonoticdis
+
+%---------
+% article
+%---------
+% The default type of manuscript is "article", but can be replaced by: 
+% abstract, addendum, article, benchmark, book, bookreview, briefcommunication, briefreport, casereport, changes, clinicopathologicalchallenge, comment, commentary, communication, conceptpaper, conferenceproceedings, correction, conferencereport, creative, datadescriptor, discussion, entry, expressionofconcern, extendedabstract, editorial, essay, erratum, fieldguide, hypothesis, interestingimages, letter, meetingreport, monograph, newbookreceived, obituary, opinion, proceedingpaper, projectreport, reply, retraction, review, perspective, protocol, shortnote, studyprotocol, supfile, systematicreview, technicalnote, viewpoint, guidelines, registeredreport, tutorial,  giantsinurology, urologyaroundtheworld
+% supfile = supplementary materials
+
+%----------
+% submit
+%----------
+% The class option "submit" will be changed to "accept" by the Editorial Office when the paper is accepted. This will only make changes to the frontpage (e.g., the logo of the journal will get visible), the headings, and the copyright information. Also, line numbering will be removed. Journal info and pagination for accepted papers will also be assigned by the Editorial Office.
+
+%------------------
+% moreauthors
+%------------------
+% If there is only one author the class option oneauthor should be used. Otherwise use the class option moreauthors.
+
+%---------
+% pdftex
+%---------
+% The option pdftex is for use with pdfLaTeX. Remove "pdftex" for (1) compiling with LaTeX & dvi2pdf (if eps figures are used) or for (2) compiling with XeLaTeX.
+
+%=================================================================
+% MDPI internal commands - do not modify
+\firstpage{1} 
+\makeatletter 
+\setcounter{page}{\@firstpage} 
+\makeatother
+\pubvolume{1}
+\issuenum{1}
+\articlenumber{0}
+\pubyear{2025}
+\copyrightyear{2025}
+%\externaleditor{Firstname Lastname} % More than 1 editor, please add `` and '' before the last editor name
+\datereceived{ } 
+\daterevised{ } % Comment out if no revised date
+\dateaccepted{ } 
+\datepublished{ } 
+%\datecorrected{} % For corrected papers: "Corrected: XXX" date in the original paper.
+%\dateretracted{} % For retracted papers: "Retracted: XXX" date in the original paper.
+\hreflink{https://doi.org/} % If needed use \linebreak
+%\doinum{}
+%\pdfoutput=1 % Uncommented for upload to arXiv.org
+%\CorrStatement{yes}  % For updates
+%\longauthorlist{yes} % For many authors that exceed the left citation part
+%\IsAssociation{yes} % For association journals
+
+%=================================================================
+% Add packages and commands here. The following packages are loaded in our class file: fontenc, inputenc, calc, indentfirst, fancyhdr, graphicx, epstopdf, lastpage, ifthen, float, amsmath, amssymb, lineno, setspace, enumitem, mathpazo, booktabs, titlesec, etoolbox, tabto, xcolor, colortbl, soul, multirow, microtype, tikz, totcount, changepage, attrib, upgreek, array, tabularx, pbox, ragged2e, tocloft, marginnote, marginfix, enotez, amsthm, natbib, hyperref, cleveref, scrextend, url, geometry, newfloat, caption, draftwatermark, seqsplit
+% cleveref: load \crefname definitions after \begin{document}
+
+%=================================================================
+% Please use the following mathematics environments: Theorem, Lemma, Corollary, Proposition, Characterization, Property, Problem, Example, ExamplesandDefinitions, Hypothesis, Remark, Definition, Notation, Assumption
+%% For proofs, please use the proof environment (the amsthm package is loaded by the MDPI class).
+
+%=================================================================
+% Full title of the paper (Capitalized)
+\Title{xjb: Fast Float to String Algorithm}
+
+% MDPI internal command: Title for citation in the left column
+\TitleCitation{xjb: Fast Float to String Algorithm}
+
+% Author Orchid ID: enter ID or remove command
+\newcommand{\orcidauthorA}{0009-0005-1040-2657} % Add \orcidA{} behind the author's name
+\newcommand{\orcidauthorB}{0000-0003-4472-2534} % Add \orcidB{} behind the author's name
+
+% Authors, for the paper (add full first names)
+%\Author{Firstname Lastname $^{1}$\orcidA{}, Firstname Lastname $^{2}$ and Firstname Lastname $^{2,}$*}
+\Author{Xiang JunBo \orcidA{}, Wang TieJun *\orcidB{}}
+
+%\longauthorlist{yes}
+
+% MDPI internal command: Authors, for metadata in PDF
+%\AuthorNames{Firstname Lastname, Firstname Lastname and Firstname Lastname}
+\AuthorNames{Xiang JunBo}
+
+% Author citation:  
+\AuthorCitation{JunBo, X.; TieJun, W.;}
+
+% Affiliations / Addresses (Add [1] after \address if there is only one affiliation.)
+% \address{%
+% $^{1}$ \quad Affiliation 1; e-mail@e-mail.com\\
+% $^{2}$ \quad Affiliation 2; e-mail@e-mail.com}
+\address{%
+%$^{1}$ \quad Chengdu University of Information Technology; 1302035400@qq.com\\
+Chengdu University of Information Technology}
+
+% Contact information of the corresponding author
+%\corres{Correspondence: e-mail@e-mail.com; Tel.: (optional; include country code; if there are multiple corresponding authors, add author initials) +xx-xxxx-xxx-xxxx (F.L.)}
+\corres{Correspondence: tjw@cuit.edu.cn; Tel.:+86-138-8090-0111}
+
+% Current address and/or shared authorship
+%\firstnote{Current address: Affiliation.}  
+% Current address should not be the same as any items in the Affiliation section.
+
+%\secondnote{These authors contributed equally to this work.}
+% The commands \thirdnote{} till \eighthnote{} are available for further notes.
+
+%\simplesumm{} % Simple summary
+
+%\conference{} % An extended version of a conference paper
+
+% Abstract (Do not insert blank lines, i.e. \\) 
+\abstract{
+With the wide application of numerical computation and data exchange, efficiently and accurately converting floating-point numbers to decimal strings has become an important computer science issue.
+Existing floating-point printing algorithms, such as Ry$\overline{\text{u}}$, Dragonbox, and Schubfach, although they meet the Steele-White (SW) principle in terms of accuracy, 
+still have room for optimization in performance, especially in terms of branch prediction failure and high-precision multiplication overhead. 
+This paper proposes a novel floating-point to string conversion algorithm named "xjb", which is an improvement based on the Schubfach algorithm, aiming to further enhance the conversion efficiency.
+The algorithm in this paper is designed for IEEE754 single-precision (binary32) and double-precision (binary64) floating-point numbers. 
+By reducing instruction dependencies, decreasing the number of multiplication operations, and minimizing branch prediction failures, it significantly improves performance. 
+In addition, the algorithm supports parallel computing, and the core implementation code is concise, with good portability and scalability. 
+We conducted extensive benchmark tests on multiple platforms, including AMD-R7 7840H and Apple M1, using different compilers (gcc, clang, icpx). 
+The results show that the xjb algorithm outperforms the existing mainstream algorithms in most cases.
+}
+
+% Keywords
+\keyword{floating-point; printing; performance} 
+
+% The fields PACS, MSC, and JEL may be left empty or commented out if not applicable
+%\PACS{J0101}
+%\MSC{}
+%\JEL{}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal Diversity
+%\LSID{\url{http://}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal Applied Sciences
+%\featuredapplication{Authors are encouraged to provide a concise description of the specific application or a potential application of the work. This section is not mandatory.}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal Data
+%\dataset{DOI number or link to the deposited data set if the data set is published separately. If the data set shall be published as a supplement to this paper, this field will be filled by the journal editors. In this case, please submit the data set as a supplement.}
+%\datasetlicense{License under which the data set is made available (CC0, CC-BY, CC-BY-SA, CC-BY-NC, etc.)}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal BioTech, Fishes, Neuroimaging and Toxins
+%\keycontribution{The breakthroughs or highlights of the manuscript. Authors can write one or two sentences to describe the most important part of the paper.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Only for the journal Encyclopedia
+%\encyclopediadef{For entry manuscripts only: please provide a brief overview of the entry title instead of an abstract.}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Different journals have different requirements. Please check the specific journal guidelines in the "Instructions for Authors" on the journal's official website.
+%\addhighlights{yes}
+%\renewcommand{\addhighlights}{%
+%
+%\noindent The goal is to increase the discoverability and readability of the article via search engines and other scholars. Highlights should not be a copy of the abstract, but a simple text allowing the reader to quickly and simplified find out what the article is about and what can be cited from it. Each of these parts should be devoted up to 2~bullet points.\vspace{3pt}\\
+%\textbf{What are the main findings?}
+% \begin{itemize}[labelsep=2.5mm,topsep=-3pt]
+% \item First bullet.
+% \item Second bullet.
+% \end{itemize}\vspace{3pt}
+%\textbf{What is the implication of the main finding?}
+% \begin{itemize}[labelsep=2.5mm,topsep=-3pt]
+% \item First bullet.
+% \item Second bullet.
+% \end{itemize}
+%}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\setcounter{section}{-1} %% Remove this when starting to work on the template.
+
+\section{Introduction}
+In 1990, Steele and White\cite{ref-sw} published the paper \textit{ how to print floating-point numbers Accurately } and proposed the optimal principle of floating-point number printing algorithms (hereinafter referred to as the SW principle) :
+\begin{itemize}
+\item \textbf{Information preservation}: The print result can be parsed back to the original floating-point number.
+\item \textbf{Minimum length}: The print result should be as short as possible.
+\item \textbf{Correct rounding}: On the basis of satisfying 1 and 2, if there are two candidate values, they should be correctly rounded (i.e., the even value should be selected).
+\item \textbf{Generate from left to right}: The print result is generated from the left.
+\end{itemize}
+
+Floating-point number printing algorithms that satisfy the SW principle convert floating-point numbers into real values with unique and definite results.
+Over the past few years, a variety of different algorithms have been proposed, such as Grisu3\cite{ref-grisu}, Errol\cite{ref-errol}, 
+Ry$\overline{\text{u}}$\cite{ref-ryu2018}\cite{ref-ryu2019}, Schubfach\cite{ref-Schubfach}, Grisu-Exact\cite{ref-grisuExact}, Dragonbox\cite{ref-Dragonbox}, and yy\_double\cite{ref-yydouble}.
+
+The algorithm in this paper is based on the Schubfach algorithm, and is inspired by algorithms such as yy\_double and Dragonbox.
+This article only introduces two floating-point number types, IEEE754-binary32 and IEEE754-binary64.
+To simplify the content, in this article, float represents IEEE754-binary32 and double represents IEEE754-binary64.
+The article altogether contains nine python code files, and in this paper, 
+the algorithm implementation code you can be found at \url{https://github.com/xjb714/xjb}.
+
+\section{IEEE754 Floating Point Number Representation}
+
+Since the print result of a negative floating-point number only has one more negative sign than the print result of its absolute value, this article only discusses positive floating-point numbers and does not include special values such as 0, NaN, and Inf. 
+
+The IEEE754 double-precision floating-point number consists of 64 bits, including 1 sign bit ($sign$), 11 exponent bits ($exp$), and 52 fraction bits ($frac$). 
+$sign$'s range is 0 or 1, $exp$'s range is $\left[ 0,2047 \right] $, and $frac$'s range is $\left[ 0,2^{52}-1 \right] $. 
+
+The IEEE754 single-precision floating-point number consists of 32 bits, including 1 sign bit ($sign$), 8 exponent bits ($exp$), and 23 fraction bits ($frac$). 
+$sign$'s range is 0 or 1, $exp$'s range is $\left[ 0,255 \right] $, and $frac$'s range is $\left[ 0,2^{23}-1 \right] $. 
+
+When $ frac=0 $, it is an irregular floating-point number. 
+
+The real value of the positive floating-point number $v$ can be expressed as the following expression:
+\begin{equation}\label{equ1}
+  \begin{aligned}
+    double&\text{:}v=\left(frac+\left(exp\ne0?2^{52}:0\right)\right)\cdot2^{\max\left(exp,1\right)-1075}=c\cdot2^q
+    \\
+    float&\text{:}v=\left(frac+\left(exp\ne0?2^{23}:0\right)\right)\cdot2^{\max\left(exp,1\right)-150}=c\cdot2^q
+  \end{aligned}
+\end{equation}
+There are two cases in total. When $exp$ equals 0 (referred to as subnormal floating-point numbers), there are:
+\begin{equation}\label{equ2}
+  \begin{aligned}
+    double&\text{:}v=frac\cdot 2^{-1074}
+    \\
+    float&\text{:}v=frac\cdot 2^{-149}
+  \end{aligned}
+\end{equation}
+When $exp$ is not equal to 0 (referred to as a normal floating-point number), there is:
+\begin{equation}\label{equ3}
+  \begin{aligned}
+    double&\text{:}v=\left(frac+2^{52}\right)\cdot2^{exp-1075}
+    \\
+    float&\text{:}v=\left(frac+2^{23}\right)\cdot2^{exp-150}
+  \end{aligned}
+\end{equation}
+In the rounding interval $R_v$ of floating-point numbers, all real numbers will be rounded to this floating-point number when parsed. $R_v$ is:
+\begin{equation}\label{equ4}
+  \begin{aligned}
+    & v_l=\left\{ \begin{array}{c}
+      \begin{aligned}
+        & \left( c-\small{\frac{1}{2}} \right) \cdot 2^q\text{,}\text{if}\,\,frac\ne 0\,\, \text{or}\,\,exp \leqslant 1\\
+        & \left( c-\small{\frac{1}{4}} \right) \cdot 2^q\text{,}\text{if}\,\,frac=0              \\
+      \end{aligned}
+    \end{array} \right. 
+    \\
+    & v_r=\left( c+\small{\frac{1}{2}} \right) \cdot 2^q
+    \\
+    & R_v=\left\{ \begin{array}{c}
+      \left[ v_l,v_r \right] \text{,}\text{if}\,\,frac\%2=0\\
+      \left( v_l,v_r \right) \text{,}\text{if}\,\,frac\%2=1\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+When the floating-point number is a regular floating-point number, $2^{q-1}$ is the rounded radius.
+
+\section{Principle of Algorithm}
+At present, other algorithms use a large number of branches, which can easily lead to branch prediction failure penalties and excessive high multiplication overhead. 
+The algorithm in this paper will minimize the overhead of branch prediction failures and reduce the number of multiplication operations to improve performance.
+Moreover, the core code for the algorithm implementation in this paper is only about twenty lines and it also supports parallel computing.
+The process of printing floating-point numbers is usually divided into two parts: the first part is to convert the floating-point number to a decimal number, and the second part is to convert the decimal number to a string. 
+And this article will only introduce the first part.
+All double-precision floating-point numbers are classified into two types: irregular values and regular values. 
+An irregular value is one where all the lower 52 bits are 0, meaning the $frac$ value is 0. 
+There are a total of 2046 valid irregular values (i.e., $exp$ values range from 1 to 2046). 
+Dividing by the irregular values yields the regular value. 
+Similarly, there are a total of 254 irregular values in a single-precision floating-point number. 
+When $exp$ is 0, it is called a subnormal floating-point number.
+
+The valid range for $c$ and $q$ in regular floating-point numbers is:
+\begin{equation}\label{equ5}
+  \begin{aligned}
+    float&:\left\{ \begin{array}{c}
+      1\leqslant c\leqslant 2^{24}-1,c\ne 2^{23};q=-149\\
+      2^{23}+1\leqslant c\leqslant 2^{24}-1;-148\leqslant q\leqslant 104\\
+    \end{array} \right. 
+    \\
+    double&:\left\{ \begin{array}{c}
+      1\leqslant c\leqslant 2^{53}-1,c\ne 2^{52};q=-1074\\
+      2^{52}+1\leqslant c\leqslant 2^{53}-1;-1073\leqslant q\leqslant 971\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+
+The valid range for $c$ and $q$ in irregular floating-point numbers is:
+\begin{equation}\label{equ6}
+  \begin{aligned}
+    float&:\left\{ c=2^{23};-149\leqslant q\leqslant 104 \right. 
+    \\
+    double&:\left\{ c=2^{52};-1074\leqslant q\leqslant 971 \right. 
+  \end{aligned}
+\end{equation}
+
+The valid range for $c$ and $q$ in subnormal floating-point numbers is:
+\begin{equation}\label{equ7}
+  \begin{aligned}
+    float&:\left\{ c\leqslant 2^{23}-1;q=-149 \right. 
+    \\
+    double&:\left\{ c\leqslant 2^{52}-1;q=-1074 \right. 
+  \end{aligned}
+\end{equation}
+Floating-point numbers that do not fall within the subnormal range are called normal floating-point numbers.
+
+regular floating-point numbers account for the vast majority of all possible values of floating-point numbers and are the most worthy of discussion part. 
+Therefore, unless otherwise specified, only regular floating-point numbers will be discussed below.
+Suppose the floating-point number $v$ is converted to the optimal solution that satisfies the SW principle as $opt$, 
+$d$ is a positive integer and $k$ is an integer,which is expressed as:
+\begin{equation}\label{equ8}
+  \begin{aligned}
+    &v=c\cdot 2^q\rightarrow opt=d\cdot 10^k
+    \\
+    &opt\in R_v;d\in N^+;k\in Z
+  \end{aligned}
+\end{equation}
+
+\begin{sloppypar}
+For example: IEEE754-binary64 floating-point number "1.3", the real value of the floating-point number is 1.3000000000000000444089209850062616169452667236328125, hexadecimal representation of floating-point Numbers is 3ff4cccccccccccd, Then the $opt$ value that meets the SW principle is 1.3. 
+The IEEE754-binary32 floating-point number "1.3" has an actual value of 1.2999999523162841796875, and its hexadecimal representation is 3FA66666. Therefore, the $opt$ value that satisfies the SW principle is 1.3.
+\end{sloppypar}
+
+\subsection{Review the Schubfach algorithm and the derivation of the algorithm in this paper}
+According to the Schubfach\cite{ref-Schubfach} algorithm, the possible values of $d$ can be one of the following four situations:
+\begin{equation}\label{equ9}
+  \begin{aligned}
+    &10\cdot \lfloor v\cdot 10^{-k-1} \rfloor ,\lfloor 10\cdot \left( v\cdot 10^{-k-1} \right) \rfloor ,
+    \lfloor 10\cdot \left( v\cdot 10^{-k-1} \right) \rfloor +1,10\cdot \lfloor v\cdot 10^{-k-1} \rfloor +10
+  \end{aligned}
+\end{equation}
+The calculation method of $k$ in equation \eqref{equ9} is as follows:
+\begin{equation}\label{equ10}
+  \begin{aligned}
+    k=\lfloor q\cdot \lg(2) \rfloor \,\,\text{if}\,\,v\in regular\,\,\text{else}\,\,\lfloor q\cdot \lg(2) - \lg(\frac{4}{3}) \rfloor 
+  \end{aligned}
+\end{equation}
+In the range of float and double, equation \eqref{equ10} can be equivalent to:
+\begin{equation}\label{equ11}
+  \begin{aligned}
+    k=(q\cdot 315653-\left( v\in regular?0:131237 \right) )\gg 20
+  \end{aligned}
+\end{equation}
+Suppose the integer part of $v\cdot 10^{-k-1}$ is $m$ and the decimal part is $n$, then we have:
+\begin{equation}\label{equ12}
+  \begin{aligned}
+&\lfloor v\cdot 10^{-k-1} \rfloor =m
+\\
+&v\cdot 10^{-k-1}=m+n
+\\
+&0\leqslant n=v\cdot 10^{-k-1}-\lfloor v\cdot 10^{-k-1} \rfloor <1
+  \end{aligned}
+\end{equation}
+Then the decimal part of $v\cdot 10^{-k}$ is expressed as:
+\begin{equation}\label{equ13}
+  \begin{aligned}
+    v\cdot 10^{-k}-\lfloor v\cdot 10^{-k} \rfloor =10m+10n-\lfloor 10m+10n \rfloor =10n-\lfloor 10n \rfloor 
+  \end{aligned}
+\end{equation}
+The possible values of $d$ obtained from equation \eqref{equ9} are:
+\begin{equation}\label{equ14}
+  \begin{aligned}
+    10m,\lfloor 10\left( m+n \right) \rfloor ,\lfloor 10\left( m+n \right) \rfloor +1,10m+10
+  \end{aligned}
+\end{equation}
+The possible values of $d$ in equation \eqref{equ14} can be simplified to:
+\begin{equation}\label{equ15}
+  \begin{aligned}
+    10m,10m+\lfloor 10n \rfloor ,10m+\lfloor 10n \rfloor +1,10m+10
+  \end{aligned}
+\end{equation}
+Among them, $10m$ represents the minimum possible value and $10m+10$ represents the maximum possible value.
+Suppose $ten$ is used to represent $10m$. There are four possible values for $one$, with $d=ten+one$, denoted as:
+\begin{equation}\label{equ16}
+  \begin{aligned}
+    &ten=10m
+    \\
+    &one\in \left\{ 0,\lfloor 10n \rfloor ,\lfloor 10n \rfloor +1,10 \right\} 
+    \\
+    &d=ten+one
+  \end{aligned}
+\end{equation}
+Calculating $d$ will be converted to calculating $ten$ and $one$.
+
+The final possible values of $d$ are as follows:
+\begin{itemize}
+  \item \textbf{ $ 10m $ }
+  
+  When the following conditions are met, the result is $10m$ (or equivalent to $one=0$). That is, the floating-point number $v$ minus the minimum possible value of $10m$ is less than the rounded radius $2^{q-1}$.
+  \begin{equation}\label{equ17}
+    \begin{aligned}
+      c\cdot 2^q-10m\cdot 10^k&<2^{q-1}
+      \\
+      c\cdot 2^q-\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor \cdot 10^{k+1}&<2^{q-1}
+      \\
+      c\cdot 2^q\cdot 10^{-k-1}-\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor &<2^{-1}\cdot 2^q\cdot 10^{-k-1}
+      \\
+      n&<2^{-1}\cdot 2^q\cdot 10^{-k-1}
+      \\
+      2^{-1}\cdot 2^q\cdot 10^{-k-1}&>n
+    \end{aligned}
+  \end{equation}
+  Or when $2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$, $c\%2=0$ must also be satisfied.
+  Therefore, the following conditions are valid:
+  \begin{equation}\label{equ18}
+    \begin{aligned}
+      \text{if}\,\,2^{-1}\cdot 2^q\cdot 10^{-k-1}>n\,\,\text{or}
+\,\, \left( 2^{-1}\cdot 2^q\cdot 10^{-k-1}=n\,\, \&\& \,\,c\%2=0 \right) :one=0
+    \end{aligned}
+  \end{equation}
+
+  \item \textbf{ $ 10m+10 $ }
+  
+  When the following conditions are met, the result is $10m+10$ (or equivalent to $one=10$). The maximum possible value of $10m+10$ minus the floating-point number $v$ is less than the rounded radius $2^{q-1}$.
+  \begin{equation}\label{equ19}
+    \begin{aligned}
+      \left( 10m+10 \right) \cdot 10^k-c\cdot 2^q&<2^{q-1}
+      \\
+      \lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor \cdot 10^{k+1}+10^{k+1}-c\cdot 2^q&<2^{q-1}
+      \\
+      \lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor -c\cdot 2^q\cdot 10^{-k-1}+1&<2^{-1}\cdot 2^q\cdot 10^{-k-1}
+      \\
+      1-n&<2^{-1}\cdot 2^q\cdot 10^{-k-1}
+      \\
+      2^{-1}\cdot 2^q\cdot 10^{-k-1}&>1-n
+    \end{aligned}
+  \end{equation}
+  Or when $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$, $c\%2=0$ must also be satisfied.
+  Therefore, the following conditions are valid:
+  \begin{equation}\label{equ20}
+    \begin{aligned}
+      \text{if}\,\,2^{-1}\cdot 2^q\cdot 10^{-k-1}>1-n\,\,\text{or}
+      \,\, \left( 2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n\,\,\&\&\,\,c\%2=0 \right) :one=10
+    \end{aligned}
+  \end{equation}
+
+  \item \textbf{ $ 10m+\lfloor 10n \rfloor  $ or $ 10m+\lfloor 10n \rfloor +1 $ }
+  
+  When none of the conditions are met as $d=10m$ or $d=10m+10$, $d$ is either $ 10m+\lfloor 10n \rfloor  $ or $ 10m+\lfloor 10n \rfloor +1 $. 
+  The final value is determined based on the decimal part of $10n$. 
+  If the decimal part is 0.5, it is rounded to the nearest even value; 
+  if it is not 0.5, it is rounded to the nearest value. 
+  For irregular floating-point numbers, it is also necessary to determine whether $ 10m+\lfloor 10n \rfloor  $ is within the rounding interval $R_v$. 
+  If it is not, then $ 10m+\lfloor 10n \rfloor +1 $.
+\end{itemize}
+In summary, the steps of the Schubfach algorithm variants are as follows, that is, the algorithms proposed in this paper (xjb32(for float), xjb64(for double)):
+\begin{equation}\label{equ21}
+  \begin{aligned}
+&\text{input}:c,q
+\\
+&\text{output}:d,k
+\\
+&\text{convert}\,\,c\cdot 2^q\,\,\text{to}\,\,d\cdot 10^k
+\\
+&\left(\,\,\, 1 \right) v=c\cdot 2^q
+\\
+&\left(\,\,\, 2 \right) k=\lfloor q\cdot \lg(2) \rfloor \,\,\text{if}\,\,v\in regular\,\,\text{else}\,\,\lfloor q\cdot \lg(2) - \lg(\frac{4}{3}) \rfloor 
+\\
+&\left(\,\,\, 3 \right) m=\lfloor v\cdot 10^{-k-1} \rfloor ,n=v\cdot 10^{-k-1}-m
+\\
+&\left(\,\,\, 4 \right) ten=10m
+\\
+&\left(\,\,\, 5 \right) \text{if}\,\,10n-\lfloor 10n \rfloor =0.5:one=\lfloor 10n \rfloor \,\,\text{if}\,\,\left( \lfloor 10n \rfloor \%2=0 \right) \,\,\text{else}\, \lfloor 10n \rfloor +1
+\\
+&\left(\,\,\, 6 \right) \text{if}\,\,10n-\lfloor 10n \rfloor <0.5:one=\lfloor 10n \rfloor 
+\\
+&\left(\,\,\, 7 \right) \text{if}\,\,10n-\lfloor 10n \rfloor >0.5:one=\lfloor 10n \rfloor +1
+\\
+&\left(\,\,\, 8 \right) \text{if}\,\,v\in irregular:
+\\
+&\left(\,\,\, 9 \right) \,\,\,\,\,\,     \text{if}\,\,10n-\lfloor 10n \rfloor >2^{q-2}\cdot 10^{-k}:one=\lfloor 10n \rfloor +1
+\\
+&\left( 10 \right) \,\,\,\,\,\,    \text{if}\,\,2^{q-2}\cdot 10^{-k-1}\geqslant n:one=0
+\\
+&\left( 11 \right) \text{else}:
+\\
+&\left( 12 \right) \,\,\,\,\,\,    \text{if}\,\,2^{q-1}\cdot 10^{-k-1}>n\,\,\text{or}\,\,\left( 2^{q-1}\cdot 10^{-k-1}=n\,\, \&\& \,\,c\%2=0 \right): one=0
+\\
+&\left( 13 \right) \text{endif}
+\\
+&\left( 14 \right) \text{if}\,\,2^{q-1}\cdot 10^{-k-1}>1-n\,\,\text{or}\,\,\left( 2^{q-1}\cdot 10^{-k-1}=1-n\,\, \&\& \,\,c\%2=0 \right): one=10
+\\
+&\left( 15 \right) d=ten+one
+  \end{aligned}
+\end{equation}
+This algorithm process \eqref{equ21} is applicable to float and double floating-point numbers. 
+Taking a floating-point number $v$ as input, $c$ and $q$ are extracted, and the calculation results $d$ (line 15) and $k$ (line 2) are returned. 
+The real value represented by the returned results is $d\cdot 10^k$, which conforms to the SW principle. 
+The calculation process of $k$ is relatively simple and can be obtained from \eqref{equ11}. Therefore, the following only focuses on introducing the rapid calculation process of $d$.
+
+The following will be divided into five parts to introduce the algorithm process \eqref{equ21} : 
+\begin{enumerate}
+\item Introduce the pre-computation process of the algorithm's lookup table. 
+\item Quickly calculate $m$.
+\item Quickly determine whether $one=0$ or $one=10$. 
+\item Quickly calculate $\lfloor 10n \rfloor $ and determine whether $one=\lfloor 10n \rfloor $ or $one=\lfloor 10n \rfloor +1$ based on the decimal part of $10n$. 
+\item Processing of irregular floating-point numbers.
+\end{enumerate}
+
+\subsection{Pre-computation of Lookup Table}
+The algorithm in this paper uses a lookup table to store the values of $10^{-k-1}$ for $q$ in the range of $\left[ -149,104 \right] $ for float and $\left[ -1074,971 \right] $ for double.
+In the algorithm of this paper, float uses 64-bit precision and double uses 128-bit precision lookup tables.
+The code implementation in this section is gen.py.
+Suppose the bit length of a single value data in the lookup table is $B$. For float, it has $B=64$, and for double, it has $B=128$. 
+Suppose there are integers $e_{10}$ and real numbers $e_2$, where $1\leqslant f<2$. There are:
+\begin{equation}\label{equ22}
+  \begin{aligned}
+    f\cdot 2^{\lfloor e_2 \rfloor}=2^{e_2}=10^{e_{10}}
+  \end{aligned}
+\end{equation}
+Then:
+\begin{equation}\label{equ23}
+  \begin{aligned}
+    \lfloor e_2 \rfloor =\lfloor e_{10}\cdot \lg(2) \rfloor
+  \end{aligned}
+\end{equation}
+The calculation leads to $f$, and the following conclusions are drawn:
+\begin{equation}\label{equ24}
+  \begin{aligned}
+    f=\frac{10^{e_{10}}}{2^{\lfloor e_{10}\cdot \lg(2) \rfloor}}
+  \end{aligned}
+\end{equation}
+The way to calculate the lookup table is as follows (using the upward rounding method) :
+\begin{equation}\label{equ25}
+  \begin{aligned}
+    % lookup[e_{10}]&=\lceil f\cdot 2^{B-1} \rceil 
+    % \\
+    % &=\lceil \frac{10^{e_{10}}}{2^{\lfloor e_{10}\cdot \lg(2) \rfloor}}\cdot 2^{B-1} \rceil 
+    % \\
+    % &=\lceil 10^{e_{10}}\cdot 2^{B-1-\lfloor e_{10}\cdot \lg(2) \rfloor} \rceil 
+    lookup[e_{10}]=\lceil f\cdot 2^{B-1} \rceil 
+    =\lceil \frac{10^{e_{10}}}{2^{\lfloor e_{10}\cdot \lg(2) \rfloor}}\cdot 2^{B-1} \rceil 
+    =\lceil 10^{e_{10}}\cdot 2^{B-1-\lfloor e_{10}\cdot \lg(2) \rfloor} \rceil 
+  \end{aligned}
+\end{equation}
+For float, when $0\leqslant e_{10}\leqslant 27$, $f\cdot 2^{B-1}$ is an integer in equation \eqref{equ25}.
+For double, when $0\leqslant e_{10}\leqslant 55$, $f\cdot 2^{B-1}$ is an integer in equation \eqref{equ25}.
+The detailed calculation process is as follows:
+\begin{itemize}
+  \item Float
+  
+  The range of $-k-1$ is calculated to be [-32, 44] through the $q$ value range in equation \eqref{equ5}, 
+  so the lookup table contains representation values from 10 to the power of -32 to 10 to the power of 44. 
+  The calculation process is as follows:
+  \begin{equation}\label{equ26}
+    \begin{aligned}
+&-32\leqslant e_{10}\leqslant 44\\
+&e_2=\left| \lfloor e_{10}\cdot \log _{2}(10) \rfloor -63 \right|\\
+&pow10t=\left\{ \begin{array}{c}
+	2^{e_2}//10^{\left| e10 \right|};\text{if}\,\, e_{10}<0\\
+	10^{\left| e10 \right|}//2^{e_2};\text{if}\,\, e_{10}\geqslant 20\\
+	10^{\left| e10 \right|}\cdot 2^{e_2};\text{if}\,\, 1\leqslant e_{10}\leqslant 19\\
+\end{array} \right. 
+\\
+&f_{1,e_{10}}=pow10=pow10t+\left( e_{10}\geqslant 0\&\&e_{10}\leqslant 27?0:1 \right) 
+%\\
+%&2^{63}\leqslant pow10<2^{64} 
+    \end{aligned}
+  \end{equation}
+  When $0\leqslant e_{10}\leqslant 27$, the lookup table variable indicates that the values 
+  $f_{1,e_{10}}\cdot 2^{\lfloor e_{10}\cdot \log _{2}(10) \rfloor -63}$ and $10^{e_{10}}$ are equal. 
+  In other cases, the relative error is less than $2^{-63}$. Expressed as:
+  \begin{equation}\label{equ27}
+    \begin{aligned}
+      r_{1,e_{10}}&=\frac{f_{1,e_{10}}\cdot 2^{\lfloor e_{10}\cdot \log _{2}(10) \rfloor -63}}{10^{e_{10}}}\\
+      &\in \left\{ \begin{array}{c}
+        1;\text{if}\,\, 0\leqslant e_{10}\leqslant 27\\
+        \left( 1,1+2^{-63} \right) ;\text{if}\,\, e_{10}<0 \, \text{or}\,\,e_{10}>27\\
+      \end{array} \right. 
+    \end{aligned}
+  \end{equation}
+
+  \item Double
+
+  The range of $-k-1$ is calculated to be [-293, 323] through the $q$ value range in equation \eqref{equ5}, 
+  so the lookup table contains representation values from 10 to the power of -293 to 10 to the power of 323. 
+  The calculation process is as follows:
+  \begin{equation}\label{equ28}
+    \begin{aligned}
+&-293\leqslant e_{10}\leqslant 323\\
+&e_2=\left| \lfloor e_{10}\cdot \log _{2}(10) \rfloor -127 \right|\\
+&pow10t=\left\{ \begin{array}{c}
+	2^{e_2}//10^{\left| e10 \right|};\text{if}\,\, e_{10}<0\\
+	10^{\left| e10 \right|}//2^{e_2};\text{if}\,\, e_{10}\geqslant 39\\
+	10^{\left| e10 \right|}\cdot 2^{e_2};\text{if}\,\, 1\leqslant e_{10}\leqslant 38\\
+\end{array} \right. 
+\\
+&f_{1,e_{10}}=pow10=pow10t+\left( e_{10}\geqslant 0\&\&e_{10}\leqslant 55?0:1 \right) 
+%\\
+%&2^{127}\leqslant pow10<2^{128} 
+    \end{aligned}
+  \end{equation}
+  When $0\leqslant e_{10}\leqslant 55$, the lookup table variable indicates that the values 
+  $f_{1,e_{10}}\cdot 2^{\lfloor e_{10}\cdot \log _{2}(10) \rfloor -127}$ and $10^{e_{10}}$ are equal. 
+  In other cases, the relative error is less than $2^{-127}$. Expressed as:
+  \begin{equation}\label{equ29}
+    \begin{aligned}
+      r_{1,e_{10}}&=\frac{f_{1,e_{10}}\cdot 2^{\lfloor e_{10}\cdot \log _{2}(10) \rfloor -127}}{10^{e_{10}}}\\
+      &\in \left\{ \begin{array}{c}
+        1;\text{if}\,\, 0\leqslant e_{10}\leqslant 55\\
+        \left( 1,1+2^{-127} \right) ;\text{if}\,\, e_{10} < 0 \, \text{or}\,\, e_{10}>55\\
+      \end{array} \right. 
+    \end{aligned}
+  \end{equation}
+
+\end{itemize}
+The following uses $r_1$ to represent all possible errors of the lookup table values within the float range, 
+$r_2$ to represent all possible errors of the lookup table values within the double range, 
+and $r$ to represent all possible errors of the lookup table values within either the float or double range.
+In algorithm process \eqref{equ21}, an approximate representation value of 10 to the power of $-k-1$ needs to be obtained through a lookup table. 
+From equation \eqref{equ27} and equation \eqref{equ29}, the lookup table representation value is error-free when $q$ is within the following range:
+\begin{equation}\label{equ30}
+  \begin{aligned}
+    float&:0\leqslant -k-1\leqslant 27 \Rightarrow -93\leqslant q\leqslant -1
+    \\
+    double&:0\leqslant -k-1\leqslant 55 \Rightarrow -186\leqslant q\leqslant -1
+  \end{aligned}
+\end{equation}
+When $q$ is not within the range of equation \eqref{equ30}, 
+the error range of the value represented by the lookup table can be concluded as follows:
+\begin{equation}\label{equ31}
+  \begin{aligned}
+    float&:0<r_1-1<2^{-63}
+    \\
+    double&:0<r_2-1<2^{-127}
+  \end{aligned}
+\end{equation}
+The introduction of the lookup table calculation process is complete. 
+The storage space required for a float range lookup table is 616 bytes, and that for a double range lookup table is 9872 bytes.
+
+\subsection{Quickly Calculate $m$}
+Relevant theorems (partially from the Dragonbox\cite{ref-Dragonbox} algorithm paper) : 
+Suppose there are positive integers $n$,$P$,and $Q$, where $P$ and $Q$ are coprime, $P<Q$, $1\leqslant n \leqslant n_{max}$,$Q>n_{max}$,$P^*/Q^*$ is the best rational approximation result greater than or equal to $P/Q$, 
+$P_*/Q_*$ is the best rational approximation result less than or equal to $P/Q$, and it satisfies $Q^* \leqslant n_{max}$, $Q_*  \leqslant  n_{max}$. 
+And if $n\cdot P$ does not divide $Q$ evenly, it is expressed as:
+\begin{equation}\label{equ32}
+  \begin{aligned}
+    \lfloor n\cdot \frac{P}{Q} \rfloor +1=\lceil n\cdot \frac{P}{Q} \rceil 
+  \end{aligned}
+\end{equation}
+Suppose the following holds true:
+\begin{equation}\label{equ33}
+  \begin{aligned}
+    \lfloor n\cdot \frac{P}{Q} \rfloor =\lfloor n\cdot \xi \rfloor  
+  \end{aligned}
+\end{equation}
+Then there are:
+\begin{equation}\label{equ34}
+  \begin{aligned}
+\frac{P_*}{Q_*}=\underset{1\leqslant n\leqslant n_{\max}}{\max}\frac{\lfloor n\cdot \frac{P}{Q} \rfloor}{n}\leqslant \xi <\underset{1\leqslant n\leqslant n_{\max}}{\min}\frac{\lfloor n\cdot \frac{P}{Q} \rfloor +1}{n}
+=\underset{1\leqslant n\leqslant n_{\max}}{\min}\frac{\lceil n\cdot \frac{P}{Q} \rceil}{n}=\frac{P^*}{Q^*}
+  \end{aligned}
+\end{equation}
+Therefore, the range of values for $\xi$ is:
+\begin{equation}\label{equ35}
+  \begin{aligned}
+    \frac{P_*}{Q_*}\leqslant \xi <\frac{P^*}{Q^*}
+  \end{aligned}
+\end{equation}
+And the range of the decimal part with $n\cdot \frac{P}{Q}$ is:
+\begin{equation}\label{equ36}
+  \begin{aligned}
+    \left[ \frac{\left( Q_*P \right) \%Q}{Q},\frac{\left( Q^*P \right) \%Q}{Q} \right] 
+  \end{aligned}
+\end{equation}
+That is, when $n=Q_*$, the decimal part is the smallest; when $n=Q^*$, the decimal part is the largest.
+
+The definition of the best rational approximation function is as follows (this function is implemented on line 15 of the test1.py file):
+\begin{equation}\label{equ37}
+  \begin{aligned}
+    \left( DN,UP \right) =f\left( C,P,Q \right) 
+  \end{aligned}
+\end{equation}
+The function \eqref{equ37} calculate the best rational approximation result with a denominator not exceeding $C$ based on the mean term theorem of the Farey sequence. 
+$DN$ and $UP$ are two adjacent terms in the $C$-order Farey sequence $F_C$.
+
+In algorithm process \eqref{equ21}, $m$ is calculated as $\lfloor v\cdot 10^{-k-1} \rfloor $ (line 3).
+Just prove that the following equation holds:
+\begin{equation}\label{equ38}
+  \begin{aligned}
+    m=\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor c\cdot 2^q\cdot r\cdot 10^{-k-1} \rfloor
+  \end{aligned}
+\end{equation}
+Where $r$ is the error of the lookup table value, as defined in equation \eqref{equ27} and equation \eqref{equ29}.
+When the condition \eqref{equ30} is met, $r$ is 1, and the equation \eqref{equ38} clearly holds. 
+When $r$ is not 1, there is:
+\begin{equation}\label{equ39}
+  \begin{aligned}
+    float&:1<r<1+2^{-63}
+    \\
+    double&:1<r<1+2^{-127}
+  \end{aligned}
+\end{equation}
+Calculate the range of $2^q\cdot 10^{-k-1}$ and we get:
+\begin{equation}\label{equ40}
+  \begin{aligned}
+    2^q\cdot 10^{-k-1}=10^{-1}\cdot \left( 10^{q\cdot \lg(2)-\lfloor q\cdot \lg(2) \rfloor} \right) 
+  \end{aligned}
+\end{equation}
+When $q$ is not 0, equation \eqref{equ40} exists:
+\begin{equation}\label{equ41}
+  \begin{aligned}
+    &q\cdot \lg(2)\ne \lfloor q\cdot \lg(2) \rfloor 
+    \\
+    &0<q\cdot \lg(2)-\lfloor q\cdot \lg(2) \rfloor <1
+  \end{aligned}
+\end{equation}
+When $q$ is 0, $q\cdot \lg(2)-\lfloor q\cdot \lg(2) \rfloor =0$, so the final conclusion is:
+\begin{equation}\label{equ42}
+  \begin{aligned}
+    10^{-1}\leqslant 2^q\cdot 10^{-k-1}<1
+  \end{aligned}
+\end{equation}
+Because there is:
+\begin{equation}\label{equ43}
+  \begin{aligned}
+    c\cdot 2^q\cdot 10^{-k-1}=c\cdot \frac{2^{q-k-1}}{5^{k+1}}\in \left[ 0.1c\left. ,c \right) \right. 
+  \end{aligned}
+\end{equation}
+Therefore:
+\begin{equation}\label{equ44}
+  \begin{aligned}
+c\cdot 2^q\cdot 10^{-k-1}=\left\{ \begin{array}{c}
+	\frac{c\cdot 2^{q-k-1}}{5^{k+1}};q\geqslant 1\\
+	\frac{c}{2^{1+k-q}\cdot 5^{k+1}}=\frac{c}{10};q=0\\
+	\frac{c\cdot 5^{-k-1}}{2^{1+k-q}};q<0\\
+\end{array} \right. 
+  \end{aligned}
+\end{equation}
+Suppose:
+\begin{equation}\label{equ45}
+  \begin{aligned}
+    c\cdot 2^q\cdot 10^{-k-1}=c\cdot \frac{x}{y}<c
+  \end{aligned}
+\end{equation}
+Then there are:
+\begin{equation}\label{equ46}
+  \begin{aligned}
+\left( x,y \right) =\left\{ \begin{array}{c}
+	\left( 2^{q-k-1},5^{k+1} \right) ;q\geqslant 1\\
+	\left( 1,10 \right) ;q=0\\
+	\left( 5^{-k-1},2^{1+k-q} \right) ;q<0\\
+\end{array} \right. 
+  \end{aligned}
+\end{equation}
+Suppose:
+\begin{equation}\label{equ47}
+  \begin{aligned}
+    float&:c\leqslant c_{\max}=C_1=2^{24}-1
+    \\
+    double&:c\leqslant c_{\max}=C_2=2^{53}-1
+  \end{aligned}
+\end{equation}
+The following is represented by $C$ as $C_1$ or $C_2$. $C$ within the float range is $C_1$, and $C$ within the double range is $C_2$.
+
+When $y>C$, calculate the $P^*$ and $Q^*$ corresponding to each $q$ by calling $f\left( C,x,y \right)$ according to function \eqref{equ37}.
+And calculate the minimum $BIT$ value when the following conditions are met:
+\begin{equation}\label{equ48}
+  \begin{aligned}
+    \frac{x}{y}\left( 1+2^{-BIT} \right) <\frac{P^*}{Q^*}
+  \end{aligned}
+\end{equation}
+
+When $y \leqslant C$, there is:
+\begin{equation}\label{equ49}
+  \begin{aligned}
+    c\cdot \frac{x}{y}\left( 1+\frac{1}{Cy} \right) =\frac{cx+\frac{c}{C}\cdot \frac{x}{y}}{y}<\frac{cx+1}{y}
+  \end{aligned}
+\end{equation}
+Therefore:
+\begin{equation}\label{equ50}
+  \begin{aligned}
+    \lfloor c\cdot \frac{x}{y} \rfloor = \lfloor c\cdot \frac{x}{y}\left( 1+\frac{1}{Cy} \right) \rfloor  
+  \end{aligned}
+\end{equation}
+Similarly, calculate the minimum $BIT$ value:
+\begin{equation}\label{equ51}
+  \begin{aligned}
+    \frac{x}{y}\left( 1+2^{-BIT} \right) <\frac{x}{y}\left( 1+\frac{1}{Cy} \right) 
+  \end{aligned}
+\end{equation}
+In summary, the calculation results of the maximum value among the minimum $BIT$ values corresponding to different $q$ are as follows 
+(the running result is in the test1.py file, and the running time of this code is only about 1 to 2 seconds) :
+\begin{equation}\label{equ52}
+  \begin{aligned}
+    float&:BIT_{\max}=52
+    \\
+    double&:BIT_{\max}=113
+  \end{aligned}
+\end{equation}
+Therefore, the following conclusions exist:
+\begin{equation}\label{equ53}
+  \begin{aligned}
+    float&:\lfloor c\cdot \frac{x}{y} \rfloor =\lfloor c\cdot \frac{x}{y}\cdot \left( 1+2^{-52} \right) \rfloor =\lfloor c\cdot \frac{x}{y}\cdot r_1 \rfloor 
+    \\
+    double&:\lfloor c\cdot \frac{x}{y} \rfloor =\lfloor c\cdot \frac{x}{y}\cdot \left( 1+2^{-113} \right) \rfloor =\lfloor c\cdot \frac{x}{y}\cdot r_2 \rfloor 
+  \end{aligned}
+\end{equation}
+This section has been verified.After quickly calculating $m$, the value of $ten=10m$ can be obtained very quickly.
+
+\subsection{Quickly Determine Whether $one=0$ or $one=10$}
+
+In algorithm process \eqref{equ21}, the conditions for determining $one=0$ and $one=10$ are on lines 12, and 14.
+This section will introduce how to quickly determine whether $one=0$ or $one=10$ holds by using equivalent conditions.
+
+When discussing the case of $2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$ (line 12, $one$ might be 0), it is equivalent to:
+\begin{equation}\label{equ54}
+  \begin{aligned}
+    c\cdot 2^q\cdot 10^{-k-1}-\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor &=2^{-1}\cdot 2^q\cdot 10^{-k-1}
+    \\
+    \left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}&=\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor 
+  \end{aligned}
+\end{equation}
+
+When discussing the case of $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$ (line 14, $one$ might be 10), it is equivalent to:
+\begin{equation}\label{equ55}
+  \begin{aligned}
+    \lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor -c\cdot 2^q\cdot 10^{-k-1}+1&=2^{-1}\cdot 2^q\cdot 10^{-k-1}
+    \\
+    \left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}&=\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor +1
+  \end{aligned}
+\end{equation}
+Since equation \eqref{equ42}, we have:
+\begin{equation}\label{equ56}
+  \begin{aligned}
+    2^{q-1}\cdot 10^{-k-1}\in \left[ 0.05\left. ,0.5 \right) \right. 
+  \end{aligned}
+\end{equation}
+Therefore, there is:
+\begin{equation}\label{equ57}
+  \begin{aligned}
+    \lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor -1&<c\cdot 2^q\cdot 10^{-k-1}-0.5
+    \\
+    &<\left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}
+    \\
+    &\leqslant c\cdot 2^q\cdot 10^{-k-1}-0.05<\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor +1
+  \end{aligned}
+\end{equation}
+Therefore, for equation \eqref{equ54}, when $\left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is an integer, it must be equal to $\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor $.
+Similarly, for equation \eqref{equ55}, there is:
+\begin{equation}\label{equ58}
+  \begin{aligned}
+    \lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor &<c\cdot 2^q\cdot 10^{-k-1}+0.05
+    \\
+    &\leqslant \left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}
+    \\
+    &<c\cdot 2^q\cdot 10^{-k-1}+0.5<\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor +2
+  \end{aligned}
+\end{equation}
+Therefore, for equation \eqref{equ55}, when $\left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is an integer, it must be equal to $\lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor +1 $.
+
+In conclusion, it is equivalent to discussing whether $\left( 2c\pm 1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is an integer. There are:
+\begin{equation}\label{equ59}
+  \begin{aligned}
+    \left( 2c\pm 1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}=\left( 2c\pm 1 \right) \cdot 2^{q-k-2}\cdot 5^{-k-1}
+  \end{aligned}
+\end{equation}
+According to the range of $q$, there are:
+\begin{equation}\label{equ60}
+  \begin{aligned}
+    \left\{ \begin{array}{c}
+      q-k-2\geqslant 0,-k-1<0;q\geqslant 2\\
+      q-k-2<0,-k-1<0;1\geqslant q\geqslant 0\\
+      q-k-2<0,-k-1\geqslant 0;q<0\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+Therefore, equation \eqref{equ59} is equivalent to:
+\begin{equation}\label{equ61}
+  \begin{aligned}
+    \left( 2c\pm 1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}=\left\{ \begin{array}{c}
+      \frac{\left( 2c\pm 1 \right) \cdot 2^{q-k-2}}{5^{k+1}};q\geqslant 2\\
+      \frac{\left( 2c\pm 1 \right)}{2^{2+k-q}\cdot 5^{k+1}};1\geqslant q\geqslant 0\\
+      \frac{\left( 2c\pm 1 \right) \cdot 5^{-k-1}}{2^{2+k-q}};q<0\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+According to the different ranges of $q$, the following situations are discussed:
+\begin{itemize}
+  \item $q\geqslant 2$
+  
+  From $q \geqslant 2$, we get $k \geqslant 0$.When $q\geqslant 2$, it is equivalent to discussing whether $\left( 2c\pm 1 \right) \cdot 2^{q-k-2}$ is divisible by $5^{k+1}$.
+  Since $2$ and $5$ are coprime, it is equivalent to discussing whether $\left( 2c\pm 1 \right)$ is divisible by $5^{k+1}$.
+  \begin{equation}\label{equ62}
+    \begin{aligned}
+      \left( 2c\pm 1 \right) \,\,\% 5^{k+1}=0
+    \end{aligned}
+  \end{equation}
+  Suppose $t$ is a positive integer:
+  \begin{equation}\label{equ63}
+    \begin{aligned}
+      2c\pm 1=t\cdot 5^{k+1};t\geqslant 1
+    \end{aligned}
+  \end{equation}
+  Since $2c\pm 1$ is odd, $t$ is also odd. Because the following conditions exist:
+  \begin{equation}\label{equ64}
+    \begin{aligned}
+      float&:2c-1\in \left[ 2^{24}+1,2^{25}-3 \right] ;2c+1\in \left[ 2^{24}+3,2^{25}-1 \right] ;
+\\
+      double&:2c-1\in \left[ 2^{53}+1,2^{54}-3 \right] ;2c+1\in \left[ 2^{53}+3,2^{54}-1 \right] ;
+    \end{aligned}
+  \end{equation}
+  Therefore, the following satisfies:
+  \begin{equation}\label{equ65}
+    \begin{aligned}
+      float&:2^{24}+1\leqslant t\cdot 5^{k+1}\leqslant 2^{25}-1
+      \\
+      double&:2^{53}+1\leqslant t\cdot 5^{k+1}\leqslant 2^{54}-1
+    \end{aligned}
+  \end{equation}
+  Therefore, the following conclusions are drawn:
+  \begin{equation}\label{equ66}
+    \begin{aligned}
+      float&:\frac{2^{24}+1}{5^{k+1}}\leqslant t\leqslant \frac{2^{25}-1}{5^{k+1}};
+      \\
+      double&:\frac{2^{53}+1}{5^{k+1}}\leqslant t\leqslant \frac{2^{54}-1}{5^{k+1}};
+    \end{aligned}
+  \end{equation}
+  For the above equation \eqref{equ66}, the maximum value of $k$ when $t$ can obtain at least one odd number is:
+  \begin{equation}\label{equ67}
+    \begin{aligned}
+      float&:k_{\max}=9\Rightarrow q_{\max}=33,t=3
+      \\
+      double&:k_{\max}=22\Rightarrow q_{\max}=76,t=1
+    \end{aligned}
+  \end{equation}
+  Therefore, the maximum value of $k$ is 9 within the float range and 22 within the double range.
+  Therefore, when $k$ exceeds the above range, $\left( 2c\pm 1 \right)$ is not divisible by $5^{k+1}$.
+
+  \item $1\geqslant q\geqslant 0$
+  
+  Because the denominator $2^{2+k-q}\cdot 5^{k+1}$ is even and the numerator $\left( 2c\pm 1 \right) $ is odd, the condition is not met.
+
+  \item $q<0$
+  
+  Because the denominator $2^{2+k-q}$ is even and the numerator $\left( 2c\pm 1 \right)\cdot 5^{-k-1} $ is odd, the condition is not met.
+\end{itemize}
+In summary, the situations when $\left( 2c\pm 1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is an integer are as follows:
+\begin{equation}\label{equ68}
+  \begin{aligned}
+    float&:2\leqslant q\leqslant 33\,\, \&\&\,\,\left( 2c\pm 1 \right) \%5^{k+1}=0;\\
+    double&:2\leqslant q\leqslant 76\,\, \&\&\,\,\left( 2c\pm 1 \right) \%5^{k+1}=0;
+  \end{aligned}
+\end{equation}
+And, the range of $-k-1$ is:
+\begin{equation}\label{equ69}
+  \begin{aligned}
+    float:-10\leqslant -k-1\leqslant -1
+    \\
+    double:-23\leqslant -k-1\leqslant -1
+  \end{aligned}
+\end{equation}
+When $2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$, the following conclusions can be drawn:
+\begin{equation}\label{equ70}
+  \begin{aligned}
+float&:\left\{ 2^{35}\cdot 2^q\cdot 10^{-k-1}=2^{36}\cdot n\Rightarrow \lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}\cdot n \rfloor \right. 
+\\
+double&:\left\{ 2^{63}\cdot 2^q\cdot 10^{-k-1}=2^{64}\cdot n\Rightarrow \lfloor 2^{63}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{64}\cdot n \rfloor \right. 
+  \end{aligned}
+\end{equation}
+When $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$, the following conclusions can be drawn:
+\begin{equation}\label{equ71}
+  \begin{aligned}
+float:\left\{ \begin{array}{c}
+	2^{35}\cdot 2^q\cdot 10^{-k-1}=2^{36}-2^{36}\cdot n\Rightarrow\\
+	\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}-2^{36}\cdot n \rfloor =2^{36}-1-\lfloor 2^{36}\cdot n \rfloor\\
+\end{array} \right. 
+\\
+double:\left\{ \begin{array}{c}
+	2^{63}\cdot 2^q\cdot 10^{-k-1}=2^{64}-2^{64}\cdot n\Rightarrow\\
+	\lfloor 2^{63}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{64}-2^{64}\cdot n \rfloor =2^{64}-1-\lfloor 2^{64}\cdot n \rfloor\\
+\end{array} \right. 
+  \end{aligned}
+\end{equation}
+The discussion on whether $\lfloor 2^{36}-2^{36}\cdot n \rfloor =2^{36}-1-\lfloor 2^{36}\cdot n \rfloor $ in equation \eqref{equ71} holds true, 
+that is, whether $2^{36}\cdot n$ in equation \eqref{equ71} is an integer, or equivalent to discussing whether the following values are integers when equation \eqref{equ68} holds true (the same applies to double) :
+\begin{equation}\label{equ72}
+  \begin{aligned}
+    float&:2^{36}\cdot(m+n)=c\cdot 2^{q+36}\cdot 10^{-k-1}=c\cdot 2^{q-k+35}\cdot 5^{-k-1}=c\cdot \frac{2^{q-k+35}}{5^{k+1}}
+    \\
+    double&:2^{64}\cdot(m+n)=c\cdot 2^{q+64}\cdot 10^{-k-1}=c\cdot 2^{q-k+63}\cdot 5^{-k-1}=c\cdot \frac{2^{q-k+63}}{5^{k+1}}
+  \end{aligned}
+\end{equation}
+Suppose $c$ can divide $5^{k+1}$ evenly (where $t$ is a temporary integer variable):
+\begin{equation}\label{equ73}
+  \begin{aligned}
+    c=t\cdot 5^{k+1};t\geqslant 1
+  \end{aligned}
+\end{equation}
+Therefore, when equation \eqref{equ73} was established, there were:
+\begin{equation}\label{equ74}
+  \begin{aligned}
+    2c\pm 1=2\cdot t\cdot 5^{k+1}\pm 1
+  \end{aligned}
+\end{equation}
+Expression \eqref{equ74} cannot divide $5^{k+1}$ evenly, which contradicts equation \eqref{equ68}, so $c$ cannot divide $5^{k+1}$ evenly. 
+Therefore, for float, $c\cdot 2^{q+36}\cdot 10^{-k-1}$ and $2^{36} \cdot n$ are not integers; 
+For double, $c\cdot 2^{64+q}\cdot 10^{-k-1}$ and $2^{64} \cdot n$ are not integers, that is:
+\begin{equation}\label{equ75}
+  \begin{aligned}
+    float&:\lfloor 2^{36}-2^{36}\cdot n \rfloor =2^{36}+\lfloor -2^{36}\cdot n \rfloor =2^{36}-1-\lfloor 2^{36}\cdot n \rfloor 
+    \\
+    double&:\lfloor 2^{64}-2^{64}\cdot n \rfloor =2^{64}+\lfloor -2^{64}\cdot n \rfloor =2^{64}-1-\lfloor 2^{64}\cdot n \rfloor 
+  \end{aligned}
+\end{equation}
+Therefore, the conclusion \eqref{equ71} is correct.
+Discuss the necessary and sufficient conditions for whether $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}\cdot n \rfloor$  
+is $2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$. The same applies to double, expressed as:
+\begin{equation}\label{equ76}
+  \begin{aligned}
+    float&:2^{-1}\cdot 2^q\cdot 10^{-k-1}=n\Leftrightarrow \lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}\cdot n \rfloor 
+    \\
+    double&:2^{-1}\cdot 2^q\cdot 10^{-k-1}=n\Leftrightarrow \lfloor 2^{63}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{64}\cdot n \rfloor 
+  \end{aligned}
+\end{equation}
+Similarly, the necessary and sufficient conditions for whether $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}-2^{36}\cdot n \rfloor $
+is $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$. The same applies to double, expressed as:
+\begin{equation}\label{equ77}
+  \begin{aligned}
+    float&:2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n\Leftrightarrow 
+    \lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}-2^{36}\cdot n \rfloor 
+    \\
+    double&:2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n\Leftrightarrow 
+    \lfloor 2^{63}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{64}-2^{64}\cdot n \rfloor 
+  \end{aligned}
+\end{equation}
+The sufficient conditions of equations \eqref{equ76} and \eqref{equ77} are obviously established.
+Introduce the proof that equation \eqref{equ76} holds.
+For float, only the necessary conditions need to be discussed, 
+that is, whether $2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$ must hold true when $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}\cdot n \rfloor $ holds,
+or equivalent to $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor \ne \lfloor 2^{36}\cdot n \rfloor $ must hold true when $2^{-1}\cdot 2^q\cdot 10^{-k-1}\ne n$.
+The following is proved by proof by contradiction.
+
+Assume that $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}\cdot n \rfloor $ holds when $2^{-1}\cdot 2^q\cdot 10^{-k-1}\ne n$.
+Then there is:
+\begin{equation}\label{equ78}
+  \begin{aligned}
+    &\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}\cdot n \rfloor 
+    \\
+    &\Rightarrow 0<\left| 2^{35}\cdot 2^q\cdot 10^{-k-1}-2^{36}\cdot n \right|<1
+    \\
+    &\Rightarrow 0<\left| \left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}-m \right|<2^{-36}
+  \end{aligned}
+\end{equation}
+As is known from  equation \eqref{equ57}, there is:
+\begin{equation}\label{equ79}
+  \begin{aligned}
+    m-1<\left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}<m+1
+  \end{aligned}
+\end{equation}
+Suppose the decimal part of $\left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is represented as $n^-$, thus we have:
+\begin{equation}\label{equ80}
+  \begin{aligned}
+    \left| \left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}-m \right|
+    =\left\{ \begin{array}{c}
+      n^-;\text{if}\,\, \left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}>m\\
+      1-n^-;\text{if}\,\, \left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}<m\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+Substitute expression \eqref{equ80} into expression \eqref{equ78}, and we get:
+\begin{equation}\label{equ81}
+  \begin{aligned}
+    &0<\left| \left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}-m \right|<2^{-36}
+    \\
+    &\Rightarrow 0<n^-<2^{-36}\,\,\text{or}\,\,0<1-n^-<2^{-36}
+  \end{aligned}
+\end{equation}
+Similarly, it can be known that the double range is the range of $n^-$.
+Therefore, there is:
+\begin{equation}\label{equ82}
+  \begin{aligned}
+    float&:n^-\in \left( 0,2^{-36} \right) \cup \left( 1-2^{-36},1 \right) 
+    \\
+    double&:n^-\in \left( 0,2^{-64} \right) \cup \left( 1-2^{-64},1 \right) 
+  \end{aligned}
+\end{equation}
+When $2^{-1}\cdot 2^q\cdot 10^{-k-1}\ne n$, it is known from equation \eqref{equ54} that $\left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is not an integer.
+Therefore, there is:
+\begin{equation}\label{equ83}
+  \begin{aligned}
+    0 < n^- < 1
+  \end{aligned}
+\end{equation}
+It is only necessary to prove that equation \eqref{equ82} does not hold.
+Discuss the range of the decimal part $n^-$ when $\left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is not an integer.
+According to equation \eqref{equ61}, there are:
+\begin{equation}\label{equ84}
+  \begin{aligned}
+    \left( 2c-1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}
+    =\left( 2c-1 \right) \cdot \frac{x}{y}
+    =\left\{ \begin{array}{c}
+      \frac{\left( 2c-1 \right) \cdot 2^{q-k-2}}{5^{k+1}};q\geqslant 2\\
+      \frac{\left( 2c-1 \right)}{2^{2+k-q}\cdot 5^{k+1}};1\geqslant q\geqslant 0\\
+      \frac{\left( 2c-1 \right) \cdot 5^{-k-1}}{2^{2+k-q}};q<0\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+The maximum value of $2c-1$ is:
+\begin{equation}\label{equ85}
+  \begin{aligned}
+    float&:\left( 2c-1 \right) _{\max}=2^{25}-3
+    \\
+    double&:\left( 2c-1 \right) _{\max}=2^{54}-3
+  \end{aligned}
+\end{equation}
+Discuss based on the denominator range in equation \eqref{equ84}.
+\begin{itemize}
+  \item $ y \leqslant \left( 2c-1 \right) _{\max} $
+  
+  When $y \leqslant \left( 2c-1 \right) _{\max} $, $y_{\max}$ is the expression \eqref{equ85}, the following holds true:
+  \begin{equation}\label{equ86}
+    \begin{aligned}
+      \frac{1}{y_{\max}}\leqslant n^-\leqslant 1-\frac{1}{y_{\max}}
+    \\
+      \frac{1}{y_{\max}}\leqslant 1-n^-\leqslant 1-\frac{1}{y_{\max}}
+    \end{aligned}
+  \end{equation}
+  Therefore, when $y \leqslant \left( 2c-1 \right) _{\max} $, equation \eqref{equ82} does not hold true.
+
+  \item $ y > \left( 2c-1 \right) _{\max} $
+  
+  Call function \eqref{equ37} to calculate the approximation results $\small{{{P_*}\Bigg/{Q_*}}}$ and $\small{{{P^*}\Bigg/{Q^*}}}$ of all possible upper and lower limit rational numbers:
+  \begin{equation}\label{equ87}
+    \begin{aligned}
+      \left( \frac{P_*}{Q_*},\frac{P^*}{Q^*} \right) =f\left( \left( 2c-1 \right) _{\max},x,y \right) 
+    \end{aligned}
+  \end{equation}
+  Therefore, for $n^-$, the following conclusion can be drawn from formula \eqref{equ36}.
+  \begin{equation}\label{equ88}
+    \begin{aligned}
+      n^-\in \left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right]
+    \end{aligned}
+  \end{equation}  
+  By exhausting all possibilities, we thus have (the test code file is test3.py) :
+  \begin{equation}\label{equ89}
+    \begin{aligned}
+      float&:2^{-33}<n^-<1-2^{-29}
+      \\
+      double&:2^{-62}<n^-<1-2^{-63}
+    \end{aligned}
+  \end{equation}
+
+  \begin{equation}\label{equ90}
+    \begin{aligned}
+      float&:\left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right] \cap \left( 0,2^{-36} \right) =\varnothing 
+      \\
+      &\left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right] \cap \left( 1-2^{-36},1 \right) =\varnothing 
+      \\
+      double&:\left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right] \cap \left( 0,2^{-64} \right) =\varnothing 
+      \\
+      &\left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right] \cap \left( 1-2^{-64},1 \right) =\varnothing 
+    \end{aligned}
+  \end{equation}
+  Therefore, when $y > \left( 2c-1 \right) _{\max} $, equation \eqref{equ82} does not hold true.
+\end{itemize}
+In summary, when $2^{-1}\cdot 2^q\cdot 10^{-k-1}\ne n$, equation \eqref{equ82} does not hold true, that is, $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor \ne \lfloor 2^{36}\cdot n \rfloor $ must hold true.
+Therefore, when $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}\cdot n \rfloor $ holds, $2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$ must hold true.
+Therefore, equation \eqref{equ76} holds.
+
+Similarly, it can be proved that when $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}-2^{36}\cdot n \rfloor $ holds, $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$ must hold true.
+The same applies to double.
+Similarly, by proof of contradiction, for float, it is assumed that when $2^{-1}\cdot 2^q\cdot 10^{-k-1}\ne 1-n$ holds,
+$\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}-2^{36}\cdot n \rfloor $ holds. That is:
+\begin{equation}\label{equ91}
+  \begin{aligned}
+    &\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}-2^{36}\cdot n \rfloor 
+    \\
+    &\Rightarrow 0<\left| 2^{35}\cdot 2^q\cdot 10^{-k-1}-2^{36}+2^{36}\cdot n \right|<1
+    \\
+    &\Rightarrow 0<\left| 2^{q-1}\cdot 10^{-k-1}-1+n \right|<2^{-36}
+    \\
+    &\Rightarrow -2^{-36}<\left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}-m-1<2^{-36}
+  \end{aligned}
+\end{equation}
+As is known from  equation \eqref{equ58}, there is:
+\begin{equation}\label{equ92}
+  \begin{aligned}
+    m<\left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}<m+2
+  \end{aligned}
+\end{equation}
+Suppose the decimal part of $\left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is represented as $n^+$, thus we have:
+\begin{equation}\label{equ93}
+  \begin{aligned}
+    \left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}-m-1
+    =\left\{ \begin{array}{c}
+      n^+;\text{if}\,\, \left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}>m+1\\
+      1-n^+;\text{if}\,\, \left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}<m+1\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+Substitute expression \eqref{equ93} into expression \eqref{equ91}, and we get:
+\begin{equation}\label{equ94}
+  \begin{aligned}
+    &0<\left| \left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}-m-1 \right|<2^{-36}
+    \\
+    &\Rightarrow 0<1-n^+<2^{-36}\,\,\text{or}\,\,0<n^+<2^{-36}
+  \end{aligned}
+\end{equation}
+Similarly, it can be known that the double range is the range of $n^+$.
+Therefore, there is:
+\begin{equation}\label{equ95}
+  \begin{aligned}
+    float&:n^+\in \left( 0,2^{-36} \right) \cup \left( 1-2^{-36},1 \right) 
+    \\
+    double&:n^+\in \left( 0,2^{-64} \right) \cup \left( 1-2^{-64},1 \right) 
+  \end{aligned}
+\end{equation}
+When $2^{-1}\cdot 2^q\cdot 10^{-k-1}\ne 1-n$, it is known from equation \eqref{equ55} that $\left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is not an integer.
+Therefore, there is:
+\begin{equation}\label{equ96}
+  \begin{aligned}
+    0 < n^+ < 1
+  \end{aligned}
+\end{equation}
+It is only necessary to prove that equation \eqref{equ95} does not hold.
+Discuss the range of the decimal part $n^+$ when $\left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}$ is not an integer.
+According to equation \eqref{equ61}, there are:
+\begin{equation}\label{equ97}
+  \begin{aligned}
+    \left( 2c+1 \right) \cdot 2^{q-1}\cdot 10^{-k-1}
+    =\left( 2c+1 \right) \cdot \frac{x}{y}
+    =\left\{ \begin{array}{c}
+      \frac{\left( 2c+1 \right) \cdot 2^{q-k-2}}{5^{k+1}};q\geqslant 2\\
+      \frac{\left( 2c+1 \right)}{2^{2+k-q}\cdot 5^{k+1}};1\geqslant q\geqslant 0\\
+      \frac{\left( 2c+1 \right) \cdot 5^{-k-1}}{2^{2+k-q}};q<0\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+The maximum value of $2c+1$ is:
+\begin{equation}\label{equ98}
+  \begin{aligned}
+    float&:\left( 2c+1 \right) _{\max}=2^{25}-1
+    \\
+    double&:\left( 2c+1 \right) _{\max}=2^{54}-1
+  \end{aligned}
+\end{equation}
+Discuss based on the denominator range in equation \eqref{equ97}.
+\begin{itemize}
+  \item $ y \leqslant \left( 2c+1 \right) _{\max} $
+  
+  When $y \leqslant \left( 2c+1 \right) _{\max} $, $y_{\max}$ is the expression \eqref{equ98}, the following holds true:
+  \begin{equation}\label{equ99}
+    \begin{aligned}
+      \frac{1}{y_{\max}}\leqslant n^+\leqslant 1-\frac{1}{y_{\max}}
+    \\
+      \frac{1}{y_{\max}}\leqslant 1-n^+\leqslant 1-\frac{1}{y_{\max}}
+    \end{aligned}
+  \end{equation}
+  Therefore, when $y \leqslant \left( 2c+1 \right) _{\max} $, equation \eqref{equ95} does not hold true.
+
+  \item $ y > \left( 2c+1 \right) _{\max} $
+  
+  Call function \eqref{equ37} to calculate the approximation results $\small{{{P_*}\Bigg/{Q_*}}}$ and $\small{{{P^*}\Bigg/{Q^*}}}$ of all possible upper and lower limit rational numbers:
+  \begin{equation}\label{equ100}
+    \begin{aligned}
+      \left( \frac{P_*}{Q_*},\frac{P^*}{Q^*} \right) =f\left( \left( 2c+1 \right) _{\max},x,y \right) 
+    \end{aligned}
+  \end{equation}
+  Therefore, for $n^+$, the following conclusion can be drawn from formula \eqref{equ36}.
+  \begin{equation}\label{equ101}
+    \begin{aligned}
+      n^+\in \left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right]
+    \end{aligned}
+  \end{equation}  
+  By exhausting all possibilities, we thus have (the test code file is test7.py) :
+  \begin{equation}\label{equ102}
+    \begin{aligned}
+      float&:2^{-33}<n^+<1-2^{-29}
+      \\
+      double&:2^{-62}<n^+<1-2^{-63}
+    \end{aligned}
+  \end{equation}
+  \begin{equation}\label{equ103}
+    \begin{aligned}
+      float&:\left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right] \cap \left( 0,2^{-36} \right) =\varnothing 
+      \\
+      &\left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right] \cap \left( 1-2^{-36},1 \right) =\varnothing 
+      \\
+      double&:\left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right] \cap \left( 0,2^{-64} \right) =\varnothing 
+      \\
+      &\left[ \frac{\left( Q_*x \right) \%y}{y},\frac{\left( Q^*x \right) \%y}{y} \right] \cap \left( 1-2^{-64},1 \right) =\varnothing 
+    \end{aligned}
+  \end{equation}
+  Therefore, when $y > \left( 2c+1 \right) _{\max} $, equation \eqref{equ95} does not hold true.
+\end{itemize}
+In summary, when $2^{-1}\cdot 2^q\cdot 10^{-k-1}\ne 1-n$, equation \eqref{equ95} does not hold true, that is, $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor \ne \lfloor 2^{36}-2^{36}\cdot n \rfloor $ must hold true.
+Therefore, when $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor 2^{36}-2^{36}\cdot n \rfloor $ holds, $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$ must hold true.
+The same is true for double.Therefore, equation \eqref{equ77} holds.
+
+The following conclusions hold:
+\begin{equation}\label{equ104}
+  \begin{aligned}
+    float:&\lfloor 2^{36}-2^{36}\cdot n \rfloor 
+    &=\left\{ \begin{array}{c}
+      2^{36}-1-\lfloor 2^{36}\cdot n \rfloor ;\text{if}\,\,c\cdot 2^{36+q}\cdot 10^{-k-1}\notin Z\\
+      2^{36}-\lfloor 2^{36}\cdot n \rfloor ;\text{if}\,\,c\cdot 2^{36+q}\cdot 10^{-k-1}\in Z\\
+    \end{array} \right. 
+    \\
+    double:&\lfloor 2^{64}-2^{64}\cdot n \rfloor 
+    &=\left\{ \begin{array}{c}
+      2^{64}-1-\lfloor 2^{64}\cdot n \rfloor ;\text{if}\,\,c\cdot 2^{64+q}\cdot 10^{-k-1}\notin Z\\
+      2^{64}-\lfloor 2^{64}\cdot n \rfloor ;\text{if}\,\,c\cdot 2^{64+q}\cdot 10^{-k-1}\in Z\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+Discuss whether the following equation \eqref{equ105} holds when conditions \eqref{equ68} and \eqref{equ69} are met:
+\begin{equation}\label{equ105}
+  \begin{aligned}
+float&:\lfloor c\cdot \frac{2^{q+35-k}}{5^{k+1}} \rfloor =\lfloor c\cdot \frac{2^{q+35-k}}{5^{k+1}}\cdot r \rfloor 
+\\
+&=\lfloor c\cdot \frac{2^{q+35-k}}{5^{k+1}}\cdot \frac{\left( 2^{63-\lfloor \left( -k-1 \right) \cdot \log _{2}(10) \rfloor}//10^{k+1} \right) +1}{10^{-k-1}}
+\cdot 2^{\lfloor \left( -k-1 \right) \cdot \log _{2}(10) \rfloor -63} \rfloor 
+\\
+double&:\lfloor c\cdot \frac{2^{q+63-k}}{5^{k+1}} \rfloor =\lfloor c\cdot \frac{2^{q+63-k}}{5^{k+1}}\cdot r \rfloor 
+\\
+&=\lfloor c\cdot \frac{2^{q+63-k}}{5^{k+1}}\cdot \frac{\left( 2^{127-\lfloor \left( -k-1 \right) \cdot \log _{2}(10) \rfloor}//10^{k+1} \right) +1}{10^{-k-1}}
+\cdot 2^{\lfloor \left( -k-1 \right) \cdot \log _{2}(10) \rfloor -127} \rfloor 
+  \end{aligned}
+\end{equation}
+There are:
+\begin{equation}\label{equ106}
+  \begin{aligned}
+    float&:\lfloor c\cdot \frac{2^{q+35-k}}{5^{k+1}} \rfloor =\lfloor 2^{36}\cdot \left( m+n \right) \rfloor =2^{36}\cdot m+\lfloor 2^{36}\cdot n \rfloor 
+    \\
+    double&:\lfloor c\cdot \frac{2^{q+63-k}}{5^{k+1}} \rfloor =\lfloor 2^{64}\cdot \left( m+n \right) \rfloor =2^{64}\cdot m+\lfloor 2^{64}\cdot n \rfloor 
+  \end{aligned}
+\end{equation}
+It has been proven earlier that $m$ can be accurately calculated. 
+Then, when \eqref{equ105} holds true, the values $\lfloor 2^{36}\cdot n \rfloor $ and $\lfloor 2^{64}\cdot n \rfloor $ on the right side of equations \eqref{equ70} and \eqref{equ71} can be accurately calculated.
+
+From equation \eqref{equ63}, we have:
+\begin{equation}\label{equ107}
+  \begin{aligned}
+    c=\frac{t\cdot 5^{k+1}-1}{2} 
+  \end{aligned}
+\end{equation}
+Substituting equation \eqref{equ107} into equation \eqref{equ105}, we have:
+\begin{equation}\label{equ108}
+  \begin{aligned}
+    float: c\cdot \frac{2^{q+35-k}}{5^{k+1}}=t\cdot 2^{q+34-k}-\frac{2^{q+34-k}}{5^{k+1}}
+    \\
+    double: c\cdot \frac{2^{q+63-k}}{5^{k+1}}=t\cdot 2^{q+62-k}-\frac{2^{q+62-k}}{5^{k+1}}
+  \end{aligned}
+\end{equation}
+When conditions \eqref{equ68} and \eqref{equ69} are met, $t\cdot 2^{q+34-k}$ and $t\cdot 2^{q+62-k}$ are integers.
+Under the condition of meeting condition \eqref{equ68}, the decimal part of expression \eqref{equ108} is represented as:
+\begin{equation}\label{equ109}
+  \begin{aligned}
+    float:\frac{2^{q+34-k}\%5^{k+1}}{5^{k+1}};2\leqslant q\leqslant 33
+    \\
+    double:\frac{2^{q+62-k}\%5^{k+1}}{5^{k+1}};2\leqslant q\leqslant 76
+  \end{aligned}
+\end{equation}
+It is only necessary to prove that the increase in the value $c\cdot \frac{2^{q+35-k}}{5^{k+1}}\cdot r$ on the right side of the expression compared to the value 
+$c\cdot \frac{2^{q+35-k}}{5^{k+1}}$ on the left side plus the decimal part of the value on the left side is less than 1 for equation \eqref{equ105} to hold true.
+That is:
+\begin{equation}\label{equ110}
+  \begin{aligned}
+    float:&\frac{2^{q+34-k}\%5^{k+1}}{5^{k+1}}+\left( c\cdot \frac{2^{q+35-k}}{5^{k+1}}\cdot r -c\cdot \frac{2^{q+35-k}}{5^{k+1}} \right) <1
+    \\
+    double:&\frac{2^{q+62-k}\%5^{k+1}}{5^{k+1}}+\left( c\cdot \frac{2^{q+63-k}}{5^{k+1}}\cdot r -c\cdot \frac{2^{q+63-k}}{5^{k+1}} \right) <1
+  \end{aligned}
+\end{equation}
+By exhaustionally calculating the maximum possible $c$ value under each $q$ and substituting it into equation \eqref{equ110}, it holds. 
+The calculation result is in test2.py.
+The calculation results show that for the float range and the double range, equation \eqref{equ110} always holds true. 
+Therefore, equation \eqref{equ105} holds true, and thus the values of $\lfloor 2^{36}\cdot n \rfloor $ and $\lfloor 2^{64}\cdot n \rfloor $ on the right side of equations \eqref{equ70} and \eqref{equ71} can be accurately calculated.
+The values of $\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor$ and $\lfloor 2^{63}\cdot 2^q\cdot 10^{-k-1} \rfloor$ on the left side of equations \eqref{equ70} and \eqref{equ71} can be calculated through lookup tables.
+\begin{equation}\label{equ111}
+  \begin{aligned}
+    float:\lfloor 2^{35}\cdot 2^q\cdot 10^{-k-1} \rfloor =pow10\gg \left( 28-q-\lfloor \left( -k-1 \right) \cdot \log _{2}(10) \rfloor \right) 
+    \\
+    double:\lfloor 2^{64}\cdot 2^q\cdot 10^{-k-1} \rfloor =pow10\gg \left( 64-q-\lfloor \left( -k-1 \right) \cdot \log _{2}(10) \rfloor \right) 
+  \end{aligned}
+\end{equation}
+The code file for verifying the validity of equation \eqref{equ111} is test4.py.
+Therefore, when conditions \eqref{equ68} and \eqref{equ69} are met, the values of both sides of equations \eqref{equ70} and \eqref{equ71} can be accurately calculated.
+
+Discuss the relationship between the following two values within all ranges of floating-point numbers:
+\begin{equation}\label{equ112}
+  \begin{aligned}
+    float:\lfloor c\cdot 2^{q+36}\cdot 10^{-k-1} \rfloor ;\lfloor c\cdot 2^{q+36}\cdot r\cdot 10^{-k-1} \rfloor ;
+    \\
+    double:\lfloor c\cdot 2^{q+64}\cdot 10^{-k-1} \rfloor ;\lfloor c\cdot 2^{q+64}\cdot r\cdot 10^{-k-1} \rfloor ;
+  \end{aligned}
+\end{equation}
+When $r = 1$, it is obvious that the two values in expression \eqref{equ112} are equal.
+When $r \ne 1$, or equivalent to $r>1$, has:
+\begin{equation}\label{equ113}
+  \begin{aligned}
+float:
+\\
+c\cdot 2^{q+36}\cdot r\cdot 10^{-k-1}&=c\cdot 2^{q+36}\cdot 10^{-k-1}+c\cdot 2^{q+36}\cdot \left( r-1 \right) \cdot 10^{-k-1}
+\\
+\,\,                        &<c\cdot 2^{q+36}\cdot 10^{-k-1}+2^{24}\cdot 2^{36}\cdot 2^q\cdot 10^{-k-1}\cdot \left( r-1 \right) 
+\\
+\,\,                        &<c\cdot 2^{q+36}\cdot 10^{-k-1}+2^{-3}
+\\
+\lfloor c\cdot 2^{q+36}\cdot r\cdot 10^{-k-1} \rfloor &\leqslant \lfloor c\cdot 2^{q+36}\cdot 10^{-k-1} \rfloor +1
+\\
+double:
+\\
+c\cdot 2^{q+64}\cdot r\cdot 10^{-k-1}&=c\cdot 2^{q+64}\cdot 10^{-k-1}+c\cdot 2^{q+64}\cdot \left( r-1 \right) \cdot 10^{-k-1}
+\\
+\,\,                        &<c\cdot 2^{q+64}\cdot 10^{-k-1}+2^{53}\cdot 2^{64}\cdot 2^q\cdot 10^{-k-1}\cdot \left( r-1 \right) 
+\\
+\,\,                        &<c\cdot 2^{q+64}\cdot 10^{-k-1}+2^{-10}
+\\
+\lfloor c\cdot 2^{q+64}\cdot r\cdot 10^{-k-1} \rfloor &\leqslant \lfloor c\cdot 2^{q+64}\cdot 10^{-k-1} \rfloor +1
+\end{aligned}
+\end{equation}
+Therefore, there is:
+\begin{equation}\label{equ114}
+  \begin{aligned}
+    float&:0 \leqslant \lfloor c\cdot 2^{q+36}\cdot r\cdot 10^{-k-1} \rfloor -\lfloor c\cdot 2^{q+36}\cdot 10^{-k-1} \rfloor 
+    \leqslant 1
+    \\
+    double&:0 \leqslant \lfloor c\cdot 2^{q+64}\cdot r\cdot 10^{-k-1} \rfloor -\lfloor c\cdot 2^{q+64}\cdot 10^{-k-1} \rfloor 
+    \leqslant 1
+  \end{aligned}
+\end{equation}
+Because there is:
+\begin{equation}\label{equ115}
+  \begin{aligned}
+    \lfloor c\cdot 2^q\cdot 10^{-k-1} \rfloor =\lfloor c\cdot 2^q\cdot r\cdot 10^{-k-1} \rfloor =m
+  \end{aligned}
+\end{equation}
+\begin{equation}\label{equ116}
+  \begin{aligned}
+    float&:\lfloor c\cdot 2^{q+36}\cdot 10^{-k-1} \rfloor =2^{36}\cdot m+\lfloor 2^{36}\cdot n \rfloor 
+    \\
+    double&:\lfloor c\cdot 2^{q+64}\cdot 10^{-k-1} \rfloor =2^{64}\cdot m+\lfloor 2^{64}\cdot n \rfloor 
+  \end{aligned}
+\end{equation}
+Suppose:
+\begin{equation}\label{equ117}
+  \begin{aligned}
+    n_r=c\cdot 2^q\cdot r\cdot 10^{-k-1}-m
+  \end{aligned}
+\end{equation}
+Therefore, the following conclusion can be drawn: when condition \eqref{equ68} is met, from equation \eqref{equ105}, we have:
+\begin{equation}\label{equ118}
+  \begin{aligned}
+    float:2\leqslant q\leqslant 33 \, \&\& \,\left( 2c\pm 1 \right) \%5^{k+1}=0
+    \Rightarrow \lfloor 2^{36}\cdot n \rfloor =\lfloor 2^{36}\cdot n_r \rfloor
+    \\
+    double:2\leqslant q\leqslant 76 \, \&\& \,\left( 2c\pm 1 \right) \%5^{k+1}=0
+    \Rightarrow \lfloor 2^{64}\cdot n \rfloor =\lfloor 2^{64}\cdot n_r \rfloor 
+  \end{aligned}
+\end{equation}
+Within the range of floating-point numbers, there exists:
+\begin{equation}\label{equ119}
+  \begin{aligned}
+    float&:\lfloor 2^{36}\cdot n \rfloor \leqslant \lfloor 2^{36}\cdot n_r \rfloor \leqslant \lfloor 2^{36}\cdot n \rfloor +1
+    \\
+    double&:\lfloor 2^{64}\cdot n \rfloor \leqslant \lfloor 2^{64}\cdot n_r \rfloor \leqslant \lfloor 2^{64}\cdot n \rfloor +1
+  \end{aligned}
+\end{equation}
+To simplify the expression, $even$ is used to indicate whether $c$ is an even number:
+\begin{equation}\label{equ120}
+  \begin{aligned}
+    even = (c+1) \% 2 \in \left\{ 0,1 \right\}
+  \end{aligned}
+\end{equation}
+When $2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$ or $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$,
+$2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$ is the boundary condition for $one=0$, and $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$ is the boundary condition for $one=10$. 
+Whether $one$ is 0 or 10 is determined based on whether $c$ is an even number.Therefore, the following exists:
+\begin{equation}\label{equ121}
+  \begin{aligned}
+    float:\left\{ \begin{array}{c}
+	    one=0:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even >\lfloor 2^{36}\cdot n_r \rfloor \\
+	    one=10:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even >2^{36}-1-\lfloor 2^{36}\cdot n_r \rfloor \\
+    \end{array} \right. \\
+    double:\left\{ \begin{array}{c}
+	    one=0:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even >\lfloor 2^{64}\cdot n_r \rfloor \\
+	    one=10:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even >2^{64}-1-\lfloor 2^{64}\cdot n_r \rfloor \\
+    \end{array} \right.
+  \end{aligned}
+\end{equation}
+Therefore, when $2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$ or $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$,
+we can use the condition \eqref{equ122} to determine whether $one=0$ or $one=10$.
+\begin{equation}\label{equ122}
+  \begin{aligned}
+    float:\left\{ \begin{array}{c}
+      \text{if}\,\,\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even>\lfloor 2^{36}\cdot n_r \rfloor :one=0\\
+      \text{if}\,\,\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even>2^{36}-1-\lfloor 2^{36}\cdot n_r \rfloor :one=10\\
+    \end{array} \right. \\
+    double:\left\{ \begin{array}{c}
+      \text{if}\,\,\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even>\lfloor 2^{64}\cdot n_r \rfloor :one=0\\
+      \text{if}\,\,\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even>2^{64}-1-\lfloor 2^{64}\cdot n_r \rfloor :one=10\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+
+When $2^{-1}\cdot 2^q\cdot 10^{-k-1} > n$ or $2^{-1}\cdot 2^q\cdot 10^{-k-1} > 1-n$,
+We can also use the above condition \eqref{equ122} to determine whether $one=0$ or $one=10$.
+When $2^{-1}\cdot 2^q\cdot 10^{-k-1} < n$ or $2^{-1}\cdot 2^q\cdot 10^{-k-1} < 1-n$,
+we can also use the above condition \eqref{equ122} to determine whether $one\ne0$ or $one\ne10$.
+There are a total of four situations.The proof is as follows:\\
+(1)When $2^{-1}\cdot 2^q\cdot 10^{-k-1} < n$ , there must exist $one \ne 0$, and there is:
+\begin{equation}\label{equ123}
+  \begin{aligned}
+    float:2^{-1}\cdot 2^q\cdot 10^{-k-1}-n=n^--1\in \left( 2^{-33}-1,-2^{-29} \right) \\
+    double:2^{-1}\cdot 2^q\cdot 10^{-k-1}-n=n^--1\in \left( 2^{-62}-1,-2^{-63} \right)
+  \end{aligned}
+\end{equation}
+Therefore, the following exists:
+\begin{equation}\label{equ124}
+  \begin{aligned}
+    float:2^{q+35}\cdot 10^{-k-1}-2^{36}\cdot n\in \left( 2^3-2^{36},-2^7 \right) \\
+    double:2^{q+63}\cdot 10^{-k-1}-2^{64}\cdot n\in \left( 4-2^{64},-2 \right) 
+  \end{aligned}
+\end{equation}
+Suppose there are two real numbers $a$ and $b$, and the following relationship must exist:
+\begin{equation}\label{equ125}
+  \begin{aligned}
+    0\leqslant &b-\lfloor b \rfloor <1
+    \\
+    a-\lfloor a \rfloor -1<&b-\lfloor b \rfloor <1+a-\lfloor a \rfloor 
+    \\
+    a-b-1<&\lfloor a \rfloor -\lfloor b \rfloor <a-b+1
+  \end{aligned}
+\end{equation}
+When $a=2^{q+35}\cdot 10^{-k-1}$ and $b=2^{36}\cdot n$ or $a=2^{q+63}\cdot 10^{-k-1}$ and $b=2^{64}\cdot n$, the following exists:
+\begin{equation}\label{equ126}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor -\lfloor 2^{36}\cdot n \rfloor <2^{q+35}\cdot 10^{-k-1}-2^{36}\cdot n+1\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor -\lfloor 2^{64}\cdot n \rfloor <2^{q+63}\cdot 10^{-k-1}-2^{64}\cdot n+1
+  \end{aligned}
+\end{equation}
+From equation \eqref{equ124}, we have:
+\begin{equation}\label{equ127}
+  \begin{aligned}
+    float&:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor -\lfloor 2^{36}\cdot n \rfloor <1-2^7<0\\
+    double&:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor -\lfloor 2^{64}\cdot n \rfloor <1-2<0
+  \end{aligned}
+\end{equation}
+Therefore, there is:
+\begin{equation}\label{equ128}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even &\leqslant \lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +1 \\
+    &<\lfloor 2^{36}\cdot n \rfloor \leqslant \lfloor 2^{36}\cdot n_r \rfloor \\
+    \Rightarrow \lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even &<\lfloor 2^{36}\cdot n_r \rfloor\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even &\leqslant \lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +1 \\
+    &<\lfloor 2^{64}\cdot n \rfloor \leqslant \lfloor 2^{64}\cdot n_r \rfloor \\
+    \Rightarrow \lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even &<\lfloor 2^{64}\cdot n_r \rfloor
+  \end{aligned}
+\end{equation}
+Therefore, when $2^{-1}\cdot 2^q\cdot 10^{-k-1} < n$, the condition \eqref{equ122} can be used to determine that $one \ne 0$.\\
+(2)When $2^{-1}\cdot 2^q\cdot 10^{-k-1} > n$, there must exist $one = 0$, and there is:
+\begin{equation}\label{equ129}
+  \begin{aligned}
+    float:2^{-1}\cdot 2^q\cdot 10^{-k-1}-n=n^-\in \left( 2^{-33},1-2^{-29} \right) \\
+    double:2^{-1}\cdot 2^q\cdot 10^{-k-1}-n=n^-\in \left( 2^{-62},1-2^{-63} \right)
+  \end{aligned}
+\end{equation}
+Therefore, the following exists:
+\begin{equation}\label{equ130}
+  \begin{aligned}
+    float&:2^{q+35}\cdot 10^{-k-1}-2^{36}\cdot n\in \left( 2^3,2^{36}-2^7 \right) \\
+    double&:2^{q+63}\cdot 10^{-k-1}-2^{64}\cdot n\in \left( 4,2^{64}-2 \right) 
+  \end{aligned}
+\end{equation}
+When $a=2^{q+35}\cdot 10^{-k-1}$ and $b=2^{36}\cdot n$ or $a=2^{q+63}\cdot 10^{-k-1}$ and $b=2^{64}\cdot n$, from equation \eqref{equ125}, the following exists:
+\begin{equation}\label{equ131}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor -\lfloor 2^{36}\cdot n \rfloor >2^{q+35}\cdot 10^{-k-1}-2^{36}\cdot n-1\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor -\lfloor 2^{64}\cdot n \rfloor >2^{q+63}\cdot 10^{-k-1}-2^{64}\cdot n-1
+  \end{aligned}
+\end{equation}
+From equation \eqref{equ130}, we have:
+\begin{equation}\label{equ132}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor -\lfloor 2^{36}\cdot n \rfloor >2^3-1\geqslant 0\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor -\lfloor 2^{64}\cdot n \rfloor >4-1\geqslant 0
+  \end{aligned}
+\end{equation}
+Therefore, there is:
+\begin{equation}\label{equ133}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even &\geqslant \lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor \\
+    &>\lfloor 2^{36}\cdot n \rfloor + 1 \geqslant \lfloor 2^{36}\cdot n_r \rfloor \\
+    \Rightarrow \lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even &>\lfloor 2^{36}\cdot n_r \rfloor\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even &\geqslant \lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor \\
+    &>\lfloor 2^{64}\cdot n \rfloor + 1 \geqslant \lfloor 2^{64}\cdot n_r \rfloor \\
+    \Rightarrow \lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even &>\lfloor 2^{64}\cdot n_r \rfloor
+  \end{aligned}
+\end{equation}
+Therefore, when $2^{-1}\cdot 2^q\cdot 10^{-k-1} > n$, the condition \eqref{equ122} can be used to determine that $one = 0$.\\
+(3)When $2^{-1}\cdot 2^q\cdot 10^{-k-1} < 1-n$ , there must exist $one \ne 10$, and there is:
+\begin{equation}\label{equ134}
+  \begin{aligned}
+    float:2^{-1}\cdot 2^q\cdot 10^{-k-1}+n=n^+\in \left( 2^{-33},1-2^{-29} \right) \\
+    double:2^{-1}\cdot 2^q\cdot 10^{-k-1}+n=n^+\in \left( 2^{-62},1-2^{-63} \right)
+  \end{aligned}
+\end{equation}
+Therefore, the following exists:
+\begin{equation}\label{equ135}
+  \begin{aligned}
+    float:2^{q+35}\cdot 10^{-k-1}+2^{36}\cdot n\in \left( 2^3,2^{36}-2^7 \right) \\
+    double:2^{q+63}\cdot 10^{-k-1}+2^{64}\cdot n\in \left( 4,2^{64}-2 \right) 
+  \end{aligned}
+\end{equation}
+Suppose there are two real numbers $a$ and $b$, and the following relationship must exist:
+\begin{equation}\label{equ136}
+  \begin{aligned}
+    a-1&<\lfloor a \rfloor \leqslant a
+    \\
+    b-1&<\lfloor b \rfloor \leqslant b
+    \\
+    a+b-2&<\lfloor a \rfloor +\lfloor b \rfloor \leqslant a+b
+  \end{aligned}
+\end{equation}
+When $a=2^{q+35}\cdot 10^{-k-1}$ and $b=2^{36}\cdot n$ or $a=2^{q+63}\cdot 10^{-k-1}$ and $b=2^{64}\cdot n$, the following exists:
+\begin{equation}\label{equ137}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +\lfloor 2^{36}\cdot n \rfloor \leqslant 2^{q+35}\cdot 10^{-k-1}+2^{36}\cdot n\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +\lfloor 2^{64}\cdot n \rfloor \leqslant 2^{q+63}\cdot 10^{-k-1}+2^{64}\cdot n
+  \end{aligned}
+\end{equation}
+From equation \eqref{equ135}, we have:
+\begin{equation}\label{equ138}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +\lfloor 2^{36}\cdot n \rfloor <2^{36}-2^7\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +\lfloor 2^{64}\cdot n \rfloor <2^{64}-2
+  \end{aligned}
+\end{equation}
+Therefore, there is:
+\begin{equation}\label{equ139}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even &\leqslant \lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +1\\
+    &< 2^{36}-2-\lfloor 2^{36}\cdot n \rfloor \\
+    &< 2^{36}-1-\lfloor 2^{36}\cdot n_r \rfloor \\
+    \Rightarrow \lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even &<2^{36}-1-\lfloor 2^{36}\cdot n_r \rfloor\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even &\leqslant \lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +1\\
+    &< 2^{64}-2-\lfloor 2^{64}\cdot n \rfloor \\
+    &< 2^{64}-1-\lfloor 2^{64}\cdot n_r \rfloor \\
+    \Rightarrow \lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even &<2^{64}-1-\lfloor 2^{64}\cdot n_r \rfloor
+  \end{aligned}
+\end{equation}
+Therefore, when $2^{-1}\cdot 2^q\cdot 10^{-k-1} < 1-n$, the condition \eqref{equ122} can be used to determine that $one \ne 10$.\\
+(4)When $2^{-1}\cdot 2^q\cdot 10^{-k-1} > 1-n$, there must exist $one = 10$, and there is:
+\begin{equation}\label{equ140}
+  \begin{aligned}
+    float:2^{-1}\cdot 2^q\cdot 10^{-k-1}+n=n^++1\in \left( 1+2^{-33},2-2^{-29} \right) \\
+    double:2^{-1}\cdot 2^q\cdot 10^{-k-1}+n=n^++1\in \left( 1+2^{-62},2-2^{-63} \right)
+  \end{aligned}
+\end{equation}
+Therefore, the following exists:
+\begin{equation}\label{equ141}
+  \begin{aligned}
+    float:2^{q+35}\cdot 10^{-k-1}+2^{36}\cdot n\in \left( 2^3+2^{36},2^{37}-2^7 \right) \\
+    double:2^{q+63}\cdot 10^{-k-1}+2^{64}\cdot n\in \left( 4+2^{64},2^{65}-2 \right)
+  \end{aligned}
+\end{equation}
+When $a=2^{q+35}\cdot 10^{-k-1}$ and $b=2^{36}\cdot n$ or $a=2^{q+63}\cdot 10^{-k-1}$ and $b=2^{64}\cdot n$, from equation \eqref{equ136}, the following exists:
+\begin{equation}\label{equ142}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +\lfloor 2^{36}\cdot n \rfloor >2^{q+35}\cdot 10^{-k-1}+2^{36}\cdot n-2\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +\lfloor 2^{64}\cdot n \rfloor >2^{q+63}\cdot 10^{-k-1}+2^{64}\cdot n-2
+  \end{aligned}
+\end{equation}
+From equation \eqref{equ141}, we have:
+\begin{equation}\label{equ143}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +\lfloor 2^{36}\cdot n \rfloor >2^{36}+2^3-2> 2^{36}\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +\lfloor 2^{64}\cdot n \rfloor >2^{64}+2-2> 2^{64}
+  \end{aligned}
+\end{equation}
+Therefore, there is:
+\begin{equation}\label{equ144}
+  \begin{aligned}
+    float:\lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even &\geqslant \lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor \\
+    &>2^{36}-\lfloor 2^{36}\cdot n \rfloor \\
+    &>2^{36}-1-\lfloor 2^{36}\cdot n_r \rfloor \\
+    \Rightarrow \lfloor 2^{q+35}\cdot 10^{-k-1} \rfloor +even &>2^{36}-1-\lfloor 2^{36}\cdot n_r \rfloor\\
+    double:\lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even &\geqslant \lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor \\
+    &>2^{64}-\lfloor 2^{64}\cdot n \rfloor \\
+    &> 2^{64}-1-\lfloor 2^{64}\cdot n_r \rfloor\\
+    \Rightarrow \lfloor 2^{q+63}\cdot 10^{-k-1} \rfloor +even &>2^{64}-1-\lfloor 2^{64}\cdot n_r \rfloor
+  \end{aligned}
+\end{equation}
+Therefore, when $2^{-1}\cdot 2^q\cdot 10^{-k-1} > 1-n$, the condition \eqref{equ122} can be used to determine that $one = 10$.
+
+From the above proof, it can be seen that when condition \eqref{equ68} is met, the condition \eqref{equ122} can be used to determine whether $one=0$ or $one=10$ when $2^{-1}\cdot 2^q\cdot 10^{-k-1}=n$ or $2^{-1}\cdot 2^q\cdot 10^{-k-1}=1-n$.
+When $2^{-1}\cdot 2^q\cdot 10^{-k-1} > n$ or $2^{-1}\cdot 2^q\cdot 10^{-k-1} > 1-n$, the condition \eqref{equ122} can be used to determine whether $one=0$ or $one=10$.
+When $2^{-1}\cdot 2^q\cdot 10^{-k-1} < n$ or $2^{-1}\cdot 2^q\cdot 10^{-k-1} < 1-n$, the condition \eqref{equ122} can be used to determine whether $one\ne0$ or $one\ne10$.
+
+The proof process of this section is completed.
+In the code implementation, the two judgment conditions can be quickly calculated using addition and subtraction shift operations, and can be compiled by the compiler into cmov instructions, thereby reducing the impact of branch prediction failure on performance.
+
+\subsection{Determine whether $one = \lfloor 10n \rfloor $ or $one = \lfloor 10n \rfloor+1$}
+
+Determine whether $one$ is $\lfloor 10n \rfloor$ or $\lfloor 10n \rfloor + 1$ based on the decimal part of $10n$.
+There are two cases: the decimal part of $10n$ is 0.5 and it is not 0.5.
+
+\subsubsection{ $10n - \lfloor 10n \rfloor = 0.5$ }
+
+When the decimal part of $10n$ is 0.5, there must be:
+\begin{equation}\label{equ146}
+  \begin{aligned}
+    10n-\lfloor 10n \rfloor =0.5
+    \\
+    \Rightarrow 10\cdot c\cdot 2^q\cdot 10^{-k-1}-\lfloor 10\cdot c\cdot 2^q\cdot 10^{-k-1} \rfloor =0.5
+    \\
+    \Rightarrow c\cdot 2^q\cdot 10^{-k}-\lfloor c\cdot 2^q\cdot 10^{-k} \rfloor =0.5
+    \\
+    \Rightarrow c\cdot 2^q\cdot 10^{-k}=\lfloor c\cdot 2^q\cdot 10^{-k} \rfloor +0.5
+    \\
+    \Rightarrow 2c\cdot 2^q\cdot 10^{-k}= 2\lfloor c\cdot 2^q\cdot 10^{-k} \rfloor +1
+  \end{aligned}
+\end{equation}
+So $2c\cdot 2^q\cdot 10^{-k}$ is an odd number.
+Then the following expression is odd:
+\begin{equation}\label{equ147}
+  \begin{aligned}
+    c\cdot 2^{q+1}\cdot 10^{-k}=c\cdot 2^{q-k+1}\cdot 5^{-k}
+  \end{aligned}
+\end{equation}
+According to the range of $q$, there are:
+\begin{equation}\label{equ148}
+  \begin{aligned}
+    c\cdot 2^{q+1}\cdot 10^{-k}=\left\{ \begin{array}{c}
+      \frac{c\cdot 2^{q-k+1}}{5^k};q\geqslant 0\\
+      c\cdot 2\cdot 5^{-k};q=-1\\
+      \frac{c\cdot 5^{-k}}{2^{k-q-1}};q\leqslant -2\\
+    \end{array} \right. 
+  \end{aligned}
+\end{equation}
+According to the range of $q$, the following situations are discussed:
+\begin{itemize}
+  \item $q \geqslant 0$
+
+  When $q \geqslant 0$, it can be concluded that $q-k+1 \geqslant 1$, 
+  the numerator $c\cdot 2^{q-k+1}$ is even and the denominator $5^k$ is odd, which does not meet the condition.
+
+  \item $q = -1$
+
+  When $q = -1$, it can be concluded that $c\cdot 2\cdot 5^{-k}$ is even, which does not meet the condition.
+
+  \item $q \leqslant -2$
+
+  $5^{-k}$ is an odd number.
+  $c$ is an odd multiple of $2^{k-q-1}$.
+  So:
+  \begin{equation}\label{equ149}
+    \begin{aligned}
+      float:c\geqslant 2^{k-q-1}\Rightarrow k-q-1\leqslant 22\Rightarrow q\geqslant -34
+      \\
+      double:c\geqslant 2^{k-q-1}\Rightarrow k-q-1\leqslant 51\Rightarrow q\geqslant -75
+    \end{aligned}
+  \end{equation}
+  Therefore, when $q$ meets the above conditions, $c$ must be an odd multiple of $2^{k-q-1}$ to meet the condition.
+  Therefore, when the following conditions are met, expression \eqref{equ147} is an odd number:
+  \begin{equation}\label{equ150}
+    \begin{aligned}
+      float&: -34\leqslant q\leqslant -2 \, \&\& \,c\%2^{k-q}=2^{k-q-1}
+      \\
+      double&: -75\leqslant q\leqslant -2 \,\&\& \,c\%2^{k-q}=2^{k-q-1}
+    \end{aligned}
+  \end{equation}
+  When $q$ is within the above range \eqref{equ150}, $r=1$ is derived from equation \eqref{equ30}.Therefore, there is:
+  \begin{equation}\label{equ151}
+    \begin{aligned}
+      n_r = n
+    \end{aligned}
+  \end{equation}
+  The following equation holds:
+  \begin{equation}\label{equ152}
+    \begin{aligned}
+      20m+20n = c \cdot 2^q\cdot 10^{-k+1} = c \cdot 2^{q-k+1} \cdot 5^{-k} = \frac{c}{2^{k-q-1}} \cdot 5^{-k}
+    \end{aligned}
+  \end{equation}
+  Since $-k \geqslant 1$ , $5^{-k}$ is multiple of 5 and is an odd number.
+  Since $\frac{c}{2^{k-q-1}}$ and $5^{-k}$ are both odd numbers, $20m$ is an even number, $20n$ is multiple of 5 and is an odd number.
+  Therefore, there is:
+  \begin{equation}\label{equ153}
+    \begin{aligned}
+      20n  \in \left\{ 5,15 \right\} \\
+      \Rightarrow n \in \left\{ 0.25,0.75 \right\} \\
+      \Rightarrow n_r \in \left\{ 0.25,0.75 \right\} \\
+    \end{aligned}
+  \end{equation}
+  The result of $one$ is an even number between $\lfloor 10n \rfloor $ and $ \lfloor 10n \rfloor + 1 $.
+  Therefore, when the following conditions are met:
+  \begin{equation}\label{equ154}
+    \begin{aligned}
+      one=\left\{ \begin{array}{c}
+        \lfloor 10n \rfloor =2,\text{if}\,\,n=0.25\\
+        \lfloor 10n \rfloor +1=8,\text{if}\,\,n=0.75\\
+      \end{array} \right. 
+      \Rightarrow one = \lfloor 20n + 1 \rfloor // 2 - (n=0.25\,?1:0)
+    \end{aligned}
+  \end{equation}
+\end{itemize}
+
+\subsubsection{ $10n - \lfloor 10n \rfloor \ne 0.5$ }
+
+When the decimal part of $10n$ is not 0.5, round to the nearest integer value based on the decimal part of $10n$.
+Therefore, there is:
+\begin{equation}\label{equ155}
+  \begin{aligned}
+    one=\left\{ \begin{array}{c}
+      \lfloor 10n \rfloor ,\text{if}\,\,10n-\lfloor 10n \rfloor <0.5\\
+      \lfloor 10n \rfloor +1,\text{if}\,\,10n-\lfloor 10n \rfloor >0.5\\
+    \end{array} \right. 
+    \Rightarrow one = \lfloor 10n + 0.5 \rfloor = \lfloor 20n + 1 \rfloor // 2
+  \end{aligned}
+\end{equation}
+Since $\lfloor 20n + 1\rfloor = \lfloor 20n \rfloor + 1$, it is only necessary to accurately calculate the value of $\lfloor 20n \rfloor$.
+And, there is:
+\begin{equation}\label{equ156}
+  \begin{aligned}
+    d &= ten + one\\
+    & = 10m + \lfloor 20n + 1 \rfloor // 2 \\
+    & = (\lfloor 20m + 20n \rfloor + 1) // 2
+  \end{aligned}
+\end{equation}
+Suppose there are:
+\begin{equation}\label{equ157}
+  \begin{aligned}
+    20m+20n=c\cdot 2^{q+1}\cdot 10^{-k}=c\cdot 2^{q-k+1}\cdot 5^{-k}=c\cdot \frac{x}{y}
+  \end{aligned}
+\end{equation}
+Suppose the decimal part of $20n$ is $n_{20}$.
+
+When $y\leqslant c_{\max}=C$, the range of the decimal part must include:
+\begin{equation}\label{equ158}
+  \begin{aligned}
+    float:\frac{1}{2^{24}-1}=\frac{1}{C}\leqslant n_{20}\leqslant 1-\frac{1}{C}=\frac{2^{24}-2}{2^{24}-1}
+    \\
+    double:\frac{1}{2^{53}-1}=\frac{1}{C}\leqslant n_{20}\leqslant 1-\frac{1}{C}=\frac{2^{53}-2}{2^{53}-1}
+  \end{aligned}
+\end{equation}
+When $y > c_{\max}=C$, the range of the decimal part must include(the test file is test5.py):
+\begin{equation}\label{equ159}
+  \begin{aligned}
+    float:2^{-32}<n_{20}<1-2^{-30}
+    \\
+    double:2^{-64}<n_{20}<1-2^{-62}
+  \end{aligned}
+\end{equation}
+Therefore, the range of $n_{20}$ satisfies equation \eqref{equ159}.
+In the code implementation, for float, only the high 36 bits of $n_r$ are retained, and for double, only the high 70 bits of $n_r$ are retained.
+Suppose the discarded part of a float is represented as $n_{36}$, and similarly, the discarded part of a double is represented as $n_{70}$.
+Therefore, there is:
+\begin{equation}\label{equ160}
+  \begin{aligned}
+    float:n_{36}\in \left[ 0,\left. 2^{-36} \right) \right. 
+    \\
+    double:n_{70}\in \left[ 0,\left. 2^{-70} \right) \right. 
+  \end{aligned}
+\end{equation}
+Calculate the boundary conditions of the following expression:
+\begin{equation}\label{equ161}
+  \begin{aligned}
+    float:F=20\cdot \left( c\cdot 2^q\cdot r\cdot 10^{-k-1}-n_{36} \right) 
+    \\
+    double:F=20\cdot \left( c\cdot 2^q\cdot r\cdot 10^{-k-1}-n_{70} \right) 
+  \end{aligned}
+\end{equation}
+Therefore, there is:
+\begin{equation}\label{equ162}
+  \begin{aligned}
+    float:F_{\min}&>20\cdot \left( c\cdot 2^q\cdot 10^{-k-1}-2^{-36} \right) 
+\\
+&=20m+20n-20\cdot 2^{-36}
+\\
+\,\,       F_{\max}&<20\cdot \left( c\cdot 2^q\cdot \left( 1+2^{-63} \right) \cdot 10^{-k-1}-0 \right) 
+\\
+&<20m+20n+20\cdot 2^{-63}\cdot c
+\\
+&<20m+\lfloor 20n \rfloor +1
+\\
+double:F_{\min}&>20\cdot \left( c\cdot 2^q\cdot 10^{-k-1}-2^{-70} \right) 
+\\
+&=20m+20n-20\cdot 2^{-70}
+\\
+&>20m+\lfloor 20n \rfloor 
+\\
+\,\,        F_{\max}&<20\cdot \left( c\cdot 2^q\cdot \left( 1+2^{-127} \right) \cdot 10^{-k-1}-0 \right) 
+\\
+&<20m+20n+20\cdot 2^{-127}\cdot c
+\\
+&<20m+\lfloor 20n \rfloor +1
+  \end{aligned}
+\end{equation}
+Therefore, there is:
+\begin{equation}\label{equ163}
+  \begin{aligned}
+    float:\lfloor F \rfloor =20m+\lfloor 20n \rfloor 
+    \\
+    double:\lfloor F \rfloor =20m+\lfloor 20n \rfloor 
+  \end{aligned}
+\end{equation}
+In fact, in the above proof process, for float, $\lfloor F_{min} \rfloor \ne 20m+\lfloor 20n \rfloor$ may exist, 
+but the code implementation has passed the exhaustive test, so this not-so-perfect proof process can be ignored.
+Therefore, the calculation of $d$ can be simplified as follows:
+\begin{equation}\label{equ164}
+  \begin{aligned}
+    d &= ten + one\\
+    & = (\lfloor F \rfloor + 1) // 2 \\
+    & = ( \lfloor 20\cdot ( c\cdot 2^q\cdot r\cdot 10^{-k-1}-n_{x} ) \rfloor + 1 ) // 2
+  \end{aligned}
+\end{equation}
+For the float range, $n_x=n_{36}$; for the double range, $n_x=n_{70}$.
+
+For double, quickly determine that $n==0.25$ in equation \eqref{equ154}.\\
+When $n=0.25$,$\lfloor 2^{64}\cdot n_r \rfloor =\lfloor 2^{64}\cdot n \rfloor=2^{62}$.
+Therefore, the following condition can be used to quickly determine whether $n=0.25$:
+\begin{equation}\label{equ165}
+  \begin{aligned}
+    double:n=0.25\,\text{if}\,\,\lfloor 2^{64}\cdot n_r \rfloor =2^{62}
+  \end{aligned}
+\end{equation}
+When $n \ne 0.25$,Calculate the range of the decimal part of the following expression:
+\begin{equation}\label{equ166}
+  \begin{aligned}
+    4m+4n=c\cdot 2^{q+2}\cdot 10^{-k-1}
+  \end{aligned}
+\end{equation}
+Therefore, when equation \eqref{equ166} is not an integer, we have(the test file is test6.py):
+\begin{equation}\label{equ167}
+  \begin{aligned}
+    2^{-62}<4n-\lfloor 4n \rfloor <1-2^{-62}
+  \end{aligned}
+\end{equation}
+Calculate the two boundary cases of $4n$ that are closest to 1:
+\begin{equation}\label{equ168}
+  \begin{aligned}
+    \lfloor 4n \rfloor =0\Rightarrow 4n-0<1-2^{-62}\Rightarrow \lfloor 2^{64}\cdot n \rfloor \leqslant 2^{62}-2
+    \\
+    \lfloor 4n \rfloor =1\Rightarrow 4n-1>2^{-62}\Rightarrow \lfloor 2^{64}\cdot n \rfloor \geqslant 2^{62}+1
+  \end{aligned}
+\end{equation}
+Then there are:
+\begin{equation}\label{equ169}
+  \begin{aligned}
+    \lfloor 2^{64}\cdot n \rfloor \ne 2^{62} \, \&\& \, \lfloor 2^{64}\cdot n \rfloor +1\ne 2^{62}\\
+    \Rightarrow \lfloor 2^{64}\cdot n_r \rfloor \ne 2^{62}
+  \end{aligned}
+\end{equation}
+Therefore, the following condition can be used to quickly determine whether $n \ne 0.25$:
+\begin{equation}\label{equ170}
+  \begin{aligned}
+    double:n \ne 0.25\,\text{if}\,\,\lfloor 2^{64}\cdot n_r \rfloor \ne 2^{62}
+  \end{aligned}
+\end{equation}
+In summary, for double, the following condition can be used to quickly determine whether $n=0.25$:
+\begin{equation}\label{equ171}
+  \begin{aligned}
+    double:n=0.25\,\text{if}\,\,\lfloor 2^{64}\cdot n_r \rfloor =2^{62}
+    \\
+    double:n \ne 0.25\,\text{if}\,\,\lfloor 2^{64}\cdot n_r \rfloor \ne 2^{62}
+  \end{aligned}
+\end{equation}
+
+In the double range, introduce annother faster way to calculate $one$:
+\begin{equation}\label{equ172}
+  \begin{aligned}
+double:one=\lfloor \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 10+\left( n=0.25 \right) ?0:\left( 2^{-1}+\frac{6}{2^{64}} \right) \rfloor 
+  \end{aligned}
+\end{equation}
+The proof of equation \eqref{equ172} is as follows:\\
+when $n=0.25$, $\lfloor \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 10 \rfloor =\lfloor 10n \rfloor =2$;\\
+when $n \ne 0.25$, equation \eqref{equ172} can be equivalent to the following:
+\begin{equation}\label{equ173}
+  \begin{aligned}
+    double:one=\lfloor \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 10+2^{-1}+\frac{6}{2^{64}} \rfloor 
+  \end{aligned}
+\end{equation}
+According to the $10n - \lfloor 10n \rfloor$ range, $one$ is represented as:
+\begin{equation}\label{equ174}
+  \begin{aligned}
+    double:one=\left\{ \begin{array}{c}
+      \lfloor 10n \rfloor ,\text{if}\,\,10n-\lfloor 10n \rfloor <0.5\\
+      8,\text{if}\,\,10n-\lfloor 10n \rfloor =0.5\\
+      \lfloor 10n \rfloor +1,\text{if}\,\,10n-\lfloor 10n \rfloor >0.5\\
+    \end{array} \right. 
+    =\lfloor 20n + 1 \rfloor // 2
+  \end{aligned}
+\end{equation}
+Therefore,when $n \ne 0.25$, we need to prove that the following equation holds:
+\begin{equation}\label{equ175}
+  \begin{aligned}
+    \lfloor \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 10+2^{-1}+\frac{6}{2^{64}} \rfloor =\left\{ \begin{array}{c}
+      \lfloor 10n \rfloor ,\text{if}\,\,10n-\lfloor 10n \rfloor <0.5\\
+      8,\text{if}\,\,10n-\lfloor 10n \rfloor =0.5\\
+      \lfloor 10n \rfloor +1,\text{if}\,\,10n-\lfloor 10n \rfloor >0.5\\
+    \end{array} \right. 
+    =\lfloor 20n + 1 \rfloor // 2
+  \end{aligned}
+\end{equation}
+From the range of $n$, there is:
+\begin{equation}\label{equ176}
+  \begin{aligned}
+    \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\in \left( n_r-2^{-64},n_r \right] 
+  \end{aligned}
+\end{equation}
+Because the following conditions exist:
+\begin{equation}\label{equ177}
+  \begin{aligned}
+    c\cdot 2^q\cdot 10^{-k-1}&=m+n
+    \\
+    c\cdot 2^q\cdot r\cdot 10^{-k-1}&=m+n_r
+  \end{aligned}
+\end{equation}
+Therefore, the following relationship can be concluded:
+\begin{equation}\label{equ178}
+  \begin{aligned}
+    n_r-n&=\left( r-1 \right) \cdot c\cdot 2^q\cdot 10^{-k-1}\\
+    n_r&=\left( r-1 \right) \cdot \left( m+n \right) + n\\
+    \Rightarrow n \leqslant n_r&< 2^{-127}\cdot c + n\\
+                n \leqslant n_r&< 2^{-127}\cdot 2^{53} + n\\
+                n \leqslant n_r&< 2^{-74} + n
+  \end{aligned}
+\end{equation}
+From equation \eqref{equ176} and \eqref{equ178}, it can be concluded that:
+\begin{equation}\label{equ179}
+  \begin{aligned}
+    \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\in \left( n-2^{-64},n+2^{-74} \right) \\
+    \Rightarrow \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}} \cdot 10 \in \left( 10n-10\cdot 2^{-64},10n+10\cdot 2^{-74} \right) \\
+    \Rightarrow \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}} \cdot 20 \in \left( 20n-20\cdot 2^{-64},20n+20\cdot 2^{-74} \right) \\
+    \Rightarrow \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}} \cdot 20 \in \left( \lfloor 20n \rfloor + n_{20} -20\cdot 2^{-64},\lfloor 20n \rfloor + n_{20} +20\cdot 2^{-74} \right)
+  \end{aligned}
+\end{equation}
+% When $10n - \lfloor 10n \rfloor < 0.5$, there is:
+% \begin{equation}\label{equ181}
+%   \begin{aligned}
+%     \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 20 &< \lfloor 20n \rfloor +1 - 20\cdot 2^{-64} \\
+%     &< \lfloor 20n \rfloor +1 \\
+%     \Rightarrow \lfloor \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 10+2^{-1}+\frac{10}{2^{64}} \rfloor & =\lfloor 10n \rfloor 
+%   \end{aligned}
+% \end{equation}
+
+Discuss the range of values of $x$ when the following conditions are met.
+\begin{equation}\label{equ180}
+  \begin{aligned}
+    \lfloor \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 20+1+x \rfloor //2=\lfloor 20n+1 \rfloor //2=one
+  \end{aligned}
+\end{equation}
+Therefore, the following conclusions can be drawn:
+\begin{equation}\label{equ181}
+  \begin{aligned}
+    \lfloor 20n \rfloor +n_{20}-20\cdot 2^{-64}+1+x\geqslant \lfloor 20n+1 \rfloor &\Rightarrow x\geqslant 20\cdot 2^{-64}-n_{20}
+    \\
+    \lfloor 20n \rfloor +n_{20}+20\cdot 2^{-74}+1+x<\lfloor 20n+2 \rfloor &\Rightarrow x<1-20\cdot 2^{-74}-n_{20}
+  \end{aligned}
+\end{equation}
+Suppose $ x = 12 \cdot 2^{-64} $.
+Through the exhaustive method, all floating-point numbers that do not meet the following conditions can be obtained.
+\begin{equation}\label{equ182}
+  \begin{aligned}
+    x = 12 \cdot 2^{-64} \geqslant 20\cdot 2^{-64}-n_{20}
+  \end{aligned}
+\end{equation}
+All floating-point numbers that do not meet condition \eqref{equ182} are as follows (in hexadecimal) :
+\begin{equation}\label{equ183}
+  \begin{aligned}
+    0xd17c0747bd76fa1&,\\
+    0xd27c0747bd76fa1&,\\
+    0x4d73de005bd620df&,\\
+    0x4d83de005bd620df&,\\
+    0x4d93de005bd620df&,
+  \end{aligned}
+\end{equation}
+Through the exhaustive method, all floating-point numbers that do not meet the following conditions can be obtained.
+\begin{equation}\label{equ184}
+  \begin{aligned}
+    x = 12 \cdot 2^{-64} <1-20\cdot 2^{-74}-n_{20}
+  \end{aligned}
+\end{equation}
+All floating-point numbers that do not meet condition \eqref{equ184} are as follows (in hexadecimal) :
+\begin{equation}\label{equ185}
+  \begin{aligned}
+    0x612491daad0ba280&,\\
+    0x6159b651584e8b20&,\\
+    0x619011f2d73116f4&,\\
+    0x61c4166f8cfd5cb1&,\\
+    0x61d4166f8cfd5cb1&,
+  \end{aligned}
+\end{equation}
+There are:
+\begin{equation}\label{equ186}
+  \begin{aligned}
+    2(\frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 10+2^{-1}+\frac{6}{2^{64}})=
+    \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 20+1+x
+  \end{aligned}
+\end{equation}
+When the floating-point number is not within the above range \eqref{equ183} and \eqref{equ185}, the condition \eqref{equ181} is satisfied.
+We have tested all floating-point numbers within the above-mentioned range \eqref{equ183} and \eqref{equ185}, 
+and the algorithm implementation code has output the correct result, that is, it satisfies the SW principle.
+The test process file is test8.py.The correctness of the above 10 special values prove at \url{https://github.com/xjb714/f2dec\_bench}.
+
+In summary, equation \eqref{equ175} and equation \eqref{equ172} holds.
+Therefore, equation \eqref{equ172} can be used to quickly calculate $one$.
+
+% When $c=5789867926332032$ and $q=480$, $ n_{20} $ can reach its maximum value.
+% The maximum value of $ n_{20} $ is as follows:
+% \begin{equation}\label{equ183}
+%   \begin{aligned}
+%     \left( n_{20} \right) _{\max}&=\frac{\left( 5789867926332032\cdot 2^{336} \right) \%5^{144}}{5^{144}}\\
+%     &\approx 0.99999999999999999969904040240051 \\
+%     &\approx 1-2^{-61.52}
+%     \end{aligned}
+% \end{equation}
+% Therefore, there is:
+% \begin{equation}\label{equ184}
+%   \begin{aligned}
+%     x<\frac{5.53}{2^{64}} \approx 1-20\cdot 2^{-74}-\left( n_{20} \right) _{\max}
+%   \end{aligned}
+% \end{equation}
+% Therefore, when $ x \leqslant 5\cdot2^{-64} $, the condition $ x<1-20\cdot 2^{-74}-n_{20} $ is met.
+% Suppose $ x = 5\cdot2^{-64} $,
+
+% When $x$ meets the following conditions, equation \eqref{equ182} holds:
+% \begin{equation}\label{equ182}
+%   \begin{aligned}
+%     x\in \left( -\left( \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 20 - \lfloor 20n \rfloor \right) ,1-\left( \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 20 - \lfloor 20n \rfloor \right) \right] 
+%   \end{aligned}
+% \end{equation}
+% Therefore, the following conclusions can be drawn:
+% \begin{itemize}
+%   \item When $10n - \lfloor 10n \rfloor < 0.5$, there is:
+%   \begin{equation}\label{equ183}
+%     \begin{aligned}
+%       x\in \left( -\left( \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 20 - \lfloor 20n \rfloor \right) ,0.5-\left( \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 20 - \lfloor 20n \rfloor \right) \right] 
+%     \end{aligned}
+%   \end{equation}
+
+%   \item When $10n - \lfloor 10n \rfloor > 0.5$, there is:
+%   \begin{equation}\label{equ184}
+%     \begin{aligned}
+%       x\in \left( 0.5-\left( \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 20 - \lfloor 20n \rfloor \right) ,1-\left( \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 20 - \lfloor 20n \rfloor \right) \right] 
+%     \end{aligned}
+%   \end{equation}
+% \end{itemize}
+% Therefore, when the following conditions are met, equation \eqref{equ175} holds:
+
+% \begin{equation}\label{equ185}
+%   \begin{aligned}
+%     x=2^{-1}+\frac{10}{2^{64}}
+%   \end{aligned}
+% \end{equation}
+
+
+
+% Since $n_r=n$ when $n \ne 0.25$, there is:
+% \begin{equation}\label{equ178}
+%   \begin{aligned}
+%     \frac{\lfloor 2^{64}\cdot n_r \rfloor}{2^{64}}\cdot 10+2^{-1}+\frac{10}{2^{64}}\in \left( 10n+2^{-1},10n+2^{-1}+\frac{10}{2^{64}} \right] 
+%   \end{aligned}
+% \end{equation}
+
+
+\subsection{Irregular Number}
+Due to the limited and small number of irregular floating-point numbers, 
+there are a total of 2046 double floating-point numbers and 254 float floating-point numbers. 
+The correctness of the algorithm code in this paper can be proved by the exhaustive method. 
+Therefore, it is not introduced in this article. 
+For the specific implementation process, please refer to the source code.
+
+\begin{table}[H]
+  \caption{All algorithms in the benchmark test. \label{tab_algorithms}}
+  %\isPreprints{\centering}{% This command is only used for ``preprints''.
+    %\begin{adjustwidth}{-\extralength}{0cm}
+      \resizebox{\linewidth}{!}{
+  %} % If the paper is ``preprints'', please uncomment this parenthesis.
+  %\isPreprints{\begin{tabularx}{\textwidth}{CCCC}}{% This command is only used for ``preprints''.
+      \begin{tabularx} {\fulllength}{CCCC}
+        %{\textwidth}{cccc}
+  %} % If the paper is ``preprints'', please uncomment this parenthesis.
+        \toprule
+        \textbf{algorithm}	& \textbf{float}	& \textbf{double}     & \textbf{description}\\
+  \midrule
+  \multirow[m]{1}{*}{Schubfach}	& Schubfach32			& Schubfach64			& author:Raffaello Giulietti,\url{https://github.com/c4f7fcce9cb06515/Schubfach}.\\
+  \midrule
+  \multirow[m]{1}{*}{Schubfach\_xjb}    & Schubfach32\_xjb			& Schubfach64\_xjb			& It is improved by Schubfach and has the same output result.\\
+  \midrule
+  \multirow[m]{1}{*}{Ryu}    & Ryu32			& Ryu64			& author:Ulf Adams,\url{https://github.com/ulfjack/ryu}.\\
+  \midrule
+  \multirow[m]{1}{*}{Dragonbox}    & 	Dragonbox32		& Dragonbox64			& author:Junekey Jeon,\url{https://github.com/jk-jeon/Dragonbox}.\\
+  \midrule
+  \multirow[m]{1}{*}{fmt\cite{ref-fmt}}    & fmt32		& fmt64			& author:Victor Zverovich,\url{https://github.com/fmtlib/fmt} version:12.1.0\\
+  \midrule
+  \multirow[m]{1}{*}{yy\_double}    & 	-		& yy\_double			& author:Guo YaoYuan,\url{https://github.com/ibireme/c_numconv_benchmark/blob/master/vendor/yy_double/yy_double.c}.\\
+  \midrule
+  \multirow[m]{1}{*}{yy\_json\cite{ref-yyjson}}    & yy\_json32		& yy\_json64			& author:Guo YaoYuan,\url{https://github.com/ibireme/yyjson} version:0.12.0\\
+  \midrule
+  \multirow[m]{1}{*}{teju\_jagua\cite{ref-teju}}    & teju32			& teju64			& author:Cassio Neri,\url{https://github.com/cassioneri/teju_jagua}.\\
+  \midrule
+  \multirow[m]{1}{*}{xjb}    & xjb32			& xjb64			& this paper,\url{https://github.com/xjb714/xjb}.\\
+
+        \bottomrule
+      \end{tabularx}
+  %		\isPreprints{}{% This command is only used for ``preprints''.
+    %\end{adjustwidth}
+      }
+  %} % If the paper is ``preprints'', please uncomment this parenthesis.
+    \noindent{\footnotesize{* The blank Spaces in the table indicate no-code implementations.}}
+\end{table}
+
+
+\section{Benchmark result}
+In fact, this article only discusses the binary to decimal part and does not discuss the decimal to string part. 
+In the decimal to string section, the neon instruction set is adopted for the arm64 architecture, and sse2 is used for the x86-64 architecture to accelerate the conversion process.
+Please refer to the source code design.
+The link to the benchmark project is \url{https://github.com/xjb714/f2dec_bench}.
+In the performance test comparison, we compared the time spent by the following several different algorithms converting floating-point numbers to decimal results and string, as shown in Table \eqref{tab_algorithms}.
+Test process: Generate $10^7$ random numbers without 0, NaN, and Inf, measure the total time spent converting all floating-point numbers to decimal results, and obtain the average time for converting a single floating-point number to decimal and string.
+The compilation option for all compilers is "-O3 -march=native".
+We conducted benchmark tests on two processors, and the test results are shown in Table \eqref{table_7840h_to_dec}, \eqref{table_7840h_to_str}, \eqref{table_m1_to_dec}, \eqref{table_m1_to_str}.
+
+Special note: The algorithm of teju\_jagua only supports float/double to decimal, because its author did not implement the source code of decimal to string. 
+yy\_double only supports double. 
+Dragonbox\_comp and fmt\_comp represent the versions of the compressed constant lookup table. 
+Dragonbox\_full and fmt\_full represent uncompressed constant lookup table.
+%The algorithm proposed in this paper supports parallel computing and can be compiled into parallelized code by a compatible compiler. 
+%However, empirical evaluation indicates that, as of now, only the Clang compiler generates AVX-512 or AVX-2 instruction sets from this algorithm when targeting the x86-64 architecture.
+
+
+
+
+
+\begin{table}[t]
+  \centering
+  \caption{float/double to decimal benchmark results on AMD-R7 7840H and Ubuntu 24.04. The unit is nanosecond(ns).}
+  \label{table_7840h_to_dec}
+%\begin{adjustwidth}{-\extralength}{0cm}
+\resizebox{\linewidth}{!}{
+  \begin{tabular}{|c|c|c|c|c|c|c|c|}
+  \hline
+  \multicolumn{2}{|c|}{\multirow{2}{*}{algorithm}}  & \multicolumn{3}{c|}{float} & \multicolumn{3}{c|}{double}\\
+  \cline{3-8}
+  
+  \multicolumn{2}{|c|}{} & gcc 13.3 & icpx 2025.0.4& clang 18.1.3 & gcc 13.3 & icpx 2025.0.4& clang 18.1.3 \\
+  \hline
+  
+  \multicolumn{2}{|c|}{Schubfach} & 11.72 & 11.26 & 11.26       & 11.96 & 12.07 & 11.97  \\ 
+  \hline
+  \multicolumn{2}{|c|}{Schubfach\_xjb} & 7.50 & 5.38 & 5.45       & 8.70 & 6.43 & 7.48  \\ 
+  \hline
+  \multicolumn{2}{|c|}{Ryu} & 14.23 & 14.21 & 14.48       & 13.73 & 13.53 & 13.59  \\ 
+  \hline
+  \multicolumn{2}{|c|}{Dragonbox} &10.47  & 9.96  & 9.52       & 10.44 & 10.15 & 10.00  \\ 
+  \hline
+  \multicolumn{2}{|c|}{yy\_json} & 6.31 & 4.84 & 4.69       & 7.20 & 6.10 & 6.25  \\ 
+  \hline
+  \multicolumn{2}{|c|}{yy\_double} & - & - &  -      & 6.32 & 5.75 & 5.22  \\ 
+  \hline
+  \multicolumn{2}{|c|}{teju\_jagua} & 13.73 & 14.90 & 14.39       & 13.38 & 15.23 & 13.59  \\ 
+  \hline
+
+  %\multicolumn{2}{|c|}{xjb} & 7.84 & 2.88 & \text{4.19,1.88(AVX2),1.68(AVX512)}       & 6.60 & 4.76 & \text{3.74,3.13(AVX2),3.47(AVX512)}  \\ 
+  
+  \multicolumn{2}{|c|}{\multirow{3}{*}{xjb}} & \multirow{3}{*}{3.38} & \multirow{3}{*}{2.88} & 4.19  & \multirow{3}{*}{7.15} & \multirow{3}{*}{3.90} & 3.60  \\
+  %\cline{4-4} \cline{8-8}
+  \multicolumn{2}{|c|}{} &    &  & 1.88(AVX2) &  &  &   3.13(AVX2) \\
+   % \cline{4-4} \cline{8-8}
+   \multicolumn{2}{|c|}{} &    &  & 1.68(AVX512) &  &  &   3.47(AVX512) \\
+
+
+  \hline
+  \end{tabular}
+}
+%\end{adjustwidth}
+  %\label{table_MAP}
+  \end{table}
+
+  \begin{table}[t]
+    \centering
+    \caption{float/double to string benchmark results on AMD-R7 7840H and Ubuntu 24.04. The unit is nanosecond(ns).}
+    \label{table_7840h_to_str}
+  %\begin{adjustwidth}{-\extralength}{0cm}
+  \resizebox{\linewidth}{!}{
+    \begin{tabular}{|c|c|c|c|c|c|c|c|}
+    \hline
+    \multicolumn{2}{|c|}{\multirow{2}{*}{algorithm}}  & \multicolumn{3}{c|}{float} & \multicolumn{3}{c|}{double}\\
+    \cline{3-8}
+    
+    \multicolumn{2}{|c|}{} & gcc 13.3 & icpx 2025.0.4& clang 18.1.3 & gcc 13.3 & icpx 2025.0.4& clang 18.1.3 \\
+    \hline
+    
+    \multicolumn{2}{|c|}{Schubfach} & 20.71 & 19.67 & 20.32       & 25.78 & 24.55 & 24.76  \\ 
+    \hline
+    \multicolumn{2}{|c|}{Schubfach\_xjb} & 21.04 & 19.99 & 20.49       & 20.14 & 20.23 & 20.37  \\ 
+    \hline
+    \multicolumn{2}{|c|}{Ryu} & 22.57 & 20.58 & 20.62       & 26.36 & 24.71 & 24.95  \\ 
+    \hline
+    \multicolumn{2}{|c|}{Dragonbox\_comp} & 21.73  & 20.65 & 22.84       & 21.69 & 21.37 & 22.72  \\ 
+    \hline
+    \multicolumn{2}{|c|}{Dragonbox\_full} & 16.93 & 15.49 & 17.28       & 18.88 & 17.78 & 18.80  \\ 
+    \hline
+    \multicolumn{2}{|c|}{fmt\_comp} & 22.45 & 22.81 &  21.76      & 26.35 & 27.14 & 26.78  \\ 
+    \hline
+    \multicolumn{2}{|c|}{fmt\_full} & 23.05 & 23.31 &  22.21      & 25.67 & 27.28 & 26.13  \\ 
+    \hline
+    \multicolumn{2}{|c|}{yy\_json} & 21.71 & 21.09 &  21.08      & 18.13 & 18.03 & 19.16  \\ 
+    \hline
+    \multicolumn{2}{|c|}{yy\_double} & - & - &  -      & 17.54 & 17.52 & 17.85  \\ 
+    \hline
+    \multicolumn{2}{|c|}{xjb} & 9.04 & 9.02 & 8.78       & 12.15 & 9.12 & 15.78  \\ 
+    \hline
+    %\multicolumn{2}{|c|}{xjb} & 7.84 & 2.88 & \text{4.19,1.88(AVX2),1.68(AVX512)}       & 6.60 & 4.76 & \text{3.74,3.13(AVX2),3.47(AVX512)}  \\ 
+    
+    % \multicolumn{2}{|c|}{\multirow{3}{*}{xjb}} & \multirow{3}{*}{7.84} & \multirow{3}{*}{2.88} & 4.19  & \multirow{3}{*}{6.60} & \multirow{3}{*}{3.90} & 3.60  \\
+    % %\cline{4-4} \cline{8-8}
+    % \multicolumn{2}{|c|}{} &    &  & 1.88(AVX2) &  &  &   3.13(AVX2) \\
+    %  % \cline{4-4} \cline{8-8}
+    %  \multicolumn{2}{|c|}{} &    &  & 1.68(AVX512) &  &  &   3.47(AVX512) \\
+  
+  
+    \hline
+    \end{tabular}
+  }
+  %\end{adjustwidth}
+    %\label{table_MAP}
+    \end{table}
+
+
+
+  \begin{table}[t]
+    \centering
+    \caption{float/double to decimal benchmark results on Apple M1 and MacOS 26.1. The unit is nanosecond(ns).}
+    \label{table_m1_to_dec}
+  %\begin{adjustwidth}{-\extralength}{0cm}
+    \begin{tabular}{|c|c|c|c|}
+    \hline
+    \multicolumn{2}{|c|}{\multirow{2}{*}{algorithm}}  & float & double\\
+    \cline{3-4}
+    
+    \multicolumn{2}{|c|}{}  & apple clang 17.0.0 & apple clang 17.0.0\\
+    \hline
+    
+    \multicolumn{2}{|c|}{Schubfach} & 10.94        & 12.62  \\ 
+    \hline
+    \multicolumn{2}{|c|}{Schubfach\_xjb} & 5.92        & 6.58  \\ 
+    \hline
+    \multicolumn{2}{|c|}{Ryu} & 15.40        & 14.16   \\ 
+    \hline
+    \multicolumn{2}{|c|}{Dragonbox} & 11.94          & 12.03  \\ 
+    \hline
+    \multicolumn{2}{|c|}{yy\_json} &  4.18        & 4.72   \\ 
+    \hline
+    \multicolumn{2}{|c|}{yy\_double} &  -       & 4.74  \\ 
+    \hline
+    \multicolumn{2}{|c|}{teju\_jagua} & 19.27        & 18.66   \\ 
+    \hline
+    \multicolumn{2}{|c|}{xjb} & 3.24        & 3.53   \\ 
+    \hline
+    \end{tabular}
+  %\end{adjustwidth}
+    %\label{table_m1}
+    \end{table}
+
+    \begin{table}[t]
+      \centering
+      \caption{float/double to string benchmark results on Apple M1 and MacOS 26.1. The unit is nanosecond(ns).}
+      \label{table_m1_to_str}
+    %\begin{adjustwidth}{-\extralength}{0cm}
+      \begin{tabular}{|c|c|c|c|}
+      \hline
+      \multicolumn{2}{|c|}{\multirow{2}{*}{algorithm}}  & float & double\\
+      \cline{3-4}
+      
+      \multicolumn{2}{|c|}{}  & apple clang 17.0.0 & apple clang 17.0.0\\
+      \hline
+      
+      \multicolumn{2}{|c|}{Schubfach} & 23.26        & 27.51  \\ 
+      \hline
+      \multicolumn{2}{|c|}{Schubfach\_xjb} & 23.30        & 22.44  \\ 
+      \hline
+      \multicolumn{2}{|c|}{Ryu} & 25.27        & 29.15   \\ 
+      \hline
+      \multicolumn{2}{|c|}{Dragonbox\_comp} & 28.55          & 27.28  \\ 
+      \hline
+      \multicolumn{2}{|c|}{Dragonbox\_full} & 21.03          & 22.12  \\ 
+      \hline
+      \multicolumn{2}{|c|}{fmt\_comp} &  37.19       & 41.73  \\ 
+      \hline
+      \multicolumn{2}{|c|}{fmt\_full} &  36.36       & 41.77  \\ 
+      \hline
+      \multicolumn{2}{|c|}{yy\_json} &  15.50        & 15.58   \\ 
+      \hline
+      \multicolumn{2}{|c|}{yy\_double} & -        & 15.13  \\ 
+      \hline
+      \multicolumn{2}{|c|}{xjb} & 8.91        & 10.32   \\ 
+      \hline
+      \end{tabular}
+    %\end{adjustwidth}
+      %\label{table_m1}
+      \end{table}
+
+In the test comparison of float/double to decimal, the results produced by different algorithms may vary and may include the results without removing the trailing zeros in decimal. Therefore, this comparison is not very fair and the results are for reference only.
+Since the AMD-R7 7840H supports AVX2 and AVX512, the AVX2 and AVX512 in the test results are the test results optimized by the clang compiler.
+From the benchmark results, it can be seen that the performance of the algorithm in this paper is better than other algorithms in most cases.
+For the double to string algorithm in this article, due to the incorrect optimization of gcc, such as too many branch statements, 
+the performance is lower than that of the icpx compiler. 
+The compilation result of the clang compiler is almost the same as that of the icpx compiler, but the result does not seem to meet expectations. 
+The reason is under investigation.
+
+\section{Conclusions and future work}
+This paper proposes a new floating-point number to string conversion algorithm.
+The algorithm improves the calculation process of Schubfach\cite{ref-Schubfach} algorithms, reduces the number of multiplication operations, and optimizes some calculation steps.
+The algorithm has been implemented in C/C++ language and passed exhaustive tests.
+The benchmark results show that the performance of the algorithm is better than most existing algorithms in most cases.
+Future work includes further optimization of the algorithm to improve performance, especially for parallel computing on x86-64 and arm64 architecture,and compatibility with the msvc compiler.
+
+\acknowledgments{This study was funded by the Sichuan Science and Technology Program (Grant No. 2024ZDZX0001) and the Technology Development Program (JCKY2022110C119).}
+
+\iffalse
+
+\section{How to Use this Template}
+
+The template details the sections that can be used in a manuscript. Note that the order and names of article sections may differ from the requirements of the journal (e.g., the positioning of the Materials and Methods section). Please check the instructions on the authors' page of the journal to verify the correct order and names. For any questions, please contact the editorial office of the journal or support@mdpi.com. For LaTeX-related questions please contact latex@mdpi.com.%\endnote{This is an endnote.} % To use endnotes, please un-comment \printendnotes below (before References). Only journal Laws uses \footnote.
+
+% The order of the section titles is different for some journals. Please refer to the "Instructions for Authors” on the journal homepage.
+
+\section{Introduction}
+
+The introduction should briefly place the study in a broad context and highlight why it is important. It should define the purpose of the work and its significance. The current state of the research field should be reviewed carefully and key publications cited. Please highlight controversial and diverging hypotheses when necessary. Finally, briefly mention the main aim of the work and highlight the principal conclusions. As far as possible, please keep the introduction comprehensible to scientists outside your particular field of research. Citing a journal paper  \cite{ref-journal}.  Now citing a book reference  \cite{ref-book1,ref-book2} or other reference types  \cite{ref-unpublish,ref-url}. Please use the command  \cite{ref-proceeding,ref-thesis} for the following MDPI journals, which use author--date citation: Administrative Sciences, Arts, Behavioral Sciences, Businesses, Econometrics, Economies, Education Sciences, European Journal of Investigation in Health, Psychology and Education, Games, Genealogy, Histories, Humanities, Humans, IJFS, Journal of Intelligence, Journalism and Media, JRFM, Languages, Laws, Literature, Psychology International, Publications, Religions, Risks, Social Sciences, Tourism and Hospitality, Youth. 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Materials and Methods}
+
+Materials and Methods should be described with sufficient details to allow others to replicate and build on published results. Please note that publication of your manuscript implicates that you must make all materials, data, computer code, and protocols associated with the publication available to readers. Please disclose at the submission stage any restrictions on the availability of materials or information. New methods and protocols should be described in detail while well-established methods can be briefly described and appropriately cited.
+
+Research manuscripts reporting large datasets that are deposited in a publicly avail-able database should specify where the data have been deposited and provide the relevant accession numbers. If the accession numbers have not yet been obtained at the time of submission, please state that they will be provided during review. They must be provided prior to publication.
+
+Interventionary studies involving animals or humans, and other studies require ethical approval must list the authority that provided approval and the corresponding ethical approval code.
+
+In this section, where applicable, authors are required to disclose details of how gen-erative artificial intelligence (GenAI) has been used in this paper (e.g., to generate text, data, or graphics, or to assist in study design, data collection, analysis, or interpretation). The use of GenAI for superficial text editing (e.g., grammar, spelling, punctuation, and formatting) does not need to be declared.
+
+\begin{quote}
+This is an example of a quote.
+\end{quote}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Results}
+
+This section may be divided by subheadings. It should provide a concise and precise description of the experimental results, their interpretation as well as the experimental conclusions that can be drawn.
+\subsection{Subsection}
+\subsubsection{Subsubsection}
+
+Bulleted lists look like this:
+\begin{itemize}
+\item	First bullet;
+\item	Second bullet;
+\item	Third bullet.
+\end{itemize}
+
+Numbered lists can be added as follows:
+\begin{enumerate}
+\item	First item; 
+\item	Second item;
+\item	Third item.
+\end{enumerate}
+
+The text continues here.
+
+\subsection{Figures, Tables and Schemes}
+
+All figures and tables should be cited in the main text as Figure~\ref{fig1}, Table~\ref{tab1}, etc.
+
+\begin{figure}[H]
+%\isPreprints{\centering}{} % Only used for preprints
+\includegraphics[width=4.0 cm]{Definitions/logo-mdpi}
+\caption{This is a figure. Schemes follow the same formatting.\label{fig1}}
+\end{figure}   
+\unskip
+
+\begin{table}[H] 
+%\small % Change table font size
+\caption{This is a table caption. Tables should be placed in the main text near to the first time they are~cited.\label{tab1}}
+%\isPreprints{\centering}{} % Only used for preprints
+\begin{tabularx}{\textwidth}{CCC}
+\toprule
+\textbf{Title 1}	& \textbf{Title 2}	& \textbf{Title 3}\\
+\midrule
+Entry 1		& Data			& Data\\
+Entry 2		& Data			& Data \textsuperscript{1}\\
+\bottomrule
+\end{tabularx}
+
+\noindent{\footnotesize{\textsuperscript{1} Tables may have a footer.}}
+\end{table}
+
+The text continues here (Figure~\ref{fig2} and Table~\ref{tab2}).
+
+% Example of a figure that spans the whole page width and with subfigures. The same concept works for tables, too.
+\begin{figure}[H]
+%\isPreprints{}{% This command is only used for ``preprints''.
+\begin{adjustwidth}{-\extralength}{0cm}
+\centering
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+\subfloat[\centering]{\includegraphics[width=7.0cm]{Definitions/logo-mdpi}}
+%\hfill
+\subfloat[\centering]{\includegraphics[width=7.0cm]{Definitions/logo-mdpi}}\\
+\subfloat[\centering]{\includegraphics[width=7.0cm]{Definitions/logo-mdpi}}
+%\hfill
+\subfloat[\centering]{\includegraphics[width=7.0cm]{Definitions/logo-mdpi}}
+%\isPreprints{}{% This command is only used for ``preprints''.
+\end{adjustwidth}
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+\caption{This is a wide figure. Schemes follow the same formatting. If there are multiple panels, they should be listed as: (\textbf{a}) Description of what is contained in the first panel. (\textbf{b}) Description of what is contained in the second panel. (\textbf{c}) Description of what is contained in the third panel. (\textbf{d}) Description of what is contained in the fourth panel. Figures should be placed in the main text near to the first time they are cited. A caption on a single line should be centered.\label{fig2}}
+\end{figure} 
+
+\begin{table}[H]
+\caption{This is a wide table.\label{tab2}}
+%\isPreprints{\centering}{% This command is only used for ``preprints''.
+	\begin{adjustwidth}{-\extralength}{0cm}
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+%\isPreprints{\begin{tabularx}{\textwidth}{CCCC}}{% This command is only used for ``preprints''.
+		\begin{tabularx}{\fulllength}{CCCC}
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+			\toprule
+			\textbf{Title 1}	& \textbf{Title 2}	& \textbf{Title 3}     & \textbf{Title 4}\\
+			\midrule
+\multirow[m]{3}{*}{Entry 1 *}	& Data			& Data			& Data\\
+			  	                   & Data			& Data			& Data\\
+			             	      & Data			& Data			& Data\\
+                   \midrule
+\multirow[m]{3}{*}{Entry 2}    & Data			& Data			& Data\\
+			  	                  & Data			& Data			& Data\\
+			             	     & Data			& Data			& Data\\
+			\bottomrule
+		\end{tabularx}
+%		\isPreprints{}{% This command is only used for ``preprints''.
+	\end{adjustwidth}
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+	\noindent{\footnotesize{* Tables may have a footer.}}
+\end{table}
+
+%\begin{listing}[H]
+%\caption{Title of the listing}
+%\rule{\columnwidth}{1pt}
+%\raggedright Text of the listing. In font size footnotesize, small, or normalsize. Preferred format: left aligned and single spaced. Preferred border format: top border line and bottom border line.
+%\rule{\columnwidth}{1pt}
+%\end{listing}
+
+Text.
+
+Text.
+
+\subsection{Formatting of Mathematical Components}
+
+This is the example 1 of equation:
+\begin{linenomath}
+\begin{equation}
+a = 1,
+\end{equation}
+\end{linenomath}
+the text following an equation need not be a new paragraph. Please punctuate equations as regular text.
+%% If the documentclass option "submit" is chosen, please insert a blank line before and after any math environment (equation and eqnarray environments). This ensures correct linenumbering. The blank line should be removed when the documentclass option is changed to "accept" because the text following an equation should not be a new paragraph.
+
+This is the example 2 of equation:
+%\isPreprints{}{% This command is only used for ``preprints''.
+\begin{adjustwidth}{-\extralength}{0cm}
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+\begin{equation}
+a = b + c + d + e + f + g + h + i + j + k + l + m + n + o + p + q + r + s + t + u + v + w + x + y + z
+\end{equation}
+%\isPreprints{}{% This command is only used for ``preprints''.
+\end{adjustwidth}
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+
+%% Example of a page in landscape format (with table and table footnote).
+%\startlandscape
+%\begin{table}[H] %% Table in wide page
+%%\isPreprints{\centering}{} % This command is only used for ``preprints''.
+%\caption{This is a very wide table.\label{tab3}}
+%	\begin{tabularx}{\textwidth}{CCCC}
+%		\toprule
+%		\textbf{Title 1}	& \textbf{Title 2}	& \textbf{Title 3}	& \textbf{Title 4}\\
+%		\midrule
+%		Entry 1		& Data			& Data			& This cell has some longer content that runs over two lines.\\
+%		Entry 2		& Data			& Data			& Data\textsuperscript{1}\\
+%		\bottomrule
+%	\end{tabularx}
+%%\isPreprints{}{% This command is only used for ``preprints''.
+%	\begin{adjustwidth}{+\extralength}{0cm}
+%%} % If the paper is ``preprints'', please uncomment this parenthesis.
+%		\noindent\footnotesize{\textsuperscript{1} This is a table footnote.}
+%%\isPreprints{}{% This command is only used for ``preprints''.
+%	\end{adjustwidth}
+%%} % If the paper is ``preprints'', please uncomment this parenthesis.
+%\end{table}
+%\finishlandscape
+
+Please punctuate equations as regular text. Theorem-type environments (including propositions, lemmas, corollaries etc.) can be formatted as follows:
+%% Example of a theorem:
+\begin{Theorem}
+Example text of a theorem.
+\end{Theorem}
+
+The text continues here. Proofs must be formatted as follows:
+
+%% Example of a proof:
+\begin{proof}[Proof of Theorem 1]
+Text of the proof. Note that the phrase ``of Theorem 1'' is optional if it is clear which theorem is being referred to.
+\end{proof}
+The text continues here.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Discussion}
+
+Authors should discuss the results and how they can be interpreted from the perspective of previous studies and of the working hypotheses. The findings and their implications should be discussed in the broadest context possible. Future research directions may also be highlighted.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Conclusions}
+
+This section is not mandatory, but can be added to the manuscript if the discussion is unusually long or complex.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{Patents}
+
+This section is not mandatory, but may be added if there are patents resulting from the work reported in this manuscript.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\vspace{6pt} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% optional
+%\supplementary{The following supporting information can be downloaded at:  \linksupplementary{s1}, Figure S1: title; Table S1: title; Video S1: title.}
+
+% Only for journal Methods and Protocols:
+% If you wish to submit a video article, please do so with any other supplementary material.
+% \supplementary{The following supporting information can be downloaded at: \linksupplementary{s1}, Figure S1: title; Table S1: title; Video S1: title. A supporting video article is available at doi: link.}
+
+% Only used for preprtints:
+% \supplementary{The following supporting information can be downloaded at the website of this paper posted on \href{https://www.preprints.org/}{Preprints.org}.}
+
+% Only for journal Hardware:
+% If you wish to submit a video article, please do so with any other supplementary material.
+% \supplementary{The following supporting information can be downloaded at: \linksupplementary{s1}, Figure S1: title; Table S1: title; Video S1: title.\vspace{6pt}\\
+%\begin{tabularx}{\textwidth}{lll}
+%\toprule
+%\textbf{Name} & \textbf{Type} & \textbf{Description} \\
+%\midrule
+%S1 & Python script (.py) & Script of python source code used in XX \\
+%S2 & Text (.txt) & Script of modelling code used to make Figure X \\
+%S3 & Text (.txt) & Raw data from experiment X \\
+%S4 & Video (.mp4) & Video demonstrating the hardware in use \\
+%... & ... & ... \\
+%\bottomrule
+%\end{tabularx}
+%}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\authorcontributions{For research articles with several authors, a short paragraph specifying their individual contributions must be provided. The following statements should be used ``Conceptualization, X.X. and Y.Y.; methodology, X.X.; software, X.X.; validation, X.X., Y.Y. and Z.Z.; formal analysis, X.X.; investigation, X.X.; resources, X.X.; data curation, X.X.; writing---original draft preparation, X.X.; writing---review and editing, X.X.; visualization, X.X.; supervision, X.X.; project administration, X.X.; funding acquisition, Y.Y. All authors have read and agreed to the published version of the manuscript.'', please turn to the  \href{http://img.mdpi.org/data/contributor-role-instruction.pdf}{CRediT taxonomy} for the term explanation. Authorship must be limited to those who have contributed substantially to the work~reported.}
+
+\funding{Please add: ``This research received no external funding'' or ``This research was funded by NAME OF FUNDER grant number XXX.'' and  and ``The APC was funded by XXX''. Check carefully that the details given are accurate and use the standard spelling of funding agency names at \url{https://search.crossref.org/funding}, any errors may affect your future funding.}
+
+\institutionalreview{In this section, you should add the Institutional Review Board Statement and approval number, if relevant to your study. You might choose to exclude this statement if the study did not require ethical approval. Please note that the Editorial Office might ask you for further information. Please add “The study was conducted in accordance with the Declaration of Helsinki, and approved by the Institutional Review Board (or Ethics Committee) of NAME OF INSTITUTE (protocol code XXX and date of approval).” for studies involving humans. OR “The animal study protocol was approved by the Institutional Review Board (or Ethics Committee) of NAME OF INSTITUTE (protocol code XXX and date of approval).” for studies involving animals. OR “Ethical review and approval were waived for this study due to REASON (please provide a detailed justification).” OR “Not applicable” for studies not involving humans or animals.}
+
+\informedconsent{Any research article describing a study involving humans should contain this statement. Please add ``Informed consent was obtained from all subjects involved in the study.'' OR ``Patient consent was waived due to REASON (please provide a detailed justification).'' OR ``Not applicable'' for studies not involving humans. You might also choose to exclude this statement if the study did not involve humans.
+
+Written informed consent for publication must be obtained from participating patients who can be identified (including by the patients themselves). Please state ``Written informed consent has been obtained from the patient(s) to publish this paper'' if applicable.}
+
+\dataavailability{We encourage all authors of articles published in MDPI journals to share their research data. In this section, please provide details regarding where data supporting reported results can be found, including links to publicly archived datasets analyzed or generated during the study. Where no new data were created, or where data is unavailable due to privacy or ethical restrictions, a statement is still required. Suggested Data Availability Statements are available in section ``MDPI Research Data Policies'' at \url{https://www.mdpi.com/ethics}.} 
+
+% Only for journal Drones
+%\durcstatement{Current research is limited to the [please insert a specific academic field, e.g., XXX], which is beneficial [share benefits and/or primary use] and does not pose a threat to public health or national security. Authors acknowledge the dual-use potential of the research involving xxx and confirm that all necessary precautions have been taken to prevent potential misuse. As an ethical responsibility, authors strictly adhere to relevant national and international laws about DURC. Authors advocate for responsible deployment, ethical considerations, regulatory compliance, and transparent reporting to mitigate misuse risks and foster beneficial outcomes.}
+
+% Only for journal Nursing Reports
+%\publicinvolvement{Please describe how the public (patients, consumers, carers) were involved in the research. Consider reporting against the GRIPP2 (Guidance for Reporting Involvement of Patients and the Public) checklist. If the public were not involved in any aspect of the research add: ``No public involvement in any aspect of this research''.}
+%
+%% Only for journal Nursing Reports
+%\guidelinesstandards{Please add a statement indicating which reporting guideline was used when drafting the report. For example, ``This manuscript was drafted against the XXX (the full name of reporting guidelines and citation) for XXX (type of research) research''. A complete list of reporting guidelines can be accessed via the equator network: \url{https://www.equator-network.org/}.}
+%
+%% Only for journal Nursing Reports
+%\useofartificialintelligence{Please describe in detail any and all uses of artificial intelligence (AI) or AI-assisted tools used in the preparation of the manuscript. This may include, but is not limited to, language translation, language editing and grammar, or generating text. Alternatively, please state that “AI or AI-assisted tools were not used in drafting any aspect of this manuscript”.}
+
+\acknowledgments{In this section you can acknowledge any support given which is not covered by the author contribution or funding sections. This may include administrative and technical support, or donations in kind (e.g., materials used for experiments). Where GenAI has been used for purposes such as generating text, data, or graphics, or for study design, data collection, analysis, or interpretation of data, please add “During the preparation of this manuscript/study, the author(s) used [tool name, version information] for the purposes of [description of use]. The authors have reviewed and edited the output and take full responsibility for the content of this publication.”}
+
+\conflictsofinterest{Declare conflicts of interest or state ``The authors declare no conflicts of interest.'' Authors must identify and declare any personal circumstances or interest that may be perceived as inappropriately influencing the representation or interpretation of reported research results. Any role of the funders in the design of the study; in the collection, analyses or interpretation of data; in the writing of the manuscript; or in the decision to publish the results must be declared in this section. If there is no role, please state ``The funders had no role in the design of the study; in the collection, analyses, or interpretation of data; in the writing of the manuscript; or in the decision to publish the results''.} 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Optional
+
+%% Only for journal Encyclopedia
+%\entrylink{The Link to this entry published on the encyclopedia platform.}
+
+\abbreviations{Abbreviations}{
+The following abbreviations are used in this manuscript:
+\\
+
+\noindent 
+\begin{tabular}{@{}ll}
+MDPI & Multidisciplinary Digital Publishing Institute\\
+DOAJ & Directory of open access journals\\
+TLA & Three letter acronym\\
+LD & Linear dichroism
+\end{tabular}
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Optional
+\appendixtitles{no} % Leave argument "no" if all appendix headings stay EMPTY (then no dot is printed after "Appendix A"). If the appendix sections contain a heading then change the argument to "yes".
+\appendixstart
+\appendix
+\section[\appendixname~\thesection]{}
+\subsection[\appendixname~\thesubsection]{}
+The appendix is an optional section that can contain details and data supplemental to the main text---for example, explanations of experimental details that would disrupt the flow of the main text but nonetheless remain crucial to understanding and reproducing the research shown; figures of replicates for experiments of which representative data are shown in the main text can be added here if brief, or as Supplementary Data. Mathematical proofs of results not central to the paper can be added as an appendix.
+
+\begin{table}[H] 
+\caption{This is a table caption.\label{tab5}}
+%\newcolumntype{C}{>{\centering\arraybackslash}X}
+\begin{tabularx}{\textwidth}{CCC}
+\toprule
+\textbf{Title 1}	& \textbf{Title 2}	& \textbf{Title 3}\\
+\midrule
+Entry 1		& Data			& Data\\
+Entry 2		& Data			& Data\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section[\appendixname~\thesection]{}
+All appendix sections must be cited in the main text. In the appendices, Figures, Tables, etc. should be labeled, starting with ``A''---e.g., Figure A1, Figure A2, etc.
+\fi
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\isPreprints{}{% This command is only used for ``preprints''.
+\begin{adjustwidth}{-\extralength}{0cm}
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+%\printendnotes[custom] % Un-comment to print a list of endnotes
+
+\reftitle{References}
+
+% Please provide the correct journal abbreviation (e.g. according to the “List of Title Word Abbreviations” http://www.issn.org/services/online-services/access-to-the-ltwa/).
+% Citations and References in Supplementary files are permitted provided that they also appear in the reference list here. 
+
+%=====================================
+% References, variant A: external bibliography
+%=====================================
+% \bibliography{your_external_BibTeX_file}
+
+%=====================================
+% References, variant B: internal bibliography
+%=====================================
+
+
+% ACS format
+\begin{thebibliography}{999}
+
+\bibitem{ref-sw}
+G. L. Steel Jr. and J. L. White. How to Print Floating-Point
+Numbers Accurately. \textit{In Proceedings of the ACM SIGPLAN
+1990 Conference on Programming Language Design and Implementation, PLDI 1990.} ACM, New York, NY, USA, 112-126.
+\url{https://doi.org/10.1145/93542.93559}
+
+\bibitem{ref-grisu}
+F. Loitsch. Printing Floating-Point Numbers Quickly and Accurately with Integers. \textit{In Proceedings of the ACM SIGPLAN
+2010 Conference on Programming Language Design and Implementation, PLDI 2010.} ACM, New York, NY, USA, 233-243.
+\url{https://doi.org/10.1145/1806596.1806623}
+
+\bibitem{ref-errol}
+M. Andrysco, R. Jhala, and S. Lerner. Printing Floating-Point
+Numbers: a Faster, Always Correct Method. \textit{In Proceedings of
+the 43rd Annual ACM SIGPLAN-SIGACT Symposium on Principles of Programming Languages, POPL 2016.} ACM, New
+York, NY, USA, 555-567. \url{https://doi.org/10.1145/2837614.2837654}
+
+\bibitem{ref-ryu2018}
+% Ulf Adams. Ry$\overline{\text{u}}$: Fast Float-to-String Conversion. In Proceed-
+% ings of the ACM SIGPLAN 2018 Conference on Programming
+% Language Design and Implementation, PLDI 2018. ACM, New
+% York, NY, USA, 270-282. \url{https://doi.org/10.1145/3296979.3192369}
+
+Ulf Adams. 2018. Ry$\overline{\text{u}}$: Fast Float-to-String Conversion. \textit{In Proceed-
+ings of 39th ACM SIGPLAN Conference on Programming Language
+Design and Implementation (PLDI’18)}. ACM, New York, NY, USA,
+13 pages. \url{https://doi.org/10.1145/3192366.3192369}
+
+\bibitem{ref-ryu2019}
+Ulf Adams. 2019. Ry$\overline{\text{u}}$ Revisited: Printf Floating Point Conversion. \textit{Proc. ACM Program. Lang.} 3, OOPSLA,
+Article 169 (October 2019), 23 pages. \url{https://doi.org/10.1145/3360595}
+
+\bibitem{ref-Schubfach}
+R. Giulietti. The Schubfach Way to Render Doubles.
+2020. \url{https://drive.google.com/file/d/1KLtG\_LaIbK9ETXI290zqCxvBW94dj058/view} (Sep. 2020)
+
+\bibitem{ref-grisuExact}
+J. Jeon. Grisu-Exact: A Fast and Exact Floating-Point Printing Algorithm. 2020. \url{https://github.com/jk-jeon/Grisu-Exact/blob/master/other\_files/Grisu-Exact.pdf.} (Sep. 2020)
+
+
+\bibitem{ref-Dragonbox}
+Junekey Jeon. 2024. Dragonbox: A New Floating-Point Binary-to-Decimal Conversion Algorithm. \url{https://github.com/jk-jeon/Dragonbox}
+
+\bibitem{ref-yydouble}
+Guo YaoYuan. \url{https://github.com/ibireme/c\_numconv\_benchmark/blob/master/vendor/yy\_double/yy\_double.c} (Nov. 2024)
+
+\bibitem{ref-fmt}
+Victor Zverovich. \url{https://github.com/fmtlib/fmt} (Oct. 2025)
+
+\bibitem{ref-yyjson}
+Guo YaoYuan. \url{https://github.com/ibireme/yyjson} (Aug. 2025)
+
+\bibitem{ref-teju}
+Cassio Neri. \url{https://github.com/cassioneri/teju\_jagua} (Nov. 2025)
+
+
+
+
+
+% % Reference 1
+% \bibitem{ref-journal}
+% Author~1, T. The title of the cited article. {\em Journal Abbreviation} {\bf 2008}, {\em 10}, 142--149.
+% % Reference 2
+% \bibitem{ref-book1}
+% Author~2, L. The title of the cited contribution. In {\em The Book Title}; Editor 1, F., Editor 2, A., Eds.; Publishing House: City, Country, 2007; pp. 32--58.
+% % Reference 3
+% \bibitem{ref-book2}
+% Author 1, A.; Author 2, B. \textit{Book Title}, 3rd ed.; Publisher: Publisher Location, Country, 2008; pp. 154--196.
+% % Reference 4
+% \bibitem{ref-unpublish}
+% Author 1, A.B.; Author 2, C. Title of Unpublished Work. \textit{Abbreviated Journal Name} year, \textit{phrase indicating stage of publication (submitted; accepted; in press)}.
+% % Reference 5
+% \bibitem{ref-url}
+% Title of Site. Available online: URL (accessed on Day Month Year).
+% % Reference 6
+% \bibitem{ref-proceeding}
+% Author 1, A.B.; Author 2, C.D.; Author 3, E.F. Title of presentation. In Proceedings of the Name of the Conference, Location of Conference, Country, Date of Conference (Day Month Year); Abstract Number (optional), Pagination (optional).
+% % Reference 7
+% \bibitem{ref-thesis}
+% Author 1, A.B. Title of Thesis. Level of Thesis, Degree-Granting University, Location of University, Date of Completion.
+
+\end{thebibliography}
+
+% If authors have biography, please use the format below
+%\section*{Short Biography of Authors}
+%\bio
+%{\raisebox{-0.35cm}{\includegraphics[width=3.5cm,height=5.3cm,clip,keepaspectratio]{Definitions/author1.pdf}}}
+%{\textbf{Firstname Lastname} Biography of first author}
+%
+%\bio
+%{\raisebox{-0.35cm}{\includegraphics[width=3.5cm,height=5.3cm,clip,keepaspectratio]{Definitions/author2.jpg}}}
+%{\textbf{Firstname Lastname} Biography of second author}
+
+% For the MDPI journals use author-date citation, please follow the formatting guidelines on http://www.mdpi.com/authors/references
+% To cite two works by the same author: \citeauthor{ref-journal-1a} (\citeyear{ref-journal-1a}, \citeyear{ref-journal-1b}). This produces: Whittaker (1967, 1975)
+% To cite two works by the same author with specific pages: \citeauthor{ref-journal-3a} (\citeyear{ref-journal-3a}, p. 328; \citeyear{ref-journal-3b}, p.475). This produces: Wong (1999, p. 328; 2000, p. 475)
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% for journal Sci
+%\reviewreports{\\
+%Reviewer 1 comments and authors’ response\\
+%Reviewer 2 comments and authors’ response\\
+%Reviewer 3 comments and authors’ response
+%}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\PublishersNote{}
+%\isPreprints{}{% This command is only used for ``preprints''.
+\end{adjustwidth}
+%} % If the paper is ``preprints'', please uncomment this parenthesis.
+\end{document}
+

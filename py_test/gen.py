@@ -84,6 +84,7 @@ while 1:
         break
     i=i+1
 #print("ans = ",ans)
+error_max = 0
 for i in range(-292-1,325,1):
     e10 = abs(i)
     e2 = abs(math.floor(i*log2_10) - BIT)
@@ -97,9 +98,24 @@ for i in range(-292-1,325,1):
     else:
         num = 10**e10*2**e2
     result = num + round_up
+    #calc error = (result * 2**(math.floor(i*log2_10) - BIT) - 10**i) / 10**i
+    #calc error = (result * 2**A - 10**B) / 10**B
+    A = math.floor(i*log2_10) - BIT
+    B = i
+    if( A >= 0 and B >= 0):
+        error = (result * 2**A - 10**B) / 10**B
+    elif( A < 0 and B >= 0):
+        error = (result * - 10**B * 2**(-A)) / 10**B * 2**(-A)
+    else:# A<0 and B<0
+        error = (result * 10**(-B) -  2**(-A)) / 2**(-A)
     print(hex(result >> 64),end=",")
-    print(hex(result & ((2**64) - 1)),", //",i,end='\n')
-
+    print(hex(result & ((2**64) - 1)),", //",i,end='  ')
+    if round_up == 0:
+        print("error = 0")
+    else:
+        error_max = max(error_max, error)
+        print("error = ",error," = +2 **",math.log2(error))
+print("error_max = ",error_max," = +2 **",math.log2(error_max))
 
 print("\ngenerate xjb64_comp lut:")
 def get_pow10(i):
