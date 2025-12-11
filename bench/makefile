@@ -15,7 +15,7 @@ c:
 	./main_clang
 
 
-# on x86-64 
+# on x86-64
 all_result_x64:
 	echo "benchmarking float/double to string on x86-64, may cost a few minutes..."
 	$(MAKE) g BENCH_DOUBLE=0 BENCH_F_TO_STR=1

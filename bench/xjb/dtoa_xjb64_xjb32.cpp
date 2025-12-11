@@ -480,7 +480,36 @@ static inline u32 u32_lz_bits(u32 v) {
         return lz - 32;
     #endif
 }
+// template <u64 bit_width>
+// constexpr u64 rotr(u64 n, unsigned int r) noexcept {
+//     r &= (bit_width - 1);
+//     return (n >> r) | (n << ((bit_width - r) & (bit_width - 1)));
+// }
+// static inline u64 granlund_montgomery_branchless(u64 n) {
+//         u64 s = 0;
 
+//         u64 r = rotr<64>((n * UINT64_C(28999941890838049)), 8);
+//         u64 b = r < UINT64_C(184467440738);
+//         s = s * 2 + b;
+//         //n = b ? r : n;
+
+//         r = rotr<64>((n * UINT64_C(182622766329724561)), 4);
+//         b = r < UINT64_C(1844674407370956);
+//         s = s * 2 + b;
+//         //n = b ? r : n;
+
+//         r = rotr<64>((n * UINT64_C(10330176681277348905)), 2);
+//         b = r < UINT64_C(184467440737095517);
+//         s = s * 2 + b;
+//         //n = b ? r : n;
+
+//         r = rotr<64>((n * UINT64_C(14757395258967641293)), 1);
+//         b = r < UINT64_C(1844674407370955162);
+//         s = s * 2 + b;
+//         //n = b ? r : n;
+
+//         return s;
+//     }
 #if HAS_NEON_OR_SSE2
     #if HAS_NEON
     static inline u64 endcode_16digit_fast(const u64 x,byte16_reg* x_ASCII)
@@ -508,26 +537,26 @@ static inline u32 u32_lz_bits(u32 v) {
 
             uint64x2_t merge8 = vcombine_u64(vld1_u64(&aabbccdd), vld1_u64(&eeffgghh));
             uint64x2_t merge_aabb_eeff = vcombine_u64(vld1_u64(&aabb), vld1_u64(&eeff));
-            uint64x2_t merge4 = vorrq_u8(vshlq_n_u64(vmlsq_n_u32(merge8,merge_aabb_eeff,10000),32),merge_aabb_eeff);
+            uint64x2_t merge4 = vorrq_u64(vshlq_n_u64(vmlsq_n_u32(merge8,merge_aabb_eeff,10000),32),merge_aabb_eeff);
             // uint64x2_t merge4_t = vcombine_u64(vld1_u64(&aabb), vld1_u64(&eeff));
             // uint32x4_t merge4_t1 = vsetq_lane_u32(ccdd,  vreinterpretq_u32_u64(merge4_t), 1);
             // uint32x4_t merge4 = vsetq_lane_u32(gghh,  merge4_t1, 3);
 
             //uint64x2_t merge4 = vcombine_u64(vld1_u64(&aabb_ccdd_merge), vld1_u64(&eeff_gghh_merge));
-
-
-
+            //
             uint64x2_t merge2 = vmlsq_n_u32(vshlq_n_u32(merge4,16), vshrq_n_u32(vmulq_n_u32(merge4,10486),20) , ((100<<16) - 1) );
             uint64x2_t merge = vmlsq_n_u16(vshlq_n_u16(merge2,8), vshrq_n_u16(vmulq_n_u16(merge2,103),10) , ((10<<8) - 1) );
             static const u64 ZERO_2[2] = {ZERO,ZERO};
-            uint64x2_t ASCII_16 = vorrq_u8(merge,vld1q_u64((uint64_t*)ZERO_2));
+            uint64x2_t ASCII_16 = vorrq_u64(merge,vld1q_u64((uint64_t*)ZERO_2));
             *x_ASCII = ASCII_16;
+
+
             u64 aabbccdd_BCD = vgetq_lane_u64(merge, 0);
             u64 eeffgghh_BCD = vgetq_lane_u64(merge, 1);
             u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
             u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
             //u64 tz = (eeffgghh_BCD == 0) ? 64 + aabbccdd_tz : eeffgghh_tz;//when eeffgghh_BCD is zero, aabbccdd_tz is the not-zero value ; because of v > 5e-324 ; x!=0
-            u64 tz = eeffgghh_BCD ? eeffgghh_tz : 64 + aabbccdd_tz ;
+            u64 tz = eeffgghh ? eeffgghh_tz : 64 + aabbccdd_tz ;
             tz = tz / 8;
             return tz;
         }
@@ -2151,14 +2180,14 @@ char* xjb64(double v,char* buf)
         int get_e10 = -1 - k;
         int h = q + ((get_e10 * 217707) >> 16);
         u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
-        u128 cb = c << (h + 1 + offset);
+        u128 cb = c << (h + (1 + offset));
         u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
         u64 dot_one = hi128 >> offset;   // == floor(2**64*n)
         u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
         u64 up = (half_ulp  > ~0 - dot_one);
         u64 down = ( (half_ulp >> (irregular )) > dot_one );
         m = (u64)(hi128 >> (offset + 64)) + up;
-        u64 up_down = up + down;
+        u64 up_down = up + down;// 0 or 1, equal to up|down.  up+down==2 is not exist.
         D17 = (m >= (u64)1e15);
         byte16_reg ASCII_16;
         u64 mr = D17 ? m : m * 10;//remove left zero
@@ -2168,10 +2197,12 @@ char* xjb64(double v,char* buf)
 
 #if HAS_SSE2 // when use sse2,the return value equal to (tail zero number + 16);
         //dec_sig_len_ofs = ( ( (2+16+16)*256 + 2+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
-        u64 dec_sig_len_ofs3 = ( ( (15+16)*256 + 15+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
+        //u64 dec_sig_len_ofs3 = ( ( (15+16)*256 + 15+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
+        u64 dec_sig_len_ofs3 = ( ( (15+16)*256 + 15+16 - tz*256 + D17 ) >> (up_down << 3)) & 0xff;
 #else
         //dec_sig_len_ofs = ( ( (2+16)*256 + 2+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
-        u64 dec_sig_len_ofs3 = ( ( 15*256 + 15 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
+        //u64 dec_sig_len_ofs3 = ( ( 15*256 + 15 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
+        u64 dec_sig_len_ofs3 = ( ( 15*256 + 15 - tz*256 + D17 ) >> (up_down << 3)) & 0xff;
 #endif
 
 #else
@@ -2182,6 +2213,9 @@ char* xjb64(double v,char* buf)
 #else
         //dec_sig_len_ofs = up_down  ?  2+16 - tz : 2+16 + D17;
         u64 dec_sig_len_ofs3 = up_down  ?  15 - tz : 15 + D17;
+        // u64 dec_sig_len_ofs3 = up  ?  15 - tz : 15 + D17;
+        // dec_sig_len_ofs3 = down  ?  15 - tz : dec_sig_len_ofs3;
+
 #endif
 
 #endif
@@ -2200,9 +2234,12 @@ char* xjb64(double v,char* buf)
             if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
                 one = (((dot_one >> 4) * 5) >> 59) + 1 + (u64)('0' + '0' * 256);
 #else // for apple M1 , better performance
-        u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) + (u64)('0' + '0' * 256);
-        // u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
-        // u64 one = ((dot_one * (u128)10 + offset_num ) >> 64) + (u64)('0' + '0' * 256);
+        //u64 one = ((dot_one * (u128)10) >> 64)  + (( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? 0xfffffffffffffff9ull : 0x7ffffffffffffff9ull) ) ? (u64)(1 + '0' + '0' * 256) : (u64)('0' + '0' * 256)) ;
+        // u64 one = ((dot_one * (u128)10) >> 64)  + ((
+        //     (u64)(dot_one * (u128)10) >
+        //     ( ((u64)(dot_one == (1ull << 62)) << 63) | 0x7ffffffffffffff9ull) )  ? (u64)(1 + '0' + '0' * 256) : (u64)('0' + '0' * 256) ) ;
+        //u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? 0xfffffffffffffff9ull : 0x7ffffffffffffff9ull) ) ) ;
+        u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (( (u64)(dot_one * (u128)10) > ( ((u64)(dot_one == (1ull << 62)) << 63) + 0x7ffffffffffffff9ull) ) ) ;
         if(irregular)[[unlikely]]
             one += (bitarray_irregular[ieee_exponent/64]>>(ieee_exponent%64)) & 1;
 #endif
@@ -2602,7 +2639,8 @@ char* xjb32(float v,char* buf)
     // use this code to prevent gcc compiler generate branch instructions
     //dec_sig_len_ofs = ( ( ((2+8 - tz)*256) + 2+8 + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     //dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
-    u32 dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
+    //u32 dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
+    u32 dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down << 3)) & 0xff;
     // when m==0 => up_down = 0; m==0 equal to v < 1e-44; only contain 6 value : 1e-45,3e-45,4e-45,6e-45,7e-45,8e-45 ;
     // when m=0 , tz = clz(0)/8 is not sure in some machine. but we can prove  ( 7*256 + 7 - (tz<<8)  + D9 ) & 0xff is always equal to 7+D9; Even if tz is a random value
     // when m>0 , tz <= 7 is must exist.
