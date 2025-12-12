@@ -83,6 +83,12 @@ This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and g
 
 The latest benchmark results:  
 to be completed.  
+
+benchmark result on apple M1:
+![ramdom float apple M1](bench_result/random_float_m1.svg)
+
+![ramdom float apple M1](bench_result/random_double_m1.svg)
+
 please refer to `bench` directory for more details.  
 
 <!-- https://github.com/xjb714/f2dec_bench
