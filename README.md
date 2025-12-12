@@ -3,6 +3,8 @@ xjb : a fast float to string algorithm.
 
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
+The document explaining the working principle of the code is called `code_explain.ipynb`.The document is currently under preparation.
+
 (1)float/double to decimal algorithm  
 &emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `xjb32_i.cpp`;  <!-- https://godbolt.org/z/eT57sW9q1   -->  
 &emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
