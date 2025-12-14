@@ -188,7 +188,8 @@ static inline void xjb_f32_to_dec(float v,unsigned int* dec,int *e10)
 #else
     k = (exp_bin * 315653 - (irregular ?  131237 : 0 ))>>20;
 #endif
-    int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
+    //int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
+    int h = exp_bin + ((  k * -217707 - 217707 ) >> 16); 
     // const u64 *pow10 = &pow10_table[32];
     // u64 pow10_hi = pow10[(-1 - k)];
     static const u64 *pow10_reverse = &pow10_table_reverse[45];

@@ -790,7 +790,40 @@ static inline u32 u32_lz_bits(u32 v) {
 //     return tz;
 // }
 
+static inline u64 encode_8digit_lut(u64 x, u64* ASCII){
+    x = x >= (u32)1e7 ? x : x * 10;
+    alignas(2) static const char data[] =
+      "0001020304050607080910111213141516171819"
+      "2021222324252627282930313233343536373839"
+      "4041424344454647484950515253545556575859"
+      "6061626364656667686970717273747576777879"
+      "8081828384858687888990919293949596979899";
 
+    u64 aabb = (x * 109951163) >> 40;
+    u64 ccdd = x - aabb * 10000;
+    u64 aa = (aabb * 10486) >> 20;
+    //u64 aa = (x * 1125899907) >> 50;
+    u64 bb = aabb - aa * 100;
+    u64 cc = (ccdd * 10486) >> 20;
+    u64 dd = ccdd - cc * 100;
+    
+    char tmp_buf[8];
+    memcpy(&tmp_buf[0], &data[aa*2], 2);
+    memcpy(&tmp_buf[2], &data[bb*2], 2);
+    memcpy(&tmp_buf[4], &data[cc*2], 2);
+    memcpy(&tmp_buf[6], &data[dd*2], 2);
+    u64 A;
+    memcpy(&A, tmp_buf, 8);
+    *ASCII = A;
+    return u64_lz_bits(A - ((0x30303030ull << 32) + 0x30303030ull)) / 8;
+
+    // u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * ((x * 109951163) >> 40);
+    // u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+    // u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+    // aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
+    // *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
+    // return u64_lz_bits(aabbccdd_BCD) / 8;
+}
 
 static inline void byte_move_16(void * dst,const void* src){
     // move 16byte from src to dst;
@@ -2590,20 +2623,45 @@ char* xjb32(float v,char* buf)
     int exp_bin, k;
     u64 sig_bin, regular = sig > 0;
     //u64 irregular = (sig == 0);
-    if (exp > 0) [[likely]] // branch
+    // if (exp > 0) [[likely]] // branch
+    // {
+    //     //exp>>=23;
+    //     if(exp == 255)[[unlikely]]
+    //     {
+    //         memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
+    //         return buf + 3;
+    //     }
+    //     exp_bin = exp - 150; //-127-23
+    //     sig_bin = sig | (1u << 23);
+    // }
+    // else
+    // {
+    //     if(sig == 0)[[unlikely]]
+    //     {
+    //         memcpy(buf, "0.0" , 4);//end with '\0'
+    //         return buf + 3;
+    //     }
+    //     exp_bin = 1 - 150;
+    //     sig_bin = sig;
+    // }
+
+    // if (exp > 0) [[likely]] // branch
+    // {
+    //     //exp>>=23;
+    //     if(exp == 255)[[unlikely]]
+    //     {
+    //         memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
+    //         return buf + 3;
+    //     }
+    //     exp_bin = exp - 150; //-127-23
+    //     sig_bin = sig | (1u << 23);
+    // }
+    // else
+    exp_bin = exp - 150; //-127-23
+    sig_bin = sig | (1u << 23);
+    if( exp == 0)[[unlikely]]
     {
-        //exp>>=23;
-        if(exp == 255)[[unlikely]]
-        {
-            memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
-            return buf + 3;
-        }
-        exp_bin = exp - 150; //-127-23
-        sig_bin = sig | (1u << 23);
-    }
-    else
-    {
-        if(sig == 0)[[unlikely]]
+        if(sig == 0)//[[unlikely]]
         {
             memcpy(buf, "0.0" , 4);//end with '\0'
             return buf + 3;
@@ -2611,11 +2669,16 @@ char* xjb32(float v,char* buf)
         exp_bin = 1 - 150;
         sig_bin = sig;
     }
-    u64 irregular = sig_bin == 1<<23;
+    if(exp == 255)[[unlikely]]
+    {
+        memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
+        return buf + 3;
+    }
+    u64 irregular = (sig_bin == 1<<23);
     //memcpy(buf ,"0.000000",8);
 //#ifdef __amd64__
 #if 1
-    if (!irregular) [[likely]] // branch
+    if (regular) [[likely]] // branch
         k = (exp_bin * 315653) >> 20;
     else
         k = (exp_bin * 315653 - 131237) >> 20;
@@ -2623,18 +2686,19 @@ char* xjb32(float v,char* buf)
     k = (exp_bin * 315653 - (irregular ? 131237 : 0 ))>>20;
     //k = (exp_bin * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
-    int h = exp_bin + (((-1 - k) * 217707) >> 16); // [-4,-1]
+    //int h = exp_bin + (((-1 - k) * 217707) >> 16);
+    int h = exp_bin + ((  k * -217707 + (- 217707) ) >> 16); 
     // static const u64 *pow10 = &pow10_table[32];
     // u64 pow10_hi = pow10[(-1 - k)];
     static const u64 *pow10_reverse = &pow10_table_reverse[45];
     u64 pow10_hi = pow10_reverse[k];// get 10^(-k-1)
     //u64 pow10_hi = pow10_table[(-1-k)+32];
-    u64 even = ((sig_bin + 1) & 1);
+    u64 even = ((sig + 1) & 1);
     const int BIT = 36; // [33,36] all right
-    u64 cb = sig_bin << (h + 1 + BIT);
+    u64 cb = sig_bin << (h + (1 + BIT));
     u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64; // one mulxq instruction on x86 , need BMI2
-    u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
     u64 half_ulp = (pow10_hi >> ((64 - BIT) - h)) + even;
+    u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
 #ifdef __amd64__
     u64 up = (half_ulp + dot_one_36bit) >> BIT;
 #else
@@ -2654,7 +2718,7 @@ char* xjb32(float v,char* buf)
     //dec_sig_len_ofs = ( ( ((2+8 - tz)*256) + 2+8 + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     //dec_sig_len_ofs = ( ( (2+8)*256 +2+8 - tz*256  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
     //u32 dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down ? 8 : 0)) & 0xff;
-    u32 dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down << 3)) & 0xff;
+    u64 dec_sig_len_ofs3 = ( ( 7*256 + 7 - (tz<<8)  + D9 ) >> (up_down << 3)) & 0xff;
     // when m==0 => up_down = 0; m==0 equal to v < 1e-44; only contain 6 value : 1e-45,3e-45,4e-45,6e-45,7e-45,8e-45 ;
     // when m=0 , tz = clz(0)/8 is not sure in some machine. but we can prove  ( 7*256 + 7 - (tz<<8)  + D9 ) & 0xff is always equal to 7+D9; Even if tz is a random value
     // when m>0 , tz <= 7 is must exist.
@@ -2664,7 +2728,7 @@ char* xjb32(float v,char* buf)
 #else
     // icpx clang use this code to generate cmov instructions
     //dec_sig_len_ofs = up_down ? 2+8 - tz : 2+8 + D9;// when mr = 0, up_down = 0, so can avoid use tz
-    u32 dec_sig_len_ofs3 = up_down ? 7 - tz : 7 + D9;
+    u64 dec_sig_len_ofs3 = up_down ? 7 - tz : 7 + D9;
 #endif
     k += 7 + D9;
     e10 = k;// euqal to e10 = k+7+D9
@@ -2675,7 +2739,7 @@ char* xjb32(float v,char* buf)
     // u64 offset_num  = ((u64)('0' + '0' * 256) << (BIT + 1)) + (((u64)1 << BIT) - 7) + (dot_one_36bit >> (BIT - 4));
     // u64 one = (dot_one_36bit * 20 + offset_num) >> (BIT + 1);
 
-    u64 offset_num  = ((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7) + (dot_one_36bit >> (BIT - 4));
+    u64 offset_num  = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
     u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
     if(irregular)[[unlikely]]{ // branch
         if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
@@ -2818,15 +2882,13 @@ char* xjb32(float v,char* buf)
     //if( (ASCII_8 & 0x0f) == 0 )[[unlikely]]
     {
         u64 lz = 0;
-        //lz += buf[2+lz]=='0';
         while(buf[2+lz] == '0')lz++;
         lz += 2;
         e10 -= lz - 1;
         buf[0] = buf[lz];
         byte_move_8(&buf[2], &buf[lz+1]);
-        //exp_result = exp_ptr[e10];
-        //byte_move_8(buf + 2, buf+lz+1);
-        exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
+        //exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
+        exp_pos = exp_pos - lz + (exp_pos - lz != 1 );
         // buf += exp_pos;
         // u32 exp_result = exp_ptr[e10];
         // memcpy(buf, &exp_result, 4);
