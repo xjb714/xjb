@@ -887,8 +887,15 @@ char* xjb64(double v,char* buf)
         // }
     }
 #else
-    c = (ieee_exponent > 0) ? ( (1ull<<52) | ieee_significand) : ieee_significand;
-    q = (ieee_exponent > 0) ? (ieee_exponent - 1075) : 1-1075;
+    // c = (1ull<<52) | ieee_significand;// 53 bit
+    // q = ieee_exponent - 1075;
+    // if(ieee_exponent == 0)[[unlikely]]
+    // {
+    //     c -= 1ull<<52;
+    //     q = 1 - 1075; // -1074
+    // }
+    c = (ieee_exponent > 0) ? ( (1ull<<52) ^ ieee_significand) : ieee_significand;// + | ^ , all right
+    q = (ieee_exponent > 0) ? (ieee_exponent - 1075) : 1 - 1075;
     //q = (ieee_exponent - 1075) + (ieee_exponent == 0);
 #endif
     int k;
@@ -2175,7 +2182,7 @@ char* xjb64(double v,char* buf)
         // when ieee_exponent == 1 or 0 ; k=-324
         // so we can use (ieee_exponent - 1075) to replace q
         //k = ((ieee_exponent - 1075) * 315653 - (regular ? 0 : 131237 ))>>20;
-        k = ((ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0 ))>>20;
+        k = ((ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0 )) >> 20;
 #endif
         int get_e10 = -1 - k;
         int h = q + ((get_e10 * 217707) >> 16);
@@ -2198,7 +2205,7 @@ char* xjb64(double v,char* buf)
 #if HAS_SSE2 // when use sse2,the return value equal to (tail zero number + 16);
         //dec_sig_len_ofs = ( ( (2+16+16)*256 + 2+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
         //u64 dec_sig_len_ofs3 = ( ( (15+16)*256 + 15+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
-        u64 dec_sig_len_ofs3 = ( ( (15+16)*256 + 15+16 - tz*256 + D17 ) >> (up_down << 3)) & 0xff;
+        u64 dec_sig_len_ofs3 = ( ( (15+16)*256 + 15 - tz*256 + D17 ) >> (up_down << 3)) & 0xff;
 #else
         //dec_sig_len_ofs = ( ( (2+16)*256 + 2+16 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
         //u64 dec_sig_len_ofs3 = ( ( 15*256 + 15 - tz*256 + D17 ) >> (up_down ? 8 : 0)) & 0xff;
@@ -2234,12 +2241,19 @@ char* xjb64(double v,char* buf)
             if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
                 one = (((dot_one >> 4) * 5) >> 59) + 1 + (u64)('0' + '0' * 256);
 #else // for apple M1 , better performance
-        //u64 one = ((dot_one * (u128)10) >> 64)  + (( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? 0xfffffffffffffff9ull : 0x7ffffffffffffff9ull) ) ? (u64)(1 + '0' + '0' * 256) : (u64)('0' + '0' * 256)) ;
+        //u64 one;
+        //u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) >  0x7ffffffffffffff9ull ) + (u64)('0' + '0' * 256) ;//- (u64)(dot_one == (1ull << 62)) ;
+        // if( dot_one == (1ull << 62) )[[unlikely]]
+        //     one = (u64)('2' + '0' * 256); // 3 -> 2 , equal to (one - 1) ;       
+        //else one = ((dot_one * (u128)10) >> 64) + ( (u64)(dot_one * (u128)10) >  0x7ffffffffffffff9ull ) + (u64)('0' + '0' * 256) ;
+        //u64 one = ((dot_one * (u128)10) >> 64)  + (( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? 0xffffffffffffffffull : 0x7ffffffffffffff9ull) ) ? (u64)(1 + '0' + '0' * 256) : (u64)('0' + '0' * 256)) ;
         // u64 one = ((dot_one * (u128)10) >> 64)  + ((
         //     (u64)(dot_one * (u128)10) >
         //     ( ((u64)(dot_one == (1ull << 62)) << 63) | 0x7ffffffffffffff9ull) )  ? (u64)(1 + '0' + '0' * 256) : (u64)('0' + '0' * 256) ) ;
-        //u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? 0xfffffffffffffff9ull : 0x7ffffffffffffff9ull) ) ) ;
-        u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (( (u64)(dot_one * (u128)10) > ( ((u64)(dot_one == (1ull << 62)) << 63) + 0x7ffffffffffffff9ull) ) ) ;
+        //u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ) ;
+        //u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (( (u64)(dot_one * (u128)10) > ( ((u64)(dot_one == (1ull << 62)) << 63) + 0x7ffffffffffffff9ull) ) ) ;
+        u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6;
+        u64 one = ((dot_one * (u128)10 + offset_num ) >> 64) + (u64)('0' + '0' * 256);
         if(irregular)[[unlikely]]
             one += (bitarray_irregular[ieee_exponent/64]>>(ieee_exponent%64)) & 1;
 #endif

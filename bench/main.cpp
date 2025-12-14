@@ -6,7 +6,7 @@
 
 #include "util/get_cpu_name.cpp"
 
-#include "util/check_float_multi_thread.cpp" // use multi-thread to check float algorithm
+//#include "util/check_float_multi_thread.cpp" // use multi-thread to check float algorithm
 
 #define USE_YYBENCH 1
 #if USE_YYBENCH
@@ -560,21 +560,21 @@ void check_subnormal()
 void check_all_float_number()
 {
     printf("check xjb32 algorithm ; check all float number start\n");
-    //unsigned error_sum = 0;
+    unsigned error_sum = 0;
     auto t1 = getns();
     // #pragma parallel omp for reduce(+:error_sum)
-    // for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)
-    // {
-    //     float f = *(float *)&i;
-    //     error_sum += check_xjb32_and_schubfach32_xjb(f);
-    // }
-    uint32_t start = 0x00000001u;
-    uint32_t end = 0x7F7FFFFFu;
-    int num_threads = 4;
+    for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)
+    {
+        float f = *(float *)&i;
+        error_sum += check_xjb32_and_schubfach32_xjb(f);
+    }
+    // uint32_t start = 0x00000001u;
+    // uint32_t end = 0x7F7FFFFFu;
+    // int num_threads = 4;
 
-    uint64_t error_sum = parallel_reduce_pthreads(start, end,
-                                                  check_xjb32_and_schubfach32_xjb,
-                                                  num_threads);
+    // uint64_t error_sum = parallel_reduce_pthreads(start, end,
+    //                                               check_xjb32_and_schubfach32_xjb,
+    //                                               num_threads);
     auto t2 = getns();
     if (error_sum == 0)
     {
