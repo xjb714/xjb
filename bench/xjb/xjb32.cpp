@@ -1,3 +1,6 @@
+// this is old version of xjb32_i.hpp, which is not used in the current version
+// performance is not good enough.
+
 #include <stdint.h>
 struct FloatingDecimal32_xjb
 {

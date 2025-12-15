@@ -5,6 +5,9 @@ This code is still being updated continuously, so it may not be the final versio
 
 The document explaining the working principle of the code is called `code_explain.ipynb`.The document is currently under preparation.
 
+the code is still under development and may contain bugs. if you find any bugs, please let me know.  
+**warning: The current code can only run on little-endian CPUs. The code for the big-endian CPU is currently under development.**
+
 (1)float/double to decimal algorithm  
 &emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `xjb32_i.cpp`;  <!-- https://godbolt.org/z/eT57sW9q1   -->  
 &emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
@@ -148,3 +151,34 @@ clang++ : Apple clang 17.0.0
    clang++ -O3 -march=native  
    ![alt text](result/m1/mmexport1761290105081.jpg)  
     -->
+
+
+<!-- On a little-endian machine, the BCD code y of x, which ranges from 0 to 99, can be calculated as follows. On the big-endian machine, y should be equal to $a  \cdot  256 + b = x - 254 \cdot (x/10)$.
+$$
+\begin{aligned}
+a \cdot 10+b &= x\\
+a+b \cdot 256 &= y = a + (x - a \cdot 10)\cdot 256 = x \cdot 256 - (10 \cdot 256 - 1)  \cdot  (x/10)
+\end{aligned}
+$$
+
+
+abcdefgh = x
+y = a + b<<8 + c<<16 + d<<24 + e<<32 + f<<40 + g<<48 + h<<56
+
+$$
+\begin{aligned}
+x &= abcdefgh \\
+y &= a + (b<<8) + (c<<16) + (d<<24) + (e<<32) + (f<<40) + (g<<48) + (h<<56) \\
+y &= a + (b<<8) + (c<<16) + (d<<24) + ((e + (f<<8) + (g<<16) + (h<<24))<<32) \\ 
+y &= a + (b<<8) + ((c + (d<<8))<<16) + ((e + (f<<8) + ((g + (h<<8)) << 16))<<32) \\
+\end{aligned}
+$$
+
+`u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * ((x * 109951163) >> 40);`
+aabb_ccdd_merge = (efgh<<32)+abcd;
+
+`u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));`
+aa_bb_cc_dd_merge = (((gh<<16)+ef)<<32) + ((cd<<16)+ab);
+
+`u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));`
+aabbccdd_BCD = y = a + (b<<8) + ((c + (d<<8))<<16) + ((e + (f<<8) + ((g + (h<<8)) << 16))<<32); -->

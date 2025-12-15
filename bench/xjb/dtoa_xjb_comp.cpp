@@ -1025,8 +1025,10 @@ char* xjb64(double v,char* buf)
         u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
         u64 one = ((dot_one * (u128)10 + offset_num ) >> 64) + (u64)('0' + '0' * 256);
         if(!regular)[[unlikely]]
-            if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
-                 one = (((dot_one >> 4) * 10) >> 60) + 1 + (u64)('0' + '0' * 256);
+            // if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
+            //      one = (((dot_one >> 4) * 10) >> 60) + 1 + (u64)('0' + '0' * 256);
+            if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (((half_ulp >> 55) * 5)))
+                 one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
         if(one == 10 + (u64)('0' + '0' * 256))one = (u64)('0' + '0' * 256);
 #else // for apple M1 , better performance
         u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
@@ -1127,7 +1129,7 @@ char* xjb64(double v,char* buf)
             buf[0] = buf[lz];
             byte_move_16(&buf[2], &buf[lz+1]);
             //byte_move_16(buf+2, buf+lz+1);
-            exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
+            exp_pos = exp_pos - lz + (exp_pos - lz != 1 );
 // #if is_intel_compiler
 //             buf += exp_pos;
 //             u64 exp_result = exp_ptr[e10];
@@ -1380,7 +1382,7 @@ char* xjb32(float v,char* buf)
         e10 -= lz - 1;
         buf[0] = buf[lz];
         byte_move_8(&buf[2], &buf[lz+1]);
-        exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
+        exp_pos = exp_pos - lz + (exp_pos - lz != 1 );
     }
 //write exponent
     u64 neg = e10 < 0;

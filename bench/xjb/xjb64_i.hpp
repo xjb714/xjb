@@ -2,13 +2,8 @@
 
 static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
 {
-    // next line need to proof correctness
-    // u64 one = ((dot_one * (u128)10 + ((dot_one == (u64)1 << 62) ? 0 : ((1ull<<63) + 6)) ) >> 64) ;
-
     unsigned long long vi = *(unsigned  long long*)&v;
     unsigned long long sig = vi & ((1ull<<52) - 1);
-    //unsigned long long exp = (vi>>52) & 2047;
-    //unsigned long long exp = (vi & (2047ull<<52) ) >> 52;
     unsigned long long exp = (vi << 1 ) >> 53;
 
     typedef __uint128_t u128;
@@ -694,8 +689,6 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
         u64 dot_one = hi128 >> offset;   // == floor(2**64*n)    ; slow instruction
         u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
         u64 ten = (hi128 >> (offset + 64) ) * 10; // == 10*m
-        //u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) >= 0x7ffffffffffffffaull) - (dot_one == (u64)1 << 62) ;
-        //u64 one = ((dot_one * (u128)10 + (1ull<<63) + 6) >> 64) - (dot_one == (u64)1 << 62) ;
 #ifdef __amd64__
         // (dot_one == (1ull << 62)) equal to (n==0.25)
         u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
@@ -707,30 +700,46 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
         else
         {
             // 10n - floor(10n) > 2**(q-2) * 10^(-k-1) * 10
-            if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
-                one = (((dot_one >> 4) * 10) >> 60) + 1;
+
+            // old version:
+            // if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
+            //     one = (((dot_one >> 4) * 10) >> 60) + 1;
             // if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
             //     one = (((dot_one >> 4) * 5) >> 59) + 1;
+
+            // new version 1:
+            // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (((half_ulp >> 55) * 5)))
+            //     one = (((dot_one >> 54) * 5) >> 9) + 1;
+            // new version 2:
+            if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (ten >> 45))// Fewer instructions
+                one = (((dot_one >> 54) * 5) >> 9) + 1;
+            // new version 2 is better than new version 1 ? not sure
+
             one = ((half_ulp >> 1) > dot_one) ? 0 : one;
         }
         one = (half_ulp  > ~0 - dot_one) ? 10 : one;
-        //printf("not comp half_ulp = %llx,max-dot_one = %llx\n",half_ulp, ~0 - dot_one);
-        //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
 #else
-        // u64 offset_num = ((bitarray_irregular[exp/64]>>(exp%64)) & irregular) ? ~0 : (1ull<<63) + 6 ;
-        // u64 offset_num = (((bitarray_irregular[exp/64]>>(exp%64)) & irregular)<<62) + (1ull<<63) + 6 ;
-        // offset_num = (dot_one == (1ull << 62)) ? 0 : offset_num ;
-        // u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
-
         u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
+        //one = ((half_ulp>> (1-regular)) > dot_one) ? 0 : one;
         if(regular)[[likely]] {
             one = (half_ulp > dot_one) ? 0 : one;
         }else{
             one = ((half_ulp >> 1) > dot_one) ? 0 : one;
+
+// only 26 double number error 
+// exp=6,16,66,232,235,245,328,534,657,727,883,926,946,1112,1205,1298,1328,1368,1401,1421,1428,1504,1597,1617,1886,1999
             one += (bitarray_irregular[exp/64]>>(exp%64)) & 1;
+
+            // const int BIT = 50;
+            // if ( (((dot_one >> (4+BIT)) * 5) & ( (1ull << (59-BIT) ) - 1)) > (((half_ulp >> (5+BIT)) * 5)))
+            //     one = (((dot_one >> (4+BIT)) * 5) >> (59-BIT)) + 1;
+            
+            // why this code is slow on M1, maybe the branch instruction is not generated ?
+            // u64 right = (ten >> 45);
+            // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > right)
+            //     one = (((dot_one >> 54) * 5) >> 9) + 1;
         }
         one = (half_ulp  > ~0 - dot_one) ? 10 : one;
-        //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
 #endif
         *dec = ten + one;
         *e10 = k;
@@ -896,8 +905,6 @@ static inline void xjb64_comp_f64_to_dec(double v,unsigned long long* dec,int *e
         //u64 half_ulp = (pow10_hi >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
         u64 half_ulp = (h > 0 ? pow10_hi * 2 : (pow10_hi >> (-h))) + ((c + 1) & 1);// when v is irregular ; h==1 exist
         u64 ten = (hi128 >> (offset + 64) ) * 10; // == 10*m
-        //u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) >= 0x7ffffffffffffffaull) - (dot_one == (u64)1 << 62) ;
-        //u64 one = ((dot_one * (u128)10 + (1ull<<63) + 6) >> 64) - (dot_one == (u64)1 << 62) ;
 #ifdef __amd64__
         // (dot_one == (1ull << 62)) equal to (n==0.25)
         u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
@@ -909,30 +916,26 @@ static inline void xjb64_comp_f64_to_dec(double v,unsigned long long* dec,int *e
         else
         {
             // 10n - floor(10n) > 2**(q-2) * 10^(-k-1) * 10
-            if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
-                one = (((dot_one >> 4) * 10) >> 60) + 1;
+            // if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
+            //     one = (((dot_one >> 4) * 10) >> 60) + 1;
             // if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
             //     one = (((dot_one >> 4) * 5) >> 59) + 1;
+            if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (((half_ulp >> 55) * 5)))
+                one = (((dot_one >> 54) * 5) >> 9) + 1;
             one = ((half_ulp >> 1) > dot_one) ? 0 : one;
         }
         one = (half_ulp  > ~0 - dot_one) ? 10 : one;
-        //printf("comp half_ulp = %llx,max-dot_one = %llx,nh=%d\n",half_ulp,~0 - dot_one,-h);
-        //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
 #else
-        // u64 offset_num = ((bitarray_irregular[exp/64]>>(exp%64)) & irregular) ? ~0 : (1ull<<63) + 6 ;
-        // u64 offset_num = (((bitarray_irregular[exp/64]>>(exp%64)) & irregular)<<62) + (1ull<<63) + 6 ;
-        // offset_num = (dot_one == (1ull << 62)) ? 0 : offset_num ;
-        // u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
-
         u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
         if(regular)[[likely]] {
             one = (half_ulp > dot_one) ? 0 : one;
         }else{
             one += (bitarray_irregular[exp/64]>>(exp%64)) & 1;
+            // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (((half_ulp >> 55) * 5)))
+            //     one = (((dot_one >> 54) * 5) >> 9) + 1;
             one = ((half_ulp>>1) > dot_one) ? 0 : one;
         }
         one = (half_ulp  > ~0 - dot_one) ? 10 : one;
-        //one = (half_ulp + dot_one < half_ulp ) ? 10 : one;
 #endif
         *dec = ten + one;
         *e10 = k;

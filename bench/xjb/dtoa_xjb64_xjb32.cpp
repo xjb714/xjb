@@ -722,6 +722,12 @@ static inline u32 u32_lz_bits(u32 v) {
         aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
         *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
         return u64_lz_bits(aabbccdd_BCD) / 8;
+
+
+        // big-endian CPU , calculate BCD digits
+        // u64 aabb_ccdd_merge = aabbccdd + ((1ull<<32) - 10000) * ((aabbccdd * 109951163) >> 40);
+        // u64 aa_bb_cc_dd_merge = aabb_ccdd_merge + ((1ull<<16) - 100) * ((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL);
+        // u64 aabbccdd_BCD = aa_bb_cc_dd_merge + ((1ull<<8) - 10) * ((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL);
     }
 #endif // endif HAS_NEON_OR_SSE2
 
@@ -920,14 +926,14 @@ char* xjb64(double v,char* buf)
         // }
     }
 #else
-    // c = (1ull<<52) | ieee_significand;// 53 bit
-    // q = ieee_exponent - 1075;
+    // c = (1ull<<52) + ieee_significand;// 53 bit
+    // q = ieee_exponent + ( -1075 );
     // if(ieee_exponent == 0)[[unlikely]]
     // {
-    //     c -= 1ull<<52;
+    //     c = ieee_significand;
     //     q = 1 - 1075; // -1074
     // }
-    c = (ieee_exponent > 0) ? ( (1ull<<52) ^ ieee_significand) : ieee_significand;// + | ^ , all right
+    c = (ieee_exponent > 0) ? ( (1ull<<52) + ieee_significand) : ieee_significand;// + | ^ , all right
     q = (ieee_exponent > 0) ? (ieee_exponent - 1075) : 1 - 1075;
     //q = (ieee_exponent - 1075) + (ieee_exponent == 0);
 #endif
@@ -2223,7 +2229,7 @@ char* xjb64(double v,char* buf)
         u128 cb = c << (h + (1 + offset));
         u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
         u64 dot_one = hi128 >> offset;   // == floor(2**64*n)
-        u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
+        u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [0,4]  ; 2**(q-1) * 10^(-k-1)
         u64 up = (half_ulp  > ~0 - dot_one);
         u64 down = ( (half_ulp >> (irregular )) > dot_one );
         m = (u64)(hi128 >> (offset + 64)) + up;
@@ -2271,8 +2277,12 @@ char* xjb64(double v,char* buf)
         if(irregular)[[unlikely]]
             // if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
             //      one = (((dot_one >> 4) * 10) >> 60) + 1 + (u64)('0' + '0' * 256);
-            if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
-                one = (((dot_one >> 4) * 5) >> 59) + 1 + (u64)('0' + '0' * 256);
+            // if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
+            //     one = (((dot_one >> 4) * 5) >> 59) + 1 + (u64)('0' + '0' * 256);
+            if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (((half_ulp >> 55) * 5)))
+                one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
+            // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > ((m * 10) >> 45))
+            //     one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
 #else // for apple M1 , better performance
         //u64 one;
         //u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) >  0x7ffffffffffffff9ull ) + (u64)('0' + '0' * 256) ;//- (u64)(dot_one == (1ull << 62)) ;
@@ -2390,7 +2400,8 @@ char* xjb64(double v,char* buf)
             buf[0] = buf[lz];
             byte_move_16(&buf[2], &buf[lz+1]);
             //byte_move_16(buf+2, buf+lz+1);
-            exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
+            //exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
+            exp_pos = exp_pos - lz + (exp_pos - lz != 1 );
 #if is_intel_compiler
             buf += exp_pos;
             u64 exp_result = exp_ptr[e10];
@@ -2426,16 +2437,10 @@ char* xjb32(float v,char* buf)
     // all lut size = 336+144+616 = 1096byte
     // recommend buf size >= 24byte;
 
-    // benchmark result on AMD R7-7840H
-    // clang  : 33-34 cycle
-    // icpx   : 33-34 cycle
-    // g++    : 35-36 cycle
-
     u32 vi;
     memcpy(&vi, &v, 4);
 
     buf[0]='-';
-
 
     u64 dec,m;
     int e10;

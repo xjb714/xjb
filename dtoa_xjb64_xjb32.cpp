@@ -666,6 +666,11 @@ u64 encode_8digit(const u64 x, u64* ASCII){
     u64 aabbccdd_ASCII = aabbccdd_BCD + ZERO;
     *ASCII = aabbccdd_ASCII;
     return tz;
+
+    // big-endian CPU , calculate BCD digits
+    // u64 aabb_ccdd_merge = aabbccdd + ((1ull<<32) - 10000) * ((aabbccdd * 109951163) >> 40);
+    // u64 aa_bb_cc_dd_merge = aabb_ccdd_merge + ((1ull<<16) - 100) * ((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL);
+    // u64 aabbccdd_BCD = aa_bb_cc_dd_merge + ((1ull<<8) - 10) * ((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL);
 }
 void byte_move_16(void * dst,const void* src){
     // move 16byte from src to dst;

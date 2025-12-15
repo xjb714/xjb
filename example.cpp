@@ -30,7 +30,11 @@ int main()
         M_E,
         M_PI,
         0,
-        9999999999990000
+        9999999999990000,
+        // some subnormal numbers
+        5e-324,
+        1.23e-315,
+        3e-310
     };
     char buf_full_double[33],buf_full_float[24];
     char buf_comp_double[33],buf_comp_float[24];
