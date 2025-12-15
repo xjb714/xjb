@@ -41,6 +41,7 @@ const int is_bench_float_to_string = BENCH_STR;
 #include "xjb/xjb_i.hpp"
 #include "fmt/fmt_i.hpp"
 #include "zmij/zmij_i.hpp"
+#include "jnum/jnum_i.hpp" // not satisfy the Steele and White algorithm
 
 
 const int N = (int)(1e7);
@@ -173,6 +174,7 @@ void init_double()
     double_to_string_algorithm_set.push_back(std::string("xjb64_comp"));      // 10
     double_to_string_algorithm_set.push_back(std::string("schubfach_vitaut"));// 11
     double_to_string_algorithm_set.push_back(std::string("zmij"));// 12
+    double_to_string_algorithm_set.push_back(std::string("jnum"));// 13
 
     // algorithm_set.push_back({std::string("ldouble"), ldouble_f64_to_dec});
 
@@ -348,6 +350,9 @@ void bench_double_single_impl(int i)
         if (i == 12)
             for (int j = 0; j < N; ++j)
                 zmij_f64_to_str(data[j], buffer);
+        if (i == 13)
+            for (int j = 0; j < N; ++j)
+                jnum_f64_to_str(data[j], buffer);
     }
 
     auto t2 = getns();

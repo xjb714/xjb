@@ -815,6 +815,7 @@ static void dtoa_func_register_all(void) {
     dtoa_func_register(xjb64_comp)
     dtoa_func_register(schubfach_vitaut)
     dtoa_func_register(zmij)
+    dtoa_func_register(jnum)
 
     
 
