@@ -898,51 +898,97 @@ static inline void byte_move_8(void * dst,const void* src){
     memcpy(dst, &src_value, 8);
 }
 
-static inline char* write_1_to_16_digit(i64 i,char* buf)
+static inline char* write_1_to_16_digit(u64 x,char* buf)
 {
-    u64 x = (((i64)-1e16 < i) && (i <= 0)) ? -i : i;
-    if(x < 100'000'000){
+    //require x < 1e16
+
+
+    //u64 x = (((i64)-1e16 < i) && (i < 0)) ? -i : i;
+    //u64 x = (((i64)-1e16 < i) && (i <= 0)) ? -i : i;
+    //u64 x = i;
+    const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
+    const u64 mask = (0x7FULL << 32) | 0x7FULL;
+    const u64 mask2 = (0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL;
+    i64 xi = x;
+    if(x < 100'000'000) //
+    {
         //write 1-8 digit
-        i64 xi = x;
+#if HAS_NEON
+        i64 aabb = (xi * (u128)1844674407370956) >> 64;
+        i64 ccdd = xi + aabb * (-10000);
+        uint32x2_t merge4_t = vld1_u32((uint32_t const *)&aabb);// 0000 aabb
+        merge4_t = vset_lane_u32(ccdd, merge4_t, 1);// ccdd aabb
+        uint64x1_t merge4 = vreinterpret_u64_u32(merge4_t);
+        uint64x1_t merge2 = vmls_n_u32(vshl_n_u32(merge4,16), vshr_n_u32(vmul_n_u32(merge4,10486),20) , ((100<<16) - 1) );
+        uint64x1_t merge = vmls_n_u16(vshl_n_u16(merge2,8), vshr_n_u16(vmul_n_u16(merge2,103),10) , ((10<<8) - 1) );
+        u64 aabbccdd_BCD = vget_lane_u64(merge,0);
+#else
         i64 aabb_ccdd_merge = (xi << 32) + (1 - (10000ull<<32)) * ((xi * 109951163) >> 40);
         //i64 aabb_ccdd_merge = ((xi + (-10000) * ((xi * 109951163) >> 40)) << 32) + ((xi * 109951163) >> 40);
-        const u64 mask = (0x7FULL << 32) | 0x7FULL;
         i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull<<16)) * (((aabb_ccdd_merge * 10486) >> 20) & mask);
-        const u64 mask2 = (0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL;
         u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) + (1 -(10ull<<8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & mask2);
-        u64 lz = u64_tz_bits(aabbccdd_BCD | (1ull << 56)) / 8;// lz max is 7
-        u64 aabbccdd_ASCII = aabbccdd_BCD | ((0x30303030ull << 32) + 0x30303030ull);
+#endif
+        u64 lz = u64_tz_bits(aabbccdd_BCD | (1ull << 63)) / 8;// lz max is 7 , aabbccdd_BCD = 0 is possible
+        u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
         aabbccdd_ASCII >>= 8 * lz;
         memcpy(buf, &aabbccdd_ASCII, 8);
-        buf += 8 - lz;
+        buf = buf + 8 - lz;
         memcpy(buf, ".0\0", 4);
         buf += 2;
         return buf ;
-    }else{
+    }
+    else
+    {
         //write 9-16 digit
-        const i64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
-        i64 xi = x;
+#if HAS_NEON
+        u64 aabbccdd = xi / 100000000;
+        u64 eeffgghh = xi + aabbccdd * (-100000000);
+        u64 aabb = ((aabbccdd * 109951163) >> 40);
+        u64 eeff = ((eeffgghh * 109951163) >> 40);
+        uint64x2_t merge8 = vcombine_u64(vld1_u64(&aabbccdd), vld1_u64(&eeffgghh));
+        uint64x2_t merge_aabb_eeff = vcombine_u64(vld1_u64(&aabb), vld1_u64(&eeff));
+        uint64x2_t merge4 = vorrq_u64(vshlq_n_u64(vmlsq_n_u32(merge8,merge_aabb_eeff,10000),32),merge_aabb_eeff);
+        uint64x2_t merge2 = vmlsq_n_u32(vshlq_n_u32(merge4,16), vshrq_n_u32(vmulq_n_u32(merge4,10486),20) , ((100<<16) - 1) );
+        uint64x2_t merge = vmlsq_n_u16(vshlq_n_u16(merge2,8), vshrq_n_u16(vmulq_n_u16(merge2,103),10) , ((10<<8) - 1) );
+        u64 aabbccdd_BCD = vgetq_lane_u64(merge, 0);
+        u64 eeffgghh_BCD = vgetq_lane_u64(merge, 1);
+#else
         i64 aabbccdd = xi / 100000000;
         i64 eeffgghh = xi + aabbccdd * (-100000000);
         i64 aabb_ccdd_merge = (aabbccdd << 32) + (1 - (10000ll<<32)) * ((aabbccdd * 109951163) >> 40);
         i64 eeff_gghh_merge = (eeffgghh << 32) + (1 - (10000ll<<32)) * ((eeffgghh * 109951163) >> 40);
         //i64 aabb_ccdd_merge = ((aabbccdd - 10000 * ((aabbccdd * 109951163) >> 40)) << 32) + ((aabbccdd * 109951163) >> 40);
         //i64 eeff_gghh_merge = ((eeffgghh - 10000 * ((eeffgghh * 109951163) >> 40)) << 32) + ((eeffgghh * 109951163) >> 40);
-        i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ll<<16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
-        i64 ee_ff_gg_hh_merge = (eeff_gghh_merge << 16) + (1 - (100ll<<16)) * (((eeff_gghh_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
-        i64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ll<<8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
-        i64 eeffgghh_BCD = (ee_ff_gg_hh_merge << 8) + (1 - (10ll<<8)) * (((ee_ff_gg_hh_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ll<<16)) * (((aabb_ccdd_merge * 10486) >> 20) & mask);
+        i64 ee_ff_gg_hh_merge = (eeff_gghh_merge << 16) + (1 - (100ll<<16)) * (((eeff_gghh_merge * 10486) >> 20) & mask);
+        i64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ll<<8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & mask2);
+        i64 eeffgghh_BCD = (ee_ff_gg_hh_merge << 8) + (1 - (10ll<<8)) * (((ee_ff_gg_hh_merge * 103) >> 10) & mask2);
+#endif
         u64 aabbccdd_lz = u64_tz_bits(aabbccdd_BCD) / 8;// aabbccdd_BCD != 0
         u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
-        aabbccdd_ASCII >>= 8 * aabbccdd_lz;
         u64 eeffgghh_ASCII = eeffgghh_BCD | ZERO;
+        aabbccdd_ASCII >>= 8 * aabbccdd_lz;
         memcpy(buf, &aabbccdd_ASCII, 8);
-        buf += 8 - aabbccdd_lz;
+        buf = buf + 8 - aabbccdd_lz;
         memcpy(buf , &eeffgghh_ASCII, 8);
         buf += 8;
+
+        // u64 aabbccdd_lz = u64_tz_bits(aabbccdd_BCD) / 8;
+        // u64 eeffgghh_lz = u64_tz_bits(eeffgghh_BCD) / 8;// eeffgghh_BCD == 0
+        // if(aabbccdd_BCD == 0) aabbccdd_lz = 8;
+        // if(aabbccdd_BCD != 0) eeffgghh_lz = 0;
+        // u64 aabbccdd_ASCII = aabbccdd_BCD + ZERO;
+        // u64 eeffgghh_ASCII = eeffgghh_BCD + ZERO;
+        // aabbccdd_ASCII >>= 8 * aabbccdd_lz;
+        // eeffgghh_ASCII >>= 8 * eeffgghh_lz;
+        // memcpy(buf, &aabbccdd_ASCII, 8);
+        // buf = buf + 8 - aabbccdd_lz;
+        // memcpy(buf , &eeffgghh_ASCII, 8);
+        // buf = buf + 8 - eeffgghh_lz;
+
         memcpy(buf , ".0\0", 4);
         buf += 2;
-        return buf ;
+        return buf;
     }
 }
 
@@ -954,14 +1000,22 @@ char* xjb64(double v,char* buf)
     buf[0]='-';
     buf += vi>>63;
 
+    
+
     // fast path for integer
+    double v_abs;
+    u64 vi_abs = vi & ((1ull<<63)-1);
+    memcpy(&v_abs, &vi_abs, sizeof(double));//double to u64 bit copy
+    i64 v_to_u64 = (i64)v_abs;//double cast to i64
     i64 v_to_i64 = (i64)v;//double cast to i64
     double v_r = (double)v_to_i64;//i64 cast to double
     u64 v_r_i64;
     memcpy(&v_r_i64,&v_r,sizeof(double));
-    if(v_r_i64 == vi && ((i64)-1e16 < v_to_i64 && v_to_i64 < (i64)1e16))
+    //if(v_r_i64 == vi && ((i64)-1e16 < v_to_i64 && v_to_i64 < (i64)1e16))
+    //if(v_r_i64 == vi && (0 < v_to_u64 && v_to_u64 < (u64)1e16))
+    if(v_r_i64 == vi && (v_to_u64 < (u64)1e16))
     {
-        return write_1_to_16_digit(v_to_i64 , buf);
+        return write_1_to_16_digit(v_to_u64 , buf);
     }
 
     u64 dec,m;
