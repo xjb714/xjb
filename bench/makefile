@@ -4,6 +4,17 @@ BENCH_DOUBLE = 1 # 0 : float, 1 : double
 BENCH_F_TO_STR = 1 # 0 : float/double to decimal , 1 : float/double to string
 
 # default compiler : gcc
+# g:
+# 	g++ -O3 -std=c++20 main.cpp util/yybench/src/yybench.cpp  -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_gcc
+# 	./main_gcc
+# i:
+# 	icpx -O3 -std=c++20  main.cpp util/yybench/src/yybench.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_icpx
+# 	./main_icpx
+# c:
+# 	clang++ -O3 -std=c++20  main.cpp util/yybench/src/yybench.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang
+# 	./main_clang
+
+# with -march=native for better performance
 g:
 	g++ -O3 -std=c++20 -march=native main.cpp util/yybench/src/yybench.cpp  -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_gcc
 	./main_gcc
@@ -13,6 +24,8 @@ i:
 c:
 	clang++ -O3 -std=c++20 -march=native main.cpp util/yybench/src/yybench.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang
 	./main_clang
+
+
 
 
 # on x86-64

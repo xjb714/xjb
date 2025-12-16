@@ -14,16 +14,23 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
     u64 ieee_exponent = exp;
 
 #ifdef __amd64__
-    if (ieee_exponent > 0) [[likely]] // branch
-    {
-        c = (1ull<<52) | ieee_significand;// 53 bit
-        q = ieee_exponent - 1075;
-    }
-    else
+    c = (1ull<<52) | ieee_significand;// 53 bit
+    q = ieee_exponent - 1075;
+    if(ieee_exponent == 0 )[[unlikely]]
     {
         c = ieee_significand;
         q = 1 - 1075; // -1074
     }
+    // if (ieee_exponent > 0) [[likely]] // branch
+    // {
+    //     c = (1ull<<52) | ieee_significand;// 53 bit
+    //     q = ieee_exponent - 1075;
+    // }
+    // else
+    // {
+    //     c = ieee_significand;
+    //     q = 1 - 1075; // -1074
+    // }
 #else
     c = (ieee_exponent > 0) ? ( (1ull<<52) | ieee_significand) : ieee_significand;
     q = (ieee_exponent > 0) ? (ieee_exponent - 1075) : 1-1075;
@@ -673,22 +680,22 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
     {
 #ifdef __amd64__
         if (regular) [[likely]] // branch
-            k = (q * 315653) >> 20;
+            k = ((ieee_exponent - 1075) * 315653) >> 20;
         else
-            k = (q * 315653 - 131237) >> 20;
+            k = ((ieee_exponent - 1075) * 315653 - 131237) >> 20;
 #else
         // use this branchless code for apple M1, better performance
         // when ieee_exponent == 1 or 0 ; k=-324
         // so we can use (ieee_exponent - 1075) to replace q
         k = ((ieee_exponent - 1075) * 315653 - (regular ? 0 : 131237 ))>>20;
 #endif
-        int h = q + (((-1 - k) * 217707) >> 16);
-        u64 *p10 = (u64 *)&pow10_ptr[(-1 - k) * 2];
+        int h = q + (((-k - 1) * 217707) >> 16); // -k-1 == ~k 
+        u64 *p10 = (u64 *)&pow10_ptr[(-k - 1) * 2];
         u128 cb = c << (h + 1 + offset);
         u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64)); // p10[0] : high 64bit ; p10[1] : low 64bit
         u64 dot_one = hi128 >> offset;   // == floor(2**64*n)    ; slow instruction
-        u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1) ;   // -h ---> range [1,4]  ; 2**(q-1) * 10^(-k-1)
-        u64 ten = (hi128 >> (offset + 64) ) * 10; // == 10*m
+        u64 half_ulp = (p10[0] >> (-h)) + (( ~c ) & 1) ;   // -h ---> range [0,4]  ; 2**(q-1) * 10^(-k-1) + even
+        u64 ten = (hi128 >> (offset + 64)) * 10; // == 10*m
 #ifdef __amd64__
         // (dot_one == (1ull << 62)) equal to (n==0.25)
         u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
@@ -708,11 +715,11 @@ static inline void xjb64_f64_to_dec(double v,unsigned long long* dec,int *e10)
             //     one = (((dot_one >> 4) * 5) >> 59) + 1;
 
             // new version 1:
-            // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (((half_ulp >> 55) * 5)))
-            //     one = (((dot_one >> 54) * 5) >> 9) + 1;
-            // new version 2:
-            if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (ten >> 45))// Fewer instructions
+            if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (((half_ulp >> 55) * 5)))
                 one = (((dot_one >> 54) * 5) >> 9) + 1;
+            // new version 2:
+            // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (ten >> 45))// Fewer instructions but slower than new version 1 ???
+            //     one = (((dot_one >> 54) * 5) >> 9) + 1;
             // new version 2 is better than new version 1 ? not sure
 
             one = ((half_ulp >> 1) > dot_one) ? 0 : one;

@@ -707,7 +707,7 @@ void check_double()
     check_irregular();
     //check_subnormal();
     //check_float(); // not contain subnormal float  , very slow
-    //check_rand_double(); // random double
+    check_rand_double(); // random double
     printf("check finish\n");
 }
 #if USE_YYBENCH && BENCH_STR
@@ -785,7 +785,7 @@ int main()
 #if BENCH_DOUBLE
     bench_double();
 
-    check_double(); // check double correctness , may cost long time
+    //check_double(); // check double correctness , may cost long time
 #endif
 
     return 0;

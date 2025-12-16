@@ -1,7 +1,12 @@
 #include <stdint.h>
 #include <string.h> // memcpy
+#include <stdio.h>
 
 // check cpu has neon or sse2 ; most all CPU has neon or sse2;
+
+#define USE_NEON_SSE2 1
+
+#if USE_NEON_SSE2
 
 #if defined(__aarch64__) && defined(__ARM_NEON__)
     #include <arm_neon.h>
@@ -23,6 +28,7 @@
     #endif
 #endif
 
+#endif // endif USE_NEON_SSE2
 
 /*
     author : Xiang Jun Bo
@@ -377,6 +383,7 @@ namespace xjb64_32 {
 
 typedef __uint128_t u128;
 typedef uint64_t u64;
+typedef int64_t i64;
 typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
@@ -690,21 +697,44 @@ static inline u32 u32_lz_bits(u32 v) {
 #else
     static inline u64 endcode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
-        const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
-        u64 aabbccdd = v / 100000000;
-        u64 eeffgghh = v - aabbccdd * 100000000;
-        u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
-        u64 eeff_gghh_merge = (eeffgghh << 32) - ((10000ull<<32) - 1) * ((eeffgghh * 109951163) >> 40);
-        u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
-        u64 ee_ff_gg_hh_merge = (eeff_gghh_merge << 16) - ((100ull<<16) - 1) * (((eeff_gghh_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
-        u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
-        u64 eeffgghh_BCD = (ee_ff_gg_hh_merge << 8) - ((10ull<<8) - 1) * (((ee_ff_gg_hh_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        // const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
+        // u64 aabbccdd = v / 100000000;
+        // u64 eeffgghh = v - aabbccdd * 100000000;
+        // u64 aabb_ccdd_merge = (aabbccdd << 32) - ((10000ull<<32) - 1) * ((aabbccdd * 109951163) >> 40);
+        // u64 eeff_gghh_merge = (eeffgghh << 32) - ((10000ull<<32) - 1) * ((eeffgghh * 109951163) >> 40);
+        // u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        // u64 ee_ff_gg_hh_merge = (eeff_gghh_merge << 16) - ((100ull<<16) - 1) * (((eeff_gghh_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        // u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        // u64 eeffgghh_BCD = (ee_ff_gg_hh_merge << 8) - ((10ull<<8) - 1) * (((ee_ff_gg_hh_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        // u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
+        // u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
+        // u64 tz = (eeffgghh_BCD == 0) ? 64 + aabbccdd_tz : eeffgghh_tz;
+        // tz = tz / 8;
+        // u64 aabbccdd_ASCII = aabbccdd_BCD + ZERO;
+        // u64 eeffgghh_ASCII = eeffgghh_BCD + ZERO;
+        // (*ASCII).hi = aabbccdd_ASCII;
+        // (*ASCII).lo = eeffgghh_ASCII;
+        // return tz;
+
+        // this version performance better than above
+        const i64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
+        i64 vi = v;
+        i64 aabbccdd = vi / 100000000;
+        i64 eeffgghh = vi + aabbccdd * (-100000000);
+        //i64 aabb_ccdd_merge = (aabbccdd << 32) + (1 - (10000ll<<32)) * ((aabbccdd * 109951163) >> 40);
+        //i64 eeff_gghh_merge = (eeffgghh << 32) + (1 - (10000ll<<32)) * ((eeffgghh * 109951163) >> 40);
+        i64 aabb_ccdd_merge = ((aabbccdd - 10000 * ((aabbccdd * 109951163) >> 40)) << 32) + ((aabbccdd * 109951163) >> 40);
+        i64 eeff_gghh_merge = ((eeffgghh - 10000 * ((eeffgghh * 109951163) >> 40)) << 32) + ((eeffgghh * 109951163) >> 40);
+        i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ll<<16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        i64 ee_ff_gg_hh_merge = (eeff_gghh_merge << 16) + (1 - (100ll<<16)) * (((eeff_gghh_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        i64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ll<<8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        i64 eeffgghh_BCD = (ee_ff_gg_hh_merge << 8) + (1 - (10ll<<8)) * (((ee_ff_gg_hh_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
         u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
         u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
-        u64 tz = (eeffgghh_BCD == 0) ? 64 | aabbccdd_tz : eeffgghh_tz;
+        u64 tz = (eeffgghh_BCD == 0) ? 64 + aabbccdd_tz : eeffgghh_tz;
         tz = tz / 8;
-        u64 aabbccdd_ASCII = aabbccdd_BCD | ZERO;
-        u64 eeffgghh_ASCII = eeffgghh_BCD | ZERO;
+        u64 aabbccdd_ASCII = aabbccdd_BCD + ZERO;
+        u64 eeffgghh_ASCII = eeffgghh_BCD + ZERO;
         (*ASCII).hi = aabbccdd_ASCII;
         (*ASCII).lo = eeffgghh_ASCII;
         return tz;
@@ -716,9 +746,18 @@ static inline u32 u32_lz_bits(u32 v) {
 
         // 12345678 => "12345678"
         // 01234567 => "12345670"
-        u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * ((x * 109951163) >> 40);
-        u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
-        u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+
+        // u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * ((x * 109951163) >> 40);
+        // u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        // u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+        // aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
+        // *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
+        // return u64_lz_bits(aabbccdd_BCD) / 8;
+        
+        i64 xi = x;
+        i64 aabb_ccdd_merge = (xi << 32) + (1 - (10000ull<<32)) * ((xi * 109951163) >> 40);
+        i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull<<16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+        u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) + (1 -(10ull<<8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
         aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
         *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
         return u64_lz_bits(aabbccdd_BCD) / 8;
@@ -895,36 +934,44 @@ char* xjb64(double v,char* buf)
         if( (vi << 1) == (1 << 1) )memcpy(buf , "5e-324\0", 8);
         if( (vi << 1) == (2047ull<<53) )memcpy(buf , "Inf\0\0\0\0", 8);
         if( (vi << 1) > (2047ull<<53) )memcpy(buf , "NaN\0\0\0\0", 8);
-        return buf + ((vi << 1) - 3 == (u64)-1 ? 6 : 3);//end with '\0'
+        //return buf + ((vi << 1) - 3 == (u64)-1 ? 6 : 3);//end with '\0'
         //return buf + (((vi << 1) - 3) >> 63 ? 6 : 3);
+        return buf + ((vi << 1) == 2 ? 6 : 3);
     }
     //*(u64*)buf = *(u64*)"0.00000";
     //memcpy(buf, "0.000000", 8);
     u64 c;
     int32_t q;
 #ifdef __amd64__
-    if (ieee_exponent > 0) [[likely]] // branch
-    {
-        c = (1ull<<52) | ieee_significand;// 53 bit
-        q = ieee_exponent - 1075;
-        // if(ieee_exponent == 2047)[[unlikely]]
-        // {
-        //     memcpy(buf, ieee_significand ? "NaN" : "Inf", 4);//end with '\0'
-        //     return buf + 3;
-        // }
-    }
-    else
+    c = (1ull<<52) | ieee_significand;// 53 bit
+    q = ieee_exponent - 1075;
+    if(ieee_exponent == 0 )[[unlikely]]
     {
         c = ieee_significand;
         q = 1 - 1075; // -1074
-        // if( (vi << 1) < 3 )[[unlikely]]
-        // {
-        //     //*(u64*)buf = (vi << 1) ? *(u64*)"5e-324" : *(u32*)"0.0";//end with '\0'
-        //     if(vi << 1) memcpy(buf, "5e-324\0", 8);
-        //     else memcpy(buf, "0.0\0\0\0\0", 8);
-        //     return buf + ((vi << 1) ? 6 : 3);
-        // }
     }
+    // if (ieee_exponent > 0) [[likely]] // branch
+    // {
+    //     c = (1ull<<52) | ieee_significand;// 53 bit
+    //     q = ieee_exponent - 1075;
+    //     // if(ieee_exponent == 2047)[[unlikely]]
+    //     // {
+    //     //     memcpy(buf, ieee_significand ? "NaN" : "Inf", 4);//end with '\0'
+    //     //     return buf + 3;
+    //     // }
+    // }
+    // else
+    // {
+    //     c = ieee_significand;
+    //     q = 1 - 1075; // -1074
+    //     // if( (vi << 1) < 3 )[[unlikely]]
+    //     // {
+    //     //     //*(u64*)buf = (vi << 1) ? *(u64*)"5e-324" : *(u32*)"0.0";//end with '\0'
+    //     //     if(vi << 1) memcpy(buf, "5e-324\0", 8);
+    //     //     else memcpy(buf, "0.0\0\0\0\0", 8);
+    //     //     return buf + ((vi << 1) ? 6 : 3);
+    //     // }
+    // }
 #else
     // c = (1ull<<52) + ieee_significand;// 53 bit
     // q = ieee_exponent + ( -1075 );
@@ -940,7 +987,7 @@ char* xjb64(double v,char* buf)
     int k;
     const int offset = 6; // [5,10] ; 5 + 64 >= 69    6+64=70 >=69
     u64 regular = ieee_significand > 0;
-    u64 irregular = (ieee_significand < 1);
+    u64 irregular = (ieee_significand == 0);
     //u64 irregular = c == 1ull<<52;
     static const u64 exp_result_precalc[324 + 308 + 1]={
 0x500003432332d65, // e10=-324
@@ -2259,13 +2306,9 @@ char* xjb64(double v,char* buf)
 #else
         //dec_sig_len_ofs = up_down  ?  2+16 - tz : 2+16 + D17;
         u64 dec_sig_len_ofs3 = up_down  ?  15 - tz : 15 + D17;
-        // u64 dec_sig_len_ofs3 = up  ?  15 - tz : 15 + D17;
-        // dec_sig_len_ofs3 = down  ?  15 - tz : dec_sig_len_ofs3;
-
 #endif
 
 #endif
-        // in fact : dec_sig_len = (one > 0) ? 16 + D17 : 16 - tz; add 2 for calc the offset in the array.
         k += 15 + D17;
         e10 = k;
 
@@ -2281,7 +2324,7 @@ char* xjb64(double v,char* buf)
             //     one = (((dot_one >> 4) * 5) >> 59) + 1 + (u64)('0' + '0' * 256);
             if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (((half_ulp >> 55) * 5)))
                 one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
-            // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > ((m * 10) >> 45))
+            // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > ((m * 10) >> 45))// fewer instruction but slow than above , why ?
             //     one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
 #else // for apple M1 , better performance
         //u64 one;
@@ -2367,7 +2410,7 @@ char* xjb64(double v,char* buf)
         u64 dot_pos = e10_variable_data2[e10_data_ofs][17+1];
         u64 move_pos = e10_variable_data2[e10_data_ofs][17+2];
         u64 exp_pos = e10_variable_data2[e10_data_ofs][dec_sig_len_ofs3];
-        char * buf_origin = buf;
+        char* buf_origin = buf;
         buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
     #if HAS_NEON
@@ -2377,15 +2420,11 @@ char* xjb64(double v,char* buf)
         _mm_storeu_si128((__m128i*)buf, ASCII_16);
     #endif
 #else
-        //*(u64*)&buf[0] = ASCII_16.hi;
-        //*(u64*)&buf[8] = ASCII_16.lo;
         memcpy(buf + 0, &ASCII_16.hi, 8);
         memcpy(buf + 8, &ASCII_16.lo, 8);
 #endif
-        //*(u64*)&buf[15+D17] = one;//write 2 byte
         memcpy(&buf[15 + D17], &one, 8);
         byte_move_16(&buf[move_pos],&buf[dot_pos]);// dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
-        //byte_move_16(buf + move_pos , buf + dot_pos );
         buf_origin[dot_pos] = '.';
         static const u64 *exp_ptr = (u64*)&exp_result_precalc[324];
 
@@ -2399,13 +2438,10 @@ char* xjb64(double v,char* buf)
             e10 -= lz - 1;
             buf[0] = buf[lz];
             byte_move_16(&buf[2], &buf[lz+1]);
-            //byte_move_16(buf+2, buf+lz+1);
-            //exp_pos = exp_pos - lz + 1 - (exp_pos - lz == 1 );
             exp_pos = exp_pos - lz + (exp_pos - lz != 1 );
 #if is_intel_compiler
             buf += exp_pos;
             u64 exp_result = exp_ptr[e10];
-            //*(u64*)buf = exp_result;
             memcpy(buf, &exp_result, 8);
             return buf + 5;// return the end of buffer with '\0';
 #endif
@@ -2424,11 +2460,8 @@ char* xjb64(double v,char* buf)
         u64 exp_result = exp_ptr[e10];
 #endif
         buf += exp_pos;
-        //*(u64*)buf = exp_result;
         memcpy(buf, &exp_result, 8);
-        //u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 | (e10_abs > 99u) ) ;// "e+20" "e+308" : 4 or 5
-        //u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 | (e10 > 99u || e10 < -99) );
-        u64 exp_len = exp_result >> 56; // 0 or 4 or 5 ; equal to above code
+        u64 exp_len = exp_result >> 56; // 0 or 4 or 5 ;
         return buf + exp_len;// return the end of buffer with '\0';
 }
 #if 1
