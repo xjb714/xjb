@@ -1171,10 +1171,46 @@ char* xjb64(double v,char* buf)
         // u64 exp_result = e + (abc_ascii << 16);
 
 
-        u32 a = (e10_abs * 656u) >> 16; /* e10_abs / 100 */
-        u32 bc = e10_abs - a * 100;    /* e10_abs % 100 */
-        u64 bc_ASCII = bc * 256u - (256 * 10 - 1) * ((bc * 103u) >> 10) + (u64)('0' + '0' * 256 + (4ull << 40) + (4ull << 32)); // 12 => "12"
-        u64 exp_result = e + ( ( (e10_abs > 99u) ? a + ('0' | (1ull << 40)) + (bc_ASCII << 8) : bc_ASCII) << 16);
+        int a = (e10_abs * 656) >> 16; /* e10_abs / 100 */
+        int bc = e10_abs + a * (-100);    /* e10_abs % 100 */
+        //u64 bc_ASCII = (bc << 8) + (1 - 256 * 10) * ((bc * 103) >> 10) + (u64)('0' + '0' * 256 + (4ull << 40) + (4ull << 32)); // 12 => "12"
+        //u64 exp_result = e + ( ( (e10_abs > 99u) ? a + ('0' | (1ull << 40)) + (bc_ASCII << 8) : bc_ASCII) << 16);
+        //u64 exp_result = e + ( ( (a > 0) ? a + ('0' | (1ull << 40)) + (bc_ASCII << 8) : bc_ASCII) << 16);
+
+        u64 bc_ASCII = (bc << 8) + (1 - 256 * 10) * ((bc * 103) >> 10) + (u64)('0' + '0' * 256); // 12 => "12"
+        u64 exp_result = e + ( ( (a > 0) ? a + '0' + (bc_ASCII << 8) : bc_ASCII) << 16);
+
+        // u32 abc = e10_abs;
+        // u32 ab = (abc * 1639) >> 14;
+        // u32 a = (abc * 10486) >> 20;
+        // u32 c2 = abc - ab * 10;
+        // u32 b = ab - a * 10;
+        // u32 bc_bcd = (c2 << 8) + b;
+        // u32 bc_ASCII = bc_bcd + 0x3030;
+        // u32 abc_ASCII = a + (bc_bcd << 8) + 0x303030;
+        // u64 bits = a > 0 ? abc_ASCII : bc_ASCII;
+        // u64 exp_result = e + (bits << 16);
+
+        // int abc = e10_abs;
+        // int ab = (abc * 1639) >> 14;
+        // int a = (abc * 10486) >> 20;
+        // int ab_bcd = (ab << 8) + (-2559) * a;
+        // int c_bcd = (abc - ab * 10) << 16;
+        // u64 abc_ASCII = ab_bcd + c_bcd + 0x303030;
+        // //abc_ASCII = a > 0 ? abc_ASCII : abc_ASCII >> 8;
+        // abc_ASCII = abc_ASCII >> ( abc > 99 ? 0 : 8);
+        // u64 exp_result = e + (abc_ASCII << 16);
+
+
+        // u32 abc = e10_abs;
+        // u32 ab = (abc * 1639) >> 14;
+        // u32 a = (abc * 10486) >> 20;
+        // u32 c2 = abc - ab * 10;
+        // u32 b = ab - a * 10;
+        // u32 shift = abc<100 ? 8 : 0;
+        // u32 abc_ASCII = a + (b << 8) + (c2 << 16) + 0x303030;
+        // u64 bits = abc_ASCII >> shift;
+        // u64 exp_result = e + (bits << 16);
 
         // u64 bc_ASCII = bc * 256 - (256 * 10 - 1) * ((bc * 103u) >> 10) + (u64)('0' + '0' * 256); // 12 => "12"
         // u64 exp_result = e + ( ( (e10_abs > 99u) ? a + '0' + (bc_ASCII << 8) : bc_ASCII) << 16);
@@ -1186,7 +1222,7 @@ char* xjb64(double v,char* buf)
 
         //*(u64*)buf = exp_result;
         memcpy(buf, &exp_result, 8);
-        u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 + (e10_abs > 99u) ) ;// "e+20" "e+308" : 4 or 5
+        u64 exp_len = (e10_DN<=e10 && e10<= e10_UP ) ? 0 : (4 + (a > 0) ) ;// "e+20" "e+308" : 4 or 5
         //u64 exp_len = exp_result >> 56; // 0 or 4 or 5 ; equal to above code
         return buf + exp_len;// return the end of buffer with '\0';
 }
