@@ -523,6 +523,7 @@ static inline u32 u32_lz_bits(u32 v) {
         {
             // require x in [1 , 1e16 - 1] = [1 , 99999999*1e8 + 99999999]
             // return tail zero count of x in base 10
+#if 0
             const u64 ZERO = 0x30303030ull + (0x30303030ull << 32);
             u64 aabbccdd = x / 100000000;
             u64 eeffgghh = x - aabbccdd * 100000000;
@@ -555,6 +556,7 @@ static inline u32 u32_lz_bits(u32 v) {
             uint64x2_t merge = vmlsq_n_u16(vshlq_n_u16(merge2,8), vshrq_n_u16(vmulq_n_u16(merge2,103),10) , ((10<<8) - 1) );
             static const u64 ZERO_2[2] = {ZERO,ZERO};
             uint64x2_t ASCII_16 = vorrq_u64(merge,vld1q_u64((uint64_t*)ZERO_2));
+            //uint64x2_t ASCII_16 = vorrq_u64(merge,vdupq_n_s8('0'));
             *x_ASCII = ASCII_16;
 
 
@@ -566,17 +568,71 @@ static inline u32 u32_lz_bits(u32 v) {
             u64 tz = eeffgghh ? eeffgghh_tz : 64 + aabbccdd_tz ;
             tz = tz / 8;
             return tz;
+#endif
+
+  // src from  https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
+  uint32_t hi = ((__uint128_t)x * 0xabcc77118461cefd) >> 90;
+  uint32_t lo = x - hi * 100000000;
+
+  uint64x1_t hundredmillions = { hi | ((uint64_t)lo << 32) };
+
+  int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(0x68db8bb)), 9);
+  int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(-10000 + 0x10000));
+
+  // Equivalent to `extended = vshll_n_u16(tenthousands, 0)`, but clang can see through
+  // that and breaks the subsequent MLA into UADDW + MUL.
+  int32x2_t zero = { 0, 0 };
+  int32x4_t extended = vzip1q_u16(vcombine_u16(tenthousands, zero), vcombine_u16(zero, zero));
+
+  int32x4_t high_100 = vqdmulhq_s32(extended, vdupq_n_s32(0x147b000));
+  int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(-100 + 0x10000));
+
+  int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(0xce0));
+  //int16x8_t digits = vmlaq_s16(vaddq_s8(hundreds, vdupq_n_s8('0')), high_10, vdupq_n_s16(-10 + 0x100));
+
+  int16x8_t BCD_t = vmlaq_s16(hundreds, high_10, vdupq_n_s16(-10 + 0x100));
+  int8x16_t BCD = vrev64q_u8(BCD_t);
+
+  
+  int16x8_t digits = vaddq_s8(BCD , vdupq_n_s8('0'));
+
+  *x_ASCII = vreinterpretq_u64_u8(digits);
+
+        u64 aabbccdd_BCD = vgetq_lane_u64(BCD, 0);
+            u64 eeffgghh_BCD = vgetq_lane_u64(BCD, 1);
+            u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
+            u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
+            //u64 tz = (eeffgghh_BCD == 0) ? 64 + aabbccdd_tz : eeffgghh_tz;//when eeffgghh_BCD is zero, aabbccdd_tz is the not-zero value ; because of v > 5e-324 ; x!=0
+            u64 tz = lo ? eeffgghh_tz : 64 + aabbccdd_tz ;
+            tz = tz / 8;
+            return tz;
+
+
         }
     static inline u64 encode_8digit_fast(const u64 x,u64* ASCII){
-            u64 aabb = (x * (u128)1844674407370956) >> 64;
-            u64 ccdd = x - aabb * 10000;
-            uint32x2_t merge4_t = vld1_u32((uint32_t const *)&aabb);// 0000 aabb
-            merge4_t = vset_lane_u32(ccdd, merge4_t, 1);// ccdd aabb
-            uint64x1_t merge4 = vreinterpret_u64_u32(merge4_t);
-            uint64x1_t merge2 = vmls_n_u32(vshl_n_u32(merge4,16), vshr_n_u32(vmul_n_u32(merge4,10486),20) , ((100<<16) - 1) );
-            uint16x4_t merge = vmls_n_u16(vshl_n_u16(merge2,8), vshr_n_u16(vmul_n_u16(merge2,103),10) , ((10<<8) - 1) );
-            uint64x1_t merge_final = vreinterpret_u64_u16(merge);
-            u64 aabbccdd_BCD = vget_lane_u64(merge_final,0);
+// old version:
+            // u64 aabb = (x * (u128)1844674407370956) >> 64;
+            // u64 ccdd = x + aabb * (-10000);
+            // uint32x2_t merge4_t = vld1_u32((uint32_t const *)&aabb);// 0000 aabb
+            // merge4_t = vset_lane_u32(ccdd, merge4_t, 1);// ccdd aabb
+            // uint64x1_t merge4 = vreinterpret_u64_u32(merge4_t);
+            // // u64 efgh_abcd = (x<<32) + (1 - (10000ull<<32)) * ((x * (u128)1844674407370956) >> 64);
+            // // uint64x1_t merge4 = vld1_u64((uint64_t const *)&efgh_abcd);// efgh abcd
+            // uint64x1_t merge2 = vmls_n_u32(vshl_n_u32(merge4,16), vqdmulh_s32(merge4, vdup_n_s32(0x147b000)), ((100<<16) - 1) );
+            // uint16x4_t merge = vmls_n_u16(vshl_n_u16(merge2,8), vqdmulh_s16(merge2, vdup_n_s16(0xce0)) , ((10<<8) - 1) );
+            // uint64x1_t merge_final = vreinterpret_u64_u16(merge);
+            // u64 aabbccdd_BCD = vget_lane_u64(merge_final,0);
+//end of old version
+//new version:
+        u64 abcd_efgh = x + ((1ull<<32) - 10000) * ((x * (u128)1844674407370956) >> 64); // x = abcdefgh
+        int32x2_t tenthousands = vld1_u64((uint64_t const *)&abcd_efgh);// (abcd << 32) + efgh
+        int32x2_t hundreds = vmla_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(0x147b000)), vdup_n_s32(-100 + 0x10000));
+        int16x4_t BCD_big_endian = vmla_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
+        int8x8_t BCD_little_endian = vrev64_u8(BCD_big_endian);// big_endian to little_endian , reverse 8 bytes
+        u64 aabbccdd_BCD = vget_lane_u64(BCD_little_endian,0);
+// end of new version
+
+            
             aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
             *ASCII = aabbccdd_BCD | ((0x30303030ull << 32) + 0x30303030ull);
             return u64_lz_bits(aabbccdd_BCD) / 8;
@@ -914,17 +970,40 @@ static inline char* write_1_to_16_digit(u64 x,char* buf)
     {
         //write 1-8 digit
 #if HAS_NEON
-        i64 aabb = (xi * (u128)1844674407370956) >> 64;
-        i64 ccdd = xi + aabb * (-10000);
-        uint32x2_t merge4_t = vld1_u32((uint32_t const *)&aabb);// 0000 aabb
-        merge4_t = vset_lane_u32(ccdd, merge4_t, 1);// ccdd aabb
-        uint64x1_t merge4 = vreinterpret_u64_u32(merge4_t);
-        uint64x1_t merge2 = vmls_n_u32(vshl_n_u32(merge4,16), vshr_n_u32(vmul_n_u32(merge4,10486),20) , ((100<<16) - 1) );
-        uint64x1_t merge = vmls_n_u16(vshl_n_u16(merge2,8), vshr_n_u16(vmul_n_u16(merge2,103),10) , ((10<<8) - 1) );
-        u64 aabbccdd_BCD = vget_lane_u64(merge,0);
+
+//method1
+        // i64 aabb = (xi * (u128)1844674407370956) >> 64;
+        // i64 ccdd = xi + aabb * (-10000);
+        // uint32x2_t merge4_t = vld1_u32((uint32_t const *)&aabb);// 0000 aabb
+        // merge4_t = vset_lane_u32(ccdd, merge4_t, 1);// ccdd aabb
+        // uint64x1_t merge4 = vreinterpret_u64_u32(merge4_t);
+        // uint64x1_t merge2 = vmls_n_u32(vshl_n_u32(merge4,16), vqdmulh_s32(merge4, vdup_n_s32(0x147b000)) , ((100<<16) - 1) );
+        // uint64x1_t BCD = vmls_n_u16(vshl_n_u16(merge2,8), vqdmulh_s16(merge2, vdup_n_s16(0xce0)) , ((10<<8) - 1) );
+        // u64 aabbccdd_BCD = vget_lane_u64(BCD,0);
+
+//method2
+        // i64 abcd = (xi * (u128)1844674407370956) >> 64;
+        // i64 efgh = xi + abcd * (-10000);
+        // u64 abcd_efgh = (abcd << 32) | efgh;
+        u64 abcd_efgh = xi + ((1ull<<32) - 10000) * ((xi * (u128)1844674407370956) >> 64); // xi = abcdefgh
+        int32x2_t tenthousands = vld1_u64((uint64_t const *)&abcd_efgh);// (abcd << 32) + efgh
+        int32x2_t hundreds = vmla_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(0x147b000)), vdup_n_s32(-100 + 0x10000));
+        int16x4_t BCD_big_endian = vmla_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
+        int8x8_t BCD_little_endian = vrev64_u8(BCD_big_endian);// big_endian to little_endian , reverse 8 bytes
+        u64 aabbccdd_BCD = vget_lane_u64(BCD_little_endian,0);
+
+//method3
+        // i64 aabb = (xi * (u128)1844674407370956) >> 64;
+        // i64 ccdd = xi + aabb * (-10000);
+        // u64 efgh_abcd = (ccdd << 32) | aabb;
+        // //u64 efgh_abcd = (xi<<32) + (1 - (10000ull<<32)) * ((xi * (u128)1844674407370956) >> 64); // xi = abcdefgh
+        // int32x2_t tenthousands = vld1_u64((uint64_t const *)&efgh_abcd);// (efgh << 32) + abcd
+        // int32x2_t hundreds = vmla_s32(vshl_n_u32(tenthousands,16), vqdmulh_s32(tenthousands, vdup_n_s32(0x147b000)), vdup_n_s32(1 - (100<<16)));
+        // int16x4_t BCD_little_endian = vmla_s16(vshl_n_u16(hundreds,8), vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), vdup_n_s16(1 - (10<<8)));
+        // u64 aabbccdd_BCD = vget_lane_u64(BCD_little_endian,0);
 #else
         i64 aabb_ccdd_merge = (xi << 32) + (1 - (10000ull<<32)) * ((xi * 109951163) >> 40);
-        //i64 aabb_ccdd_merge = ((xi + (-10000) * ((xi * 109951163) >> 40)) << 32) + ((xi * 109951163) >> 40);
+        //i64 aabb_ccdd_merge = ((xi + (-10000) * ((xi * 109951163) >> 40)) << 32) | ((xi * 109951163) >> 40);
         i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull<<16)) * (((aabb_ccdd_merge * 10486) >> 20) & mask);
         u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) + (1 -(10ull<<8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & mask2);
 #endif
@@ -941,17 +1020,32 @@ static inline char* write_1_to_16_digit(u64 x,char* buf)
     {
         //write 9-16 digit
 #if HAS_NEON
-        u64 aabbccdd = xi / 100000000;
-        u64 eeffgghh = xi + aabbccdd * (-100000000);
-        u64 aabb = ((aabbccdd * 109951163) >> 40);
-        u64 eeff = ((eeffgghh * 109951163) >> 40);
-        uint64x2_t merge8 = vcombine_u64(vld1_u64(&aabbccdd), vld1_u64(&eeffgghh));
-        uint64x2_t merge_aabb_eeff = vcombine_u64(vld1_u64(&aabb), vld1_u64(&eeff));
-        uint64x2_t merge4 = vorrq_u64(vshlq_n_u64(vmlsq_n_u32(merge8,merge_aabb_eeff,10000),32),merge_aabb_eeff);
-        uint64x2_t merge2 = vmlsq_n_u32(vshlq_n_u32(merge4,16), vshrq_n_u32(vmulq_n_u32(merge4,10486),20) , ((100<<16) - 1) );
-        uint64x2_t merge = vmlsq_n_u16(vshlq_n_u16(merge2,8), vshrq_n_u16(vmulq_n_u16(merge2,103),10) , ((10<<8) - 1) );
-        u64 aabbccdd_BCD = vgetq_lane_u64(merge, 0);
-        u64 eeffgghh_BCD = vgetq_lane_u64(merge, 1);
+        // u64 aabbccdd = xi / 100000000;
+        // u64 eeffgghh = xi + aabbccdd * (-100000000);
+        // u64 aabb = ((aabbccdd * 109951163) >> 40);
+        // u64 eeff = ((eeffgghh * 109951163) >> 40);
+        // uint64x2_t merge8 = vcombine_u64(vld1_u64(&aabbccdd), vld1_u64(&eeffgghh));
+        // uint64x2_t merge_aabb_eeff = vcombine_u64(vld1_u64(&aabb), vld1_u64(&eeff));
+        // uint64x2_t merge4 = vorrq_u64(vshlq_n_u64(vmlsq_n_u32(merge8,merge_aabb_eeff,10000),32),merge_aabb_eeff);
+        // uint64x2_t merge2 = vmlsq_n_u32(vshlq_n_u32(merge4,16), vshrq_n_u32(vmulq_n_u32(merge4,10486),20) , ((100<<16) - 1) );
+        // uint64x2_t merge = vmlsq_n_u16(vshlq_n_u16(merge2,8), vshrq_n_u16(vmulq_n_u16(merge2,103),10) , ((10<<8) - 1) );
+        // u64 aabbccdd_BCD = vgetq_lane_u64(merge, 0);
+        // u64 eeffgghh_BCD = vgetq_lane_u64(merge, 1);
+
+  // src from : https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
+  uint32_t hi = ((__uint128_t)xi * 0xabcc77118461cefd) >> 90;
+  uint32_t lo = xi - hi * 100000000;
+  uint64x1_t hundredmillions = { hi | ((uint64_t)lo << 32) };
+  int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(0x68db8bb)), 9);
+  int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(-10000 + 0x10000));
+  const int32x2_t zero = { 0, 0 };
+  int32x4_t extended = vzip1q_u16(vcombine_u16(tenthousands, zero), vcombine_u16(zero, zero));
+  int32x4_t hundreds = vmlaq_s32(extended, vqdmulhq_s32(extended, vdupq_n_s32(0x147b000)), vdupq_n_s32(-100 + 0x10000));
+  int16x8_t BCD_big_endian = vmlaq_s16(hundreds, vqdmulhq_s16(hundreds, vdupq_n_s16(0xce0)), vdupq_n_s16(-10 + 0x100));
+  int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);// big_endian to little_endian , reverse 8 bytes
+  //int8x16_t ASCII_little_endian = vaddq_s8(BCD_little_endian, vdupq_n_s8('0'));
+  u64 aabbccdd_BCD = vgetq_lane_u64(BCD_little_endian, 0);
+  u64 eeffgghh_BCD = vgetq_lane_u64(BCD_little_endian, 1);
 #else
         i64 aabbccdd = xi / 100000000;
         i64 eeffgghh = xi + aabbccdd * (-100000000);
@@ -2843,7 +2937,7 @@ char* xjb32(float v,char* buf)
     static const u64 *pow10_reverse = &pow10_table_reverse[45];
     u64 pow10_hi = pow10_reverse[k];// get 10^(-k-1)
     //u64 pow10_hi = pow10_table[(-1-k)+32];
-    u64 even = ((sig + 1) & 1);
+    u64 even = (sig + 1) & 1;
     const int BIT = 36; // [33,36] all right
     u64 cb = sig_bin << (h + (1 + BIT));
     u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64; // one mulxq instruction on x86 , need BMI2
@@ -3028,8 +3122,8 @@ char* xjb32(float v,char* buf)
 };
     static const u32 *exp_ptr = (u32*)&exp_result_precalc[45];
     //u32 exp_result = exp_ptr[e10];
-    if(m < (u32)1e6 )[[unlikely]]
     //if( (ASCII_8 & 0x0f) == 0 )[[unlikely]]
+    if(m < (u32)1e6 )[[unlikely]]
     {
         u64 lz = 0;
         while(buf[2+lz] == '0')lz++;
