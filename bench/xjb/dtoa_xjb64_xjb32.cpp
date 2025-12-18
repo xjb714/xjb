@@ -571,39 +571,40 @@ static inline u32 u32_lz_bits(u32 v) {
 #endif
 
   // src from  https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
-  uint32_t hi = ((__uint128_t)x * 0xabcc77118461cefd) >> 90;
-  uint32_t lo = x - hi * 100000000;
-
-  uint64x1_t hundredmillions = { hi | ((uint64_t)lo << 32) };
-
+  uint32_t abcdefgh = ((__uint128_t)x * 0xabcc77118461cefd) >> 90;
+  uint32_t ijklmnop  = x - abcdefgh * 100000000;
+  uint64x1_t hundredmillions = { abcdefgh | ((uint64_t)ijklmnop  << 32) };
   int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(0x68db8bb)), 9);
   int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(-10000 + 0x10000));
-
-  // Equivalent to `extended = vshll_n_u16(tenthousands, 0)`, but clang can see through
-  // that and breaks the subsequent MLA into UADDW + MUL.
   int32x2_t zero = { 0, 0 };
   int32x4_t extended = vzip1q_u16(vcombine_u16(tenthousands, zero), vcombine_u16(zero, zero));
-
   int32x4_t high_100 = vqdmulhq_s32(extended, vdupq_n_s32(0x147b000));
   int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(-100 + 0x10000));
-
   int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(0xce0));
-  //int16x8_t digits = vmlaq_s16(vaddq_s8(hundreds, vdupq_n_s8('0')), high_10, vdupq_n_s16(-10 + 0x100));
+  int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(-10 + 0x100));
+  int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 
-  int16x8_t BCD_t = vmlaq_s16(hundreds, high_10, vdupq_n_s16(-10 + 0x100));
-  int8x16_t BCD = vrev64q_u8(BCD_t);
-
+//   uint64_t abcdefgh = ((__uint128_t)x * 0xabcc77118461cefd) >> 90;
+//   uint64_t ijklmnop = x + abcdefgh * (-100000000);
+//   //uint64_t abcd_efgh = abcdefgh + ((1ull << 32) - 10000) * ((abcdefgh * (__uint128_t)1844674407370956) >> 64); // (abcd << 32) + efgh
+//   //uint64_t ijkl_mnop = ijklmnop + ((1ull << 32) - 10000) * ((ijklmnop * (__uint128_t)1844674407370956) >> 64); // (ijkl << 32) + mnop
+//   uint64_t abcd_efgh = abcdefgh + ((1ull << 32) - 10000) * ((abcdefgh * 109951163) >> 40); // (abcd << 32) + efgh
+//   uint64_t ijkl_mnop = ijklmnop + ((1ull << 32) - 10000) * ((ijklmnop * 109951163) >> 40); // (ijkl << 32) + mnop
+//   uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
+//   uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
+//   uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
+//   uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
   
-  int16x8_t digits = vaddq_s8(BCD , vdupq_n_s8('0'));
+  int16x8_t digits = vaddq_s8(BCD_little_endian , vdupq_n_s8('0'));
 
   *x_ASCII = vreinterpretq_u64_u8(digits);
 
-        u64 aabbccdd_BCD = vgetq_lane_u64(BCD, 0);
-            u64 eeffgghh_BCD = vgetq_lane_u64(BCD, 1);
+            u64 aabbccdd_BCD = vgetq_lane_u64(BCD_little_endian, 0);
+            u64 eeffgghh_BCD = vgetq_lane_u64(BCD_little_endian, 1);
             u64 aabbccdd_tz = u64_lz_bits(aabbccdd_BCD);
             u64 eeffgghh_tz = u64_lz_bits(eeffgghh_BCD);
             //u64 tz = (eeffgghh_BCD == 0) ? 64 + aabbccdd_tz : eeffgghh_tz;//when eeffgghh_BCD is zero, aabbccdd_tz is the not-zero value ; because of v > 5e-324 ; x!=0
-            u64 tz = lo ? eeffgghh_tz : 64 + aabbccdd_tz ;
+            u64 tz = ijklmnop ? eeffgghh_tz : 64 + aabbccdd_tz ;
             tz = tz / 8;
             return tz;
 
@@ -1066,9 +1067,22 @@ static inline char* write_1_to_16_digit(u64 x,char* buf)
   int32x4_t hundreds = vmlaq_s32(extended, vqdmulhq_s32(extended, vdupq_n_s32(0x147b000)), vdupq_n_s32(-100 + 0x10000));
   int16x8_t BCD_big_endian = vmlaq_s16(hundreds, vqdmulhq_s16(hundreds, vdupq_n_s16(0xce0)), vdupq_n_s16(-10 + 0x100));
   int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);// big_endian to little_endian , reverse 8 bytes
-  //int8x16_t ASCII_little_endian = vaddq_s8(BCD_little_endian, vdupq_n_s8('0'));
   u64 aabbccdd_BCD = vgetq_lane_u64(BCD_little_endian, 0);//hi
   u64 eeffgghh_BCD = vgetq_lane_u64(BCD_little_endian, 1);//lo
+
+
+//   uint64_t abcdefgh = ((__uint128_t)xi * 0xabcc77118461cefd) >> 90;
+//     uint64_t ijklmnop = xi + abcdefgh * (-100000000);
+//     //uint64_t abcd_efgh = abcdefgh + ((1ull << 32) - 10000) * ((abcdefgh * (__uint128_t)1844674407370956) >> 64); // (abcd << 32) + efgh
+//     //uint64_t ijkl_mnop = ijklmnop + ((1ull << 32) - 10000) * ((ijklmnop * (__uint128_t)1844674407370956) >> 64); // (ijkl << 32) + mnop
+//     uint64_t abcd_efgh = abcdefgh + ((1ull << 32) - 10000) * ((abcdefgh * 109951163) >> 40); // (abcd << 32) + efgh
+//     uint64_t ijkl_mnop = ijklmnop + ((1ull << 32) - 10000) * ((ijklmnop * 109951163) >> 40); // (ijkl << 32) + mnop
+//     uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
+//     uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
+//     uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
+//     uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+//     u64 aabbccdd_BCD = vgetq_lane_u64(BCD_little_endian, 0);//hi
+//   u64 eeffgghh_BCD = vgetq_lane_u64(BCD_little_endian, 1);//lo
 #else
         i64 aabbccdd = xi / 100000000;
         i64 eeffgghh = xi + aabbccdd * (-100000000);
