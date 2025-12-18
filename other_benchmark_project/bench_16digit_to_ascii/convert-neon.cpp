@@ -19,30 +19,36 @@ typedef uint64_t u64;
 typedef uint32_t u32;
 typedef uint16_t u16;
 
-uint64_t nano() {
+uint64_t nano()
+{
   return std::chrono::duration_cast<::std::chrono::nanoseconds>(
              std::chrono::steady_clock::now().time_since_epoch())
       .count();
 }
 template <typename PROCEDURE>
-double bench(PROCEDURE f, uint64_t threshold = 200'000'000) {
+double bench(PROCEDURE f, uint64_t threshold = 200'000'000)
+{
   uint64_t start = nano();
   uint64_t finish = start;
   size_t count{0};
-  for (; finish - start < threshold;) {
+  for (; finish - start < threshold;)
+  {
     count += f();
     finish = nano();
   }
   return double(finish - start) / count;
 }
-void to_string_backlinear(uint64_t x, char *out) {
-  for (int z = 0; z < 16; z++) {
+static inline void to_string_backlinear(uint64_t x, char *out)
+{
+  for (int z = 0; z < 16; z++)
+  {
     out[15 - z] = (x % 10) + 0x30;
     x /= 10;
   }
 }
 
-void to_string_linear(uint64_t x, char *out) {
+static inline void to_string_linear(uint64_t x, char *out)
+{
   out[0] = x / 1000000000000000 + 0x30;
   x %= 1000000000000000;
   out[1] = x / 100000000000000 + 0x30;
@@ -77,7 +83,8 @@ void to_string_linear(uint64_t x, char *out) {
 }
 
 // credit: Paul Khuong
-uint64_t encode_ten_thousands(uint64_t hi, uint64_t lo) {
+uint64_t encode_ten_thousands(uint64_t hi, uint64_t lo)
+{
   uint64_t merged = hi | (lo << 32);
   /* Truncate division by 100: 10486 / 2**20 ~= 1/100. */
   uint64_t top = ((merged * 10486ULL) >> 20) & ((0x7FULL << 32) | 0x7FULL);
@@ -100,7 +107,8 @@ uint64_t encode_ten_thousands(uint64_t hi, uint64_t lo) {
   return tens;
 }
 
-uint64_t encode_ten_thousands2(uint64_t hi, uint64_t lo) {
+uint64_t encode_ten_thousands2(uint64_t hi, uint64_t lo)
+{
   uint64_t merged = hi | (lo << 32);
   /* Truncate division by 100: 10486 / 2**20 ~= 1/100. */
   uint64_t top = ((merged * 0x147b) >> 19) & ((0x7FULL << 32) | 0x7FULL);
@@ -118,7 +126,8 @@ uint64_t encode_ten_thousands2(uint64_t hi, uint64_t lo) {
   return tens;
 }
 
-void to_string_khuong(uint64_t x, char *out) {
+void to_string_khuong(uint64_t x, char *out)
+{
   uint64_t top = x / 100000000;
   uint64_t bottom = x % 100000000;
   uint64_t first =
@@ -146,21 +155,23 @@ void to_string_khuong(uint64_t x, char *out) {
 // mla.8h      v16, v17, v7
 // rev64.16b   v16, v16
 
-void to_string_neon(uint64_t v, char *out) {
+void to_string_neon_old(uint64_t v, char *out)
+{
   // Equivalent to hi = v / 100000000, lo = v % 100000000, but for some reason
   // clang emits a UDIV.
   uint32_t hi = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
   uint32_t lo = v - hi * 100000000;
 
-  uint64x1_t hundredmillions = { hi | ((uint64_t)lo << 32) };
+  uint64x1_t hundredmillions = {hi | ((uint64_t)lo << 32)};
 
   int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(0x68db8bb)), 9);
   int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(-10000 + 0x10000));
 
   // Equivalent to `extended = vshll_n_u16(tenthousands, 0)`, but clang can see through
   // that and breaks the subsequent MLA into UADDW + MUL.
-  int32x2_t zero = { 0, 0 };
-  int32x4_t extended = vzip1q_u16(vcombine_u16(tenthousands, zero), vcombine_u16(zero, zero));
+  // int32x2_t zero = {0, 0};
+  // int32x4_t extended = vzip1q_u16(vcombine_u16(tenthousands, zero), vcombine_u16(zero, zero));
+  int32x4_t extended = vshll_n_u16(tenthousands, 0);
 
   int32x4_t high_100 = vqdmulhq_s32(extended, vdupq_n_s32(0x147b000));
   int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(-100 + 0x10000));
@@ -171,41 +182,137 @@ void to_string_neon(uint64_t v, char *out) {
   int8x16_t result = vrev64q_u8(digits);
 
   memcpy(out, &result, sizeof(result));
-  //vst1q_s8((int8_t *)out, result);
+  // vst1q_s8((int8_t *)out, result);
+}
+
+void to_string_neon(uint64_t v, char *out)
+{
+  struct to_string_constants
+{
+  uint64_t mul_const;//8
+  uint64_t hundred_million;//8
+  int32x4_t multipliers32;//16
+  int16x8_t multipliers16;//16
+};
+  static const struct to_string_constants constants = {
+      .mul_const = 0xabcc77118461cefd,
+      .hundred_million = 100000000,
+      .multipliers32 = {0x68db8bb, -10000 + 0x10000, 0x147b000, -100 + 0x10000},
+      .multipliers16 = {0xce0, -10 + 0x100},
+  };
+
+  const struct to_string_constants *c = &constants;
+
+  // Compiler barrier, or clang doesn't load from memory and generates 15 more instructions
+  asm("" : "+r"(c));
+
+  // Equivalent to hi = v / 100000000, lo = v % 100000000.
+  uint64_t hundred_million = c->hundred_million;
+
+  // Compiler barrier, or clang narrows the load to 32-bit and unpairs it.
+  asm("" : "+r"(hundred_million));
+
+  uint32_t hi = ((__uint128_t)v * c->mul_const) >> 90;
+  uint32_t lo = v - hi * hundred_million;
+
+  uint64x1_t hundredmillions = {hi | ((uint64_t)lo << 32)};
+
+  int32x2_t high_10000 = vshr_n_u32(vqdmulh_n_s32(hundredmillions, c->multipliers32[0]), 9);
+  int32x2_t tenthousands = vmla_n_s32(hundredmillions, high_10000, c->multipliers32[1]);
+
+  int32x4_t extended = vshll_n_u16(tenthousands, 0);
+
+  // Compiler barrier, or clang breaks the subsequent MLA into UADDW + MUL.
+  asm("" : "+w"(extended));
+
+  int32x4_t high_100 = vqdmulhq_n_s32(extended, c->multipliers32[2]);
+  int32x4_t hundreds = vmlaq_n_s32(extended, high_100, c->multipliers32[3]);
+  int16x8_t high_10 = vqdmulhq_n_s16(hundreds, c->multipliers16[0]);
+  int16x8_t digits = vmlaq_n_s16(vaddq_s8(hundreds, vdupq_n_s8('0')), high_10, c->multipliers16[1]);
+  int8x16_t result = vrev64q_u8(digits);
+
+  memcpy(out, &result, sizeof(result));
 }
 
 void to_string_neon_v2(uint64_t v, char *out)
 {
-    uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
-    uint64_t ijklmnop = v + abcdefgh * (-100000000);
-    uint64_t abcd_efgh = abcdefgh + ((1ull << 32) - 10000) * ((abcdefgh * 109951163) >> 40); // (abcd << 32) + efgh
-    uint64_t ijkl_mnop = ijklmnop + ((1ull << 32) - 10000) * ((ijklmnop * 109951163) >> 40); // (ijkl << 32) + mnop
-    uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
-    uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
-    uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
-    uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
-    uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    memcpy(out, &ASCII_16, sizeof(ASCII_16));
+  uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
+  uint64_t ijklmnop = v + abcdefgh * (-100000000);
+  uint64_t abcd_efgh = abcdefgh + ((1ull << 32) - 10000) * ((abcdefgh * 109951163) >> 40); // (abcd << 32) + efgh
+  uint64_t ijkl_mnop = ijklmnop + ((1ull << 32) - 10000) * ((ijklmnop * 109951163) >> 40); // (ijkl << 32) + mnop
+  uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
+  uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
+  uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
+  uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+  uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+  memcpy(out, &ASCII_16, sizeof(ASCII_16));
 }
 void to_string_neon_v3(uint64_t v, char *out)
 {
+  uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
+  uint64_t ijklmnop = v + abcdefgh * (-100000000);
+  uint64_t abcd_efgh = abcdefgh + ((1ull << 32) - 10000) * ((abcdefgh * (__uint128_t)1844674407370956) >> 64); // (abcd << 32) + efgh
+  uint64_t ijkl_mnop = ijklmnop + ((1ull << 32) - 10000) * ((ijklmnop * (__uint128_t)1844674407370956) >> 64); // (ijkl << 32) + mnop
+  uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
+  uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
+  uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
+  uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+  uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+  memcpy(out, &ASCII_16, sizeof(ASCII_16));
+}
+void to_string_neon_v4(uint64_t v, char *out)
+{
+  uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
+  uint64_t ijklmnop = v + abcdefgh * (-100000000);
+  uint64_t abcd = (abcdefgh * (__uint128_t)1844674407370956) >> 64;
+  //uint64_t abcd = v / (100000000ull * 10000);
+  uint64_t ijkl = (ijklmnop * (__uint128_t)1844674407370956) >> 64;
+  // uint64_t abcd = (abcdefgh * 109951163) >> 40;
+  // uint64_t ijkl = (ijklmnop * 109951163) >> 40;
+  uint64_t abcd_efgh = (abcd << 32) | (abcdefgh + abcd * (-10000)); // (abcd << 32) + efgh
+  uint64_t ijkl_mnop = (ijkl << 32) | (ijklmnop + ijkl * (-10000)); // (ijkl << 32) + mnop
+  uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
+  uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
+  uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
+  uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+  uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+  memcpy(out, &ASCII_16, sizeof(ASCII_16));
+}
+void to_string_neon_v5(uint64_t v, char *out) // slower than v2 or v3
+{
     uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
     uint64_t ijklmnop = v + abcdefgh * (-100000000);
-    uint64_t abcd_efgh = abcdefgh + ((1ull<<32) - 10000) * ((abcdefgh * (__uint128_t)1844674407370956) >> 64);// (abcd << 32) + efgh
-    uint64_t ijkl_mnop = ijklmnop + ((1ull<<32) - 10000) * ((ijklmnop * (__uint128_t)1844674407370956) >> 64);// (ijkl << 32) + mnop
-    uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
+    uint64x2_t merge8 = vcombine_u64(vld1_u64(&abcdefgh), vld1_u64(&ijklmnop));
+    int32x4_t high_10000 = vshrq_n_u32(vqdmulhq_s32(merge8, vdupq_n_s32(0x68db8bb)), 9); // 0000 , abcd , 0000 , ijkl
+    int32x4_t low_10000 = vmlaq_n_u32(merge8, high_10000, -10000);                       // 0000 , efgh , 0000 , mnop
+    int32x4_t merge4 = vzip1q_s32(low_10000 , high_10000 );                              // abcd , efgh , ijkl , mnop  
     uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
     uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
     uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
     memcpy(out, &ASCII_16, sizeof(ASCII_16));
 }
-
+void to_string_neon_v6(uint64_t v, char *out) // slower than v2 or v3
+{
+    uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
+    uint64_t ijklmnop = v + abcdefgh * (-100000000);
+    uint64x2_t merge8 = vcombine_u64(vld1_u64(&abcdefgh), vld1_u64(&ijklmnop));
+    int32x4_t high_10000 = vshrq_n_u32(vqdmulhq_s32(merge8, vdupq_n_s32(0x68db8bb)), 9); // 0000 , abcd , 0000 , ijkl
+    int32x4_t low_10000 = vmlaq_n_u32(merge8, high_10000, -10000);                       // 0000 , efgh , 0000 , mnop
+    //int32x4_t merge4 = vorrq_u64(vshlq_n_u64(high_10000, 32), low_10000);              // abcd , efgh , ijkl , mnop
+    int32x4_t merge4 = vzip1q_s32(low_10000 , high_10000 );
+    uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
+    uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
+    uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+    uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+    memcpy(out, &ASCII_16, sizeof(ASCII_16));
+}
 #endif
 
 // take a 16-digit integer, < 10000000000000000,
 // and write it out.
-void to_string_tree(uint64_t x, char *out) {
+void to_string_tree(uint64_t x, char *out)
+{
   uint64_t top = x / 100000000;
   uint64_t bottom = x % 100000000;
   //
@@ -244,7 +351,8 @@ void to_string_tree(uint64_t x, char *out) {
   out[15] = bottombottombottom % 10 + 0x30;
 }
 
-void write_tenthousand(uint64_t z, char *out) {
+void write_tenthousand(uint64_t z, char *out)
+{
   z = 429538 * z;
   out[0] = 0x30 + ((z * 10) >> 32);
   z = (z * 10) & 0xffffffff;
@@ -255,7 +363,8 @@ void write_tenthousand(uint64_t z, char *out) {
   out[3] = 0x30 + ((z * 10) >> 32);
 }
 
-void to_string_tree_str(uint64_t x, char *out) {
+void to_string_tree_str(uint64_t x, char *out)
+{
   uint64_t top = x / 100000000;
   uint64_t bottom = x % 100000000;
   //
@@ -270,26 +379,14 @@ void to_string_tree_str(uint64_t x, char *out) {
   write_tenthousand(bottombottom, out + 12);
 }
 
-void to_string_tree_table(uint64_t x, char *out) {
-  static const char table[200] = {
-      0x30, 0x30, 0x30, 0x31, 0x30, 0x32, 0x30, 0x33, 0x30, 0x34, 0x30, 0x35,
-      0x30, 0x36, 0x30, 0x37, 0x30, 0x38, 0x30, 0x39, 0x31, 0x30, 0x31, 0x31,
-      0x31, 0x32, 0x31, 0x33, 0x31, 0x34, 0x31, 0x35, 0x31, 0x36, 0x31, 0x37,
-      0x31, 0x38, 0x31, 0x39, 0x32, 0x30, 0x32, 0x31, 0x32, 0x32, 0x32, 0x33,
-      0x32, 0x34, 0x32, 0x35, 0x32, 0x36, 0x32, 0x37, 0x32, 0x38, 0x32, 0x39,
-      0x33, 0x30, 0x33, 0x31, 0x33, 0x32, 0x33, 0x33, 0x33, 0x34, 0x33, 0x35,
-      0x33, 0x36, 0x33, 0x37, 0x33, 0x38, 0x33, 0x39, 0x34, 0x30, 0x34, 0x31,
-      0x34, 0x32, 0x34, 0x33, 0x34, 0x34, 0x34, 0x35, 0x34, 0x36, 0x34, 0x37,
-      0x34, 0x38, 0x34, 0x39, 0x35, 0x30, 0x35, 0x31, 0x35, 0x32, 0x35, 0x33,
-      0x35, 0x34, 0x35, 0x35, 0x35, 0x36, 0x35, 0x37, 0x35, 0x38, 0x35, 0x39,
-      0x36, 0x30, 0x36, 0x31, 0x36, 0x32, 0x36, 0x33, 0x36, 0x34, 0x36, 0x35,
-      0x36, 0x36, 0x36, 0x37, 0x36, 0x38, 0x36, 0x39, 0x37, 0x30, 0x37, 0x31,
-      0x37, 0x32, 0x37, 0x33, 0x37, 0x34, 0x37, 0x35, 0x37, 0x36, 0x37, 0x37,
-      0x37, 0x38, 0x37, 0x39, 0x38, 0x30, 0x38, 0x31, 0x38, 0x32, 0x38, 0x33,
-      0x38, 0x34, 0x38, 0x35, 0x38, 0x36, 0x38, 0x37, 0x38, 0x38, 0x38, 0x39,
-      0x39, 0x30, 0x39, 0x31, 0x39, 0x32, 0x39, 0x33, 0x39, 0x34, 0x39, 0x35,
-      0x39, 0x36, 0x39, 0x37, 0x39, 0x38, 0x39, 0x39,
-  };
+void to_string_tree_table(uint64_t x, char *out)
+{
+  static const char table[] =
+      "0001020304050607080910111213141516171819"
+      "2021222324252627282930313233343536373839"
+      "4041424344454647484950515253545556575859"
+      "6061626364656667686970717273747576777879"
+      "8081828384858687888990919293949596979899";
   uint64_t top = x / 100000000;
   uint64_t bottom = x % 100000000;
   //
@@ -355,11 +452,11 @@ void putdec( uint64_t n, char *out ) {
  }
  */
 
-
 #ifdef __SSE2__
 // mula
 #include <x86intrin.h>
-void to_string_sse2(uint64_t v, char *out) {
+void to_string_sse2(uint64_t v, char *out)
+{
 
   // v is 16-digit number = abcdefghijklmnop
   const __m128i div_10000 = _mm_set1_epi32(0xd1b71759);
@@ -437,7 +534,8 @@ void to_string_sse2(uint64_t v, char *out) {
 #endif
 
 #ifdef __SSE4_1__
-void to_string_sse2__pshufb(uint64_t v, char *out) {
+void to_string_sse2__pshufb(uint64_t v, char *out)
+{
 
   // v is 16-digit number = abcdefghijklmnop
   const __m128i div_10000 = _mm_set1_epi32(0xd1b71759);
@@ -519,7 +617,8 @@ void to_string_sse2__pshufb(uint64_t v, char *out) {
 #endif
 
 #ifdef __AVX2__
-void to_string_avx2(uint64_t v, char *out) {
+void to_string_avx2(uint64_t v, char *out)
+{
 
   // begin: copy of to_string_sse2
 
@@ -560,7 +659,8 @@ void to_string_avx2(uint64_t v, char *out) {
 }
 #endif
 
-void to_string_tree_bigtable(uint64_t x, char *out) {
+void to_string_tree_bigtable(uint64_t x, char *out)
+{
 #include "bigtable.h"
 
   uint64_t top = x / 100000000;
@@ -576,65 +676,127 @@ void to_string_tree_bigtable(uint64_t x, char *out) {
   memcpy(out + 8, &bigtable[4 * bottomtop], 4);
   memcpy(out + 12, &bigtable[4 * bottombottom], 4);
 }
-int main() {
+
+// void to_string_scalar_old(uint64_t v, char *out)
+// {
+//   uint64_t abcdefgh = v / 100000000;
+//   uint64_t ijklmnop = v - abcdefgh * 100000000;
+
+//   uint64_t abcd_efgh = (abcdefgh << 32) + (1 - (10000ll << 32)) * ((abcdefgh * 0x68db8bb) >> 40);
+//   uint64_t ijkl_mnop = (ijklmnop << 32) + (1 - (10000ll << 32)) * ((ijklmnop * 0x68db8bb) >> 40);
+
+//   uint64_t ab_cd_ef_gh = (abcd_efgh << 16) + (1 - (100ll << 16)) * (((abcd_efgh * 0x147b) >> 19) & 0x7f0000007f);
+//   uint64_t ij_kl_mn_op = (ijkl_mnop << 16) + (1 - (100ll << 16)) * (((ijkl_mnop * 0x147b) >> 19) & 0x7f0000007f);
+
+//   uint64_t a_b_c_d_e_f_g_h = (ab_cd_ef_gh << 8) + (1 - (10ll << 8)) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f) + 0x3030303030303030;
+//   uint64_t i_j_k_l_m_n_o_p = (ij_kl_mn_op << 8) + (1 - (10ll << 8)) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f) + 0x3030303030303030;
+
+//   const int one = 1;
+//   const int is_little_endian = *(char *)&one == 1;
+//   uint64_t h_g_f_e_d_c_b_a = is_little_endian ? a_b_c_d_e_f_g_h : __builtin_bswap64(a_b_c_d_e_f_g_h);
+//   uint64_t p_o_n_m_l_k_j_i = is_little_endian ? i_j_k_l_m_n_o_p : __builtin_bswap64(i_j_k_l_m_n_o_p);
+
+//   memcpy(out + 0, &h_g_f_e_d_c_b_a, sizeof(uint64_t));
+//   memcpy(out + 8, &p_o_n_m_l_k_j_i, sizeof(uint64_t));
+// }
+void to_string_scalar(uint64_t v, char *out)
+{
+  uint64_t abcdefgh = v / 100000000;
+  uint64_t ijklmnop = v - abcdefgh * 100000000;
+
+  uint64_t abcd_efgh = abcdefgh + (0x100000000 - 10000) * ((abcdefgh * 0x68db8bb) >> 40);
+  uint64_t ijkl_mnop = ijklmnop + (0x100000000 - 10000) * ((ijklmnop * 0x68db8bb) >> 40);
+
+  uint64_t ab_cd_ef_gh = abcd_efgh + (0x10000 - 100) * (((abcd_efgh * 0x147b) >> 19) & 0x7f0000007f);
+  uint64_t ij_kl_mn_op = ijkl_mnop + (0x10000 - 100) * (((ijkl_mnop * 0x147b) >> 19) & 0x7f0000007f);
+
+  uint64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f) + 0x3030303030303030;
+  uint64_t i_j_k_l_m_n_o_p = ij_kl_mn_op + (0x100 - 10) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f) + 0x3030303030303030;
+
+  const int one = 1;
+  const int is_little_endian = *(char *)&one == 1;
+  uint64_t h_g_f_e_d_c_b_a = is_little_endian ? __builtin_bswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+  uint64_t p_o_n_m_l_k_j_i = is_little_endian ? __builtin_bswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
+
+  memcpy(out + 0, &h_g_f_e_d_c_b_a, sizeof(uint64_t));
+  memcpy(out + 8, &p_o_n_m_l_k_j_i, sizeof(uint64_t));
+}
+
+int main()
+{
 
   std::vector<uint64_t> data;
-  for (size_t i = 0; i < 50000; i++) {
+  for (size_t i = 0; i < 50000; i++)
+  {
     data.push_back(rand() % 10000000000000000);
   }
   char *buf = new char[data.size() * 16];
-  auto backlinear_approach = [&data, buf]() -> size_t {
+  auto backlinear_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_backlinear(val, b);
       b += 16;
     }
     return data.size();
   };
-  auto linear_approach = [&data, buf]() -> size_t {
+  auto linear_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_linear(val, b);
       b += 16;
     }
     return data.size();
   };
-  auto tree_approach = [&data, buf]() -> size_t {
+  auto tree_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_tree(val, b);
       b += 16;
     }
     return data.size();
   };
-  auto tree_table_approach = [&data, buf]() -> size_t {
+  auto tree_table_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_tree_table(val, b);
       b += 16;
     }
     return data.size();
   };
-  auto tree_str_approach = [&data, buf]() -> size_t {
+  auto tree_str_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_tree_str(val, b);
       b += 16;
     }
     return data.size();
   };
 
-  auto tree_bigtable_approach = [&data, buf]() -> size_t {
+  auto tree_bigtable_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_tree_bigtable(val, b);
       b += 16;
     }
     return data.size();
   };
-  auto khuong_approach = [&data, buf]() -> size_t {
+  auto khuong_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_khuong(val, b);
       b += 16;
     }
@@ -642,36 +804,85 @@ int main() {
   };
 
 #ifdef __ARM_NEON
-  auto neon_approach = [&data, buf]() -> size_t {
+  auto neon_old_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
+      to_string_neon_old(val, b);
+      b += 16;
+    }
+    return data.size();
+  };
+  auto neon_approach = [&data, buf]() -> size_t
+  {
+    char *b = buf;
+    for (auto val : data)
+    {
       to_string_neon(val, b);
       b += 16;
     }
     return data.size();
   };
-  auto neon_v2_approach = [&data, buf]() -> size_t {
+  auto neon_v2_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_neon_v2(val, b);
       b += 16;
     }
     return data.size();
   };
-  auto neon_v3_approach = [&data, buf]() -> size_t {
+  auto neon_v3_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_neon_v3(val, b);
+      b += 16;
+    }
+    return data.size();
+  };
+  auto neon_v4_approach = [&data, buf]() -> size_t
+  {
+    char *b = buf;
+    for (auto val : data)
+    {
+      to_string_neon_v4(val, b);
+      b += 16;
+    }
+    return data.size();
+  };
+  auto neon_v5_approach = [&data, buf]() -> size_t
+  {
+    char *b = buf;
+    for (auto val : data)
+    {
+      to_string_neon_v5(val, b);
       b += 16;
     }
     return data.size();
   };
 #endif
 
-#ifdef __SSE2__
-  auto sse2_approach = [&data, buf]() -> size_t {
+  auto scalar_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
+      to_string_scalar(val, b);
+      b += 16;
+    }
+    return data.size();
+  };
+
+#ifdef __SSE2__
+  auto sse2_approach = [&data, buf]() -> size_t
+  {
+    char *b = buf;
+    for (auto val : data)
+    {
       to_string_sse2(val, b);
       b += 16;
     }
@@ -680,9 +891,11 @@ int main() {
 #endif
 
 #ifdef __SSE4_1__
-  auto sse2_approach_v2 = [&data, buf]() -> size_t {
+  auto sse2_approach_v2 = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_sse2__pshufb(val, b);
       b += 16;
     }
@@ -691,26 +904,37 @@ int main() {
 #endif
 
 #ifdef __AVX2__
-  auto avx2_approach = [&data, buf]() -> size_t {
+  auto avx2_approach = [&data, buf]() -> size_t
+  {
     char *b = buf;
-    for (auto val : data) {
+    for (auto val : data)
+    {
       to_string_avx2(val, b);
       b += 16;
     }
     return data.size();
   };
 #endif
-  for (size_t i = 0; i < 3; i++) {
+  for (size_t i = 0; i < 3; i++)
+  {
     std::cout << "khuong     ";
     std::cout << bench(khuong_approach) << std::endl;
 #ifdef __ARM_NEON
+    std::cout << "neon_old   ";
+    std::cout << bench(neon_old_approach) << std::endl;
     std::cout << "neon   ";
     std::cout << bench(neon_approach) << std::endl;
     std::cout << "neon_v2   ";
     std::cout << bench(neon_v2_approach) << std::endl;
     std::cout << "neon_v3   ";
     std::cout << bench(neon_v3_approach) << std::endl;
+    std::cout << "neon_v4   ";
+    std::cout << bench(neon_v4_approach) << std::endl;
+    std::cout << "neon_v5   ";
+    std::cout << bench(neon_v5_approach) << std::endl;
 #endif
+    std::cout << "scalar  ";
+    std::cout << bench(scalar_approach) << std::endl;
     std::cout << "backlinear ";
     std::cout << bench(backlinear_approach) << std::endl;
     std::cout << "linear ";
@@ -722,7 +946,6 @@ int main() {
     std::cout << "treest ";
     std::cout << bench(tree_table_approach) << std::endl;
     std::cout << "treebt ";
-
     std::cout << bench(tree_bigtable_approach) << std::endl;
 #ifdef __SSE2__
     std::cout << "sse2   ";
