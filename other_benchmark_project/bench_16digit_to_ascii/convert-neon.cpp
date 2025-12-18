@@ -721,6 +721,38 @@ void to_string_scalar(uint64_t v, char *out)
   memcpy(out + 0, &h_g_f_e_d_c_b_a, sizeof(uint64_t));
   memcpy(out + 8, &p_o_n_m_l_k_j_i, sizeof(uint64_t));
 }
+void to_string_8digit_scalar(uint64_t v, char *out)
+{
+  uint64_t abcdefgh = v ;
+  //uint64_t ijklmnop = v - abcdefgh * 100000000;
+
+  uint64_t abcd_efgh = abcdefgh + (0x100000000 - 10000) * ((abcdefgh * 0x68db8bb) >> 40);
+  //uint64_t ijkl_mnop = ijklmnop + (0x100000000 - 10000) * ((ijklmnop * 0x68db8bb) >> 40);
+
+  uint64_t ab_cd_ef_gh = abcd_efgh + (0x10000 - 100) * (((abcd_efgh * 0x147b) >> 19) & 0x7f0000007f);
+  //uint64_t ij_kl_mn_op = ijkl_mnop + (0x10000 - 100) * (((ijkl_mnop * 0x147b) >> 19) & 0x7f0000007f);
+
+  uint64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f) + 0x3030303030303030;
+  //uint64_t i_j_k_l_m_n_o_p = ij_kl_mn_op + (0x100 - 10) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f) + 0x3030303030303030;
+
+  const int one = 1;
+  const int is_little_endian = *(char *)&one == 1;
+  uint64_t h_g_f_e_d_c_b_a = is_little_endian ? __builtin_bswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+  //uint64_t p_o_n_m_l_k_j_i = is_little_endian ? __builtin_bswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
+
+  memcpy(out + 0, &h_g_f_e_d_c_b_a, sizeof(uint64_t));
+  //memcpy(out + 8, &p_o_n_m_l_k_j_i, sizeof(uint64_t));
+}
+uint64_t to_bcd8(uint64_t x)
+{
+  uint64_t abcdefgh = x;
+  uint64_t abcd_efgh = abcdefgh + (0x100000000 - 10000) * ((abcdefgh * 0x68db8bb) >> 40);
+  uint64_t ab_cd_ef_gh = abcd_efgh + (0x10000 - 100) * (((abcd_efgh * 0x147b) >> 19) & 0x7f0000007f);
+  uint64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f) + 0x3030303030303030;
+  const int one = 1;
+  const int is_little_endian = *(char *)&one == 1;
+  return is_little_endian ? __builtin_bswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+}
 
 int main()
 {
