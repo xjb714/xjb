@@ -864,6 +864,29 @@ static inline u32 u32_lz_bits(u32 v) {
 //     return tz1 == 8 ? 8 + tz0 : tz1;
 // }
 
+// avx512ifma code convert 16digit decimal number to 16digit ASCII number;
+// void to_string_avx512ifma(uint64_t n, char *out) {
+//     uint64_t n_15_08  = n / 100000000;
+//     uint64_t n_07_00  = n % 100000000;
+//     __m512i bcstq_h   = _mm512_set1_epi64(n_15_08);
+//     __m512i bcstq_l   = _mm512_set1_epi64(n_07_00);
+//     __m512i zmmzero   = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
+//     __m512i zmmTen    = _mm512_set1_epi64(10);
+//     __m512i asciiZero = _mm512_set1_epi64('0');
+  
+//     __m512i ifma_const	= _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b, 
+//       0x0000000010c6f7a0c, 0x00000000a7c5ac472, 0x000000068db8bac72, 0x0000004189374bc6b,
+//       0x0000028f5c28f5c29, 0x0000199999999999a);
+//     __m512i permb_const	= _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58,
+//       0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
+//     __m512i lowbits_h	= _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
+//     __m512i lowbits_l	= _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
+//     __m512i highbits_h	= _mm512_madd52hi_epu64(asciiZero, zmmTen, lowbits_h);
+//     __m512i highbits_l	= _mm512_madd52hi_epu64(asciiZero, zmmTen, lowbits_l);
+//     __m512i perm          = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
+//     __m128i digits_15_0	= _mm512_castsi512_si128(perm);
+//     _mm_storeu_si128((__m128i *)out, digits_15_0);
+//   }
 
 // static inline u64 encode_16digit(const u64 x, u64* hi,u64* lo){
 //     // this code convert 16 digit number to 16 digit ASCII number;
@@ -1044,8 +1067,8 @@ static inline char* write_1_to_16_digit(u64 x,char* buf)
   int16x8_t BCD_big_endian = vmlaq_s16(hundreds, vqdmulhq_s16(hundreds, vdupq_n_s16(0xce0)), vdupq_n_s16(-10 + 0x100));
   int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);// big_endian to little_endian , reverse 8 bytes
   //int8x16_t ASCII_little_endian = vaddq_s8(BCD_little_endian, vdupq_n_s8('0'));
-  u64 aabbccdd_BCD = vgetq_lane_u64(BCD_little_endian, 0);
-  u64 eeffgghh_BCD = vgetq_lane_u64(BCD_little_endian, 1);
+  u64 aabbccdd_BCD = vgetq_lane_u64(BCD_little_endian, 0);//hi
+  u64 eeffgghh_BCD = vgetq_lane_u64(BCD_little_endian, 1);//lo
 #else
         i64 aabbccdd = xi / 100000000;
         i64 eeffgghh = xi + aabbccdd * (-100000000);
