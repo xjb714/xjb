@@ -4,3 +4,5 @@ all:
 verify:verify.cpp
 	g++ -O3 -march=native -o verify verify.cpp
 	./verify
+clean:
+	rm -f main verify
