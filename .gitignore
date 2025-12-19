@@ -7,3 +7,4 @@ bench/main_clang.exe
 bench/main_icpx.exe
 other_benchmark_project/bench_16digit_to_ascii/main
 other_benchmark_project/bench_16digit_to_ascii/verify
+.idea/

@@ -69,13 +69,12 @@ void to_string_neon_v4(uint64_t v, char *out)
 {
   uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
   uint64_t ijklmnop = v + abcdefgh * (-100000000);
-  //uint64_t abcd = (abcdefgh * (__uint128_t)1844674407370956) >> 64;
-  uint64_t abcd = v / (100000000ull * 10000);
+  uint64_t abcd = (abcdefgh * (__uint128_t)1844674407370956) >> 64;
   uint64_t ijkl = (ijklmnop * (__uint128_t)1844674407370956) >> 64;
   // uint64_t abcd = (abcdefgh * 109951163) >> 40;
   // uint64_t ijkl = (ijklmnop * 109951163) >> 40;
-  uint64_t abcd_efgh = (abcd << 32) | (abcdefgh + abcd * (-10000)); // (abcd << 32) + efgh
-  uint64_t ijkl_mnop = (ijkl << 32) | (ijklmnop + ijkl * (-10000)); // (ijkl << 32) + mnop
+  uint64_t abcd_efgh = (abcd << 32) + abcdefgh + abcd * (-10000); // (abcd << 32) + efgh
+  uint64_t ijkl_mnop = (ijkl << 32) + ijklmnop + ijkl * (-10000); // (ijkl << 32) + mnop
   uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
   uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
   uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);

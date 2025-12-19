@@ -155,6 +155,26 @@ void to_string_khuong(uint64_t x, char *out)
 // mla.8h      v16, v17, v7
 // rev64.16b   v16, v16
 
+
+// ldr	x10, [x9], #8
+// umulh	x11, x10, x22
+// lsr	x11, x11, #26
+// madd	w10, w11, w12, w10
+// bfi	x11, x10, #32, #32
+// fmov	d0, x11
+// sqdmulh.2s	v1, v0, v9
+// ushr.2s	v1, v1, #9
+// mla.2s	v0, v1, v8
+// ushll.4s	v1, v0, #0
+// sqdmulh.4s	v1, v1, v2
+// mul.4s	v1, v1, v3
+// uaddw.4s	v0, v1, v0
+// sqdmulh.8h	v1, v0, v4
+// add.16b	v0, v0, v6
+// mla.8h	v0, v1, v5
+// rev64.16b	v0, v0
+// str	q0, [x8], #16
+
 void to_string_neon_old(uint64_t v, char *out)
 {
   // Equivalent to hi = v / 100000000, lo = v % 100000000, but for some reason
@@ -184,7 +204,25 @@ void to_string_neon_old(uint64_t v, char *out)
   memcpy(out, &result, sizeof(result));
   // vst1q_s8((int8_t *)out, result);
 }
-
+// ldr	x10, [x9], #8
+// ldp	x12, x11, [x13]
+// umulh	x12, x12, x10
+// lsr	x12, x12, #26
+// msub	w10, w11, w12, w10
+// bfi	x12, x10, #32, #32
+// fmov	d0, x12
+// ldp	q1, q2, [x13, #16]
+// sqdmulh.2s	v3, v0, v1[0]
+// ushr.2s	v3, v3, #9
+// mla.2s	v0, v3, v1[1]
+// ushll.4s	v0, v0, #0
+// sqdmulh.4s	v3, v0, v1[2]
+// mla.4s	v0, v3, v1[3]
+// sqdmulh.8h	v1, v0, v2[0]
+// add.16b	v0, v0, v4
+// mla.8h	v0, v1, v2[1]
+// rev64.16b	v0, v0
+// str	q0, [x8], #16
 void to_string_neon(uint64_t v, char *out)
 {
   struct to_string_constants
@@ -265,12 +303,11 @@ void to_string_neon_v4(uint64_t v, char *out)
   uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
   uint64_t ijklmnop = v + abcdefgh * (-100000000);
   uint64_t abcd = (abcdefgh * (__uint128_t)1844674407370956) >> 64;
-  //uint64_t abcd = v / (100000000ull * 10000);
   uint64_t ijkl = (ijklmnop * (__uint128_t)1844674407370956) >> 64;
-  // uint64_t abcd = (abcdefgh * 109951163) >> 40;
-  // uint64_t ijkl = (ijklmnop * 109951163) >> 40;
-  uint64_t abcd_efgh = (abcd << 32) | (abcdefgh + abcd * (-10000)); // (abcd << 32) + efgh
-  uint64_t ijkl_mnop = (ijkl << 32) | (ijklmnop + ijkl * (-10000)); // (ijkl << 32) + mnop
+  //uint64_t abcd = (abcdefgh * 109951163) >> 40;
+  //uint64_t ijkl = (ijklmnop * 109951163) >> 40;
+  uint64_t abcd_efgh = (abcd << 32) + abcdefgh + abcd * (-10000); // (abcd << 32) + efgh
+  uint64_t ijkl_mnop = (ijkl << 32) + ijklmnop + ijkl * (-10000); // (ijkl << 32) + mnop
   uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
   uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
   uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
@@ -289,24 +326,10 @@ void to_string_neon_v5(uint64_t v, char *out) // slower than v2 or v3
     uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
     uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
     uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
-    uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+    uint64x2_t ASCII_16 = vaddq_u64(BCD_little_endian, vdupq_n_s8('0'));
     memcpy(out, &ASCII_16, sizeof(ASCII_16));
 }
-void to_string_neon_v6(uint64_t v, char *out) // slower than v2 or v3
-{
-    uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
-    uint64_t ijklmnop = v + abcdefgh * (-100000000);
-    uint64x2_t merge8 = vcombine_u64(vld1_u64(&abcdefgh), vld1_u64(&ijklmnop));
-    int32x4_t high_10000 = vshrq_n_u32(vqdmulhq_s32(merge8, vdupq_n_s32(0x68db8bb)), 9); // 0000 , abcd , 0000 , ijkl
-    int32x4_t low_10000 = vmlaq_n_u32(merge8, high_10000, -10000);                       // 0000 , efgh , 0000 , mnop
-    //int32x4_t merge4 = vorrq_u64(vshlq_n_u64(high_10000, 32), low_10000);              // abcd , efgh , ijkl , mnop
-    int32x4_t merge4 = vzip1q_s32(low_10000 , high_10000 );
-    uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
-    uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
-    uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
-    uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    memcpy(out, &ASCII_16, sizeof(ASCII_16));
-}
+
 #endif
 
 // take a 16-digit integer, < 10000000000000000,
