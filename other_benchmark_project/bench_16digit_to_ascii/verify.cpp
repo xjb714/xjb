@@ -89,8 +89,26 @@ void to_string_neon_v5(uint64_t v, char *out) // slower than v2 or v3
     uint64x2_t merge8 = vcombine_u64(vld1_u64(&abcdefgh), vld1_u64(&ijklmnop));
     int32x4_t high_10000 = vshrq_n_u32(vqdmulhq_s32(merge8, vdupq_n_s32(0x68db8bb)), 9); // 0000 , abcd , 0000 , ijkl
     int32x4_t low_10000 = vmlaq_n_u32(merge8, high_10000, -10000);                       // 0000 , efgh , 0000 , mnop
-    //int32x4_t merge4 = vorrq_u64(vshlq_n_u64(high_10000, 32), low_10000);                // abcd , efgh , ijkl , mnop
-    int32x4_t merge4 = vzip1q_s32(low_10000 , high_10000 );
+    //int32x4_t merge4 = vorrq_u64(vshlq_n_u64(high_10000, 32), low_10000);              // abcd , efgh , ijkl , mnop
+    int32x4_t merge4 = vzip1q_u32(low_10000 , high_10000 );
+    uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
+    uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
+    uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+    uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+    memcpy(out, &ASCII_16, sizeof(ASCII_16));
+}
+void to_string_neon_v6(uint64_t v, char *out) // slower than v2 or v3
+{
+    uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
+    uint64_t ijklmnop = v + abcdefgh * (-100000000);
+    //uint64x2_t merge8 = vsetq_lane_s32(ijklmnop, vld1q_u64(&abcdefgh) , 1);
+    //uint64x2_t merge8 = vdupq_n_s64((abcdefgh << 32) | ijklmnop);
+    uint64x2_t merge8 = vdupq_n_s64((ijklmnop << 32) | abcdefgh);
+    //uint64x2_t merge8 = vcombine_u32(vld1_u32(&abcdefgh), vld1_u32(&ijklmnop));
+    int32x4_t high_10000 = vshrq_n_u32(vqdmulhq_s32(merge8, vdupq_n_s32(0x68db8bb)), 9); // 0000 , abcd , 0000 , ijkl
+    int32x4_t low_10000 = vmlaq_n_u32(merge8, high_10000, -10000);                       // 0000 , efgh , 0000 , mnop
+    //int32x4_t merge4 = vorrq_u64(vshlq_n_u64(high_10000, 32), low_10000);              // abcd , efgh , ijkl , mnop
+    int32x4_t merge4 = vzip1q_u32(low_10000 , high_10000 );
     uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
     uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
     uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
@@ -147,7 +165,7 @@ int main()
     char out[17];
     for (int i = 0; i < sizeof(v) / sizeof(v[0]); i++)
     {
-        to_string_neon_v5(v[i], out);
+        to_string_neon_v6(v[i], out);
         //to_string_scalar(v[i], out);
         out[16] = '\0';
         std::cout << out << std::endl;

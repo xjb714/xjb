@@ -77,9 +77,18 @@ std::mt19937_64 gen(rd());
 
 // unsigned long long get_cycle() // x86 , gcc
 // {
-//     uint64_t low, high;
+//     uint64_t low, high , cycles;
+// #ifdef __amd64__
 //     __asm volatile("rdtsc" : "=a"(low), "=d"(high));
 //     return (high << 32) | low;
+// #elif defined(__aarch64__)
+//     //__asm volatile("mrs %0, pmccntr_el0" : "=r"(cycles));
+//     __asm volatile("mrs %0, cntpct_el0" : "=r"(cycles));
+//     //__asm volatile("mrs %0, cntvct_el0" : "=r"(cycles));
+//     return cycles;
+// #else
+//     return 0;
+// #endif
 // }
 
 unsigned long long getns()
@@ -268,6 +277,7 @@ void bench_double_single_impl(int i)
     printf("%2d. bench %16s : ", i, name.c_str());
 
     auto t1 = getns();
+    //auto c1 = get_cycle();
 
     // This method has additional overhead,
     // which affects the test results to some extent,
@@ -354,7 +364,7 @@ void bench_double_single_impl(int i)
             for (int j = 0; j < N; ++j)
                 jnum_f64_to_str(data[j], buffer);
     }
-
+    //auto c2 = get_cycle();
     auto t2 = getns();
     for (int j = 0; j < N; ++j)
     {
@@ -363,7 +373,7 @@ void bench_double_single_impl(int i)
         (void)d;
         (void)e;
     }
-    printf("cost %5.4lf ms,every double cost %3.4lf ns\n", (t2 - t1) / 1e6, (t2 - t1) * (1.0 / N));
+    printf("cost %5.4lf ms,every double cost %3.4lf ns\n", (t2 - t1) / 1e6, (t2 - t1) * (1.0 / N) );
 }
 void bench_float_single_impl(int i)
 {
@@ -738,11 +748,11 @@ void bench_double()
     //std::string fileName = std::string("bench_double_result_") + getCPUName() + std::string(".html");
     //std::string fileName = std::string("bench_double_result_") + "Apple_M1" + std::string(".html");
     //std::string fileName = std::string("bench_double_result_") + "AMD64_7840H" + std::string(".html");
-    
+
     std::string fileName = getFileName((char*)"double");
-    
+
     benchmark_double(fileName.c_str());
-    
+
     printf("bench_double finish , please open %s\n", fileName.c_str());
 #else
 
@@ -763,11 +773,11 @@ void bench_float()
     //std::string fileName = std::string("bench_float_result_") + getCPUName() + std::string(".html");
     //std::string fileName = std::string("bench_float_result_") + "Apple_M1" + std::string(".html");
     //std::string fileName = std::string("bench_float_result_") + "AMD64_7840H" + std::string(".html");
-    
+
     std::string fileName = getFileName((char*)"float");
-    
+
     benchmark_float(fileName.c_str());
-    
+
     printf("bench_float finish , please open %s\n", fileName.c_str());
 #else
 

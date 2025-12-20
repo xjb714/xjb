@@ -264,7 +264,7 @@ static void dtoa_func_benchmark_all(const char *output_path) {
     yy_cpu_measure_freq();
 
 
-    int num_per_case = 10000 * 10; //1e6
+    int num_per_case = 10000 * 10; //1e5
     int meansure_count = 1;
 
     typedef struct {
@@ -713,8 +713,8 @@ static void ftoa_func_benchmark_all(const char *output_path) {
         //         yy_chart_item_end(chart);
         //     }
 
-        // } 
-        // else 
+        // }
+        // else
         { // bar chart
             op.type = YY_CHART_BAR;
             op.h_axis.title = "CPU cycles";
@@ -817,7 +817,7 @@ static void dtoa_func_register_all(void) {
     dtoa_func_register(zmij)
     dtoa_func_register(jnum)
 
-    
+
 
     // dtoa_func_register(null) /* used to meansure the benchmark overhead */
     // dtoa_func_register(david_gay)
@@ -858,7 +858,7 @@ static void ftoa_func_register_all(void) {
         func_name_arr_float[func_count_float] = (char*)(#name); \
         func_count_float++; \
         if ((int)strlen(#name) > func_name_max_float) func_name_max_float = (int)strlen(#name);
-    
+
         ftoa_func_register(null) // no need to verify
 
         ftoa_func_register(ryu)
