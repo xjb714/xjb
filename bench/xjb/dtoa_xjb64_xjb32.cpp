@@ -735,6 +735,30 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     static inline u64 endcode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
 
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__)
+  uint64_t n_15_08 = v / 100000000;
+  uint64_t n_07_00 = v + n_15_08 * (-100000000);
+  const __m512i bcstq_h = _mm512_set1_epi64(n_15_08);
+  const __m512i bcstq_l = _mm512_set1_epi64(n_07_00);
+  const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
+  const __m512i zmmTen = _mm512_set1_epi64(10);
+  const __m512i asciiZero = _mm512_set1_epi64('0');
+  const __m512i zero = _mm512_set1_epi64(0);
+
+  const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b,
+                                         0x0000000010c6f7a0c, 0x00000000a7c5ac472, 0x000000068db8bac72, 0x0000004189374bc6b,
+                                         0x0000028f5c28f5c29, 0x0000199999999999a);
+  const __m512i permb_const = _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58,
+                                                            0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
+  __m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
+  __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
+  __m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
+  __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
+  __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
+  __m128i tmp = _mm512_castsi512_si128(bcd);
+
+#else // sse2
+
 // magic numbers for 16-bit division
 #define DIV_10		0x199a	// shift = 0 + 16
 #define DIV_100		0x147b	// shift = 3 + 16
@@ -800,13 +824,15 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     //(z<<8) - 2559 * z/10;
     __m128i tmp = _mm_sub_epi16(_mm_slli_epi16(z,8) , _mm_mullo_epi16(_mm_set1_epi16(2559) , z_div_10));
 
+#endif // sse2
+
     unsigned int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(tmp, _mm_setzero_si128()));
 
     //u32 tz = __builtin_clz( mask ) - 16 ;
     //u32 tz = u64_lz_bits(mask) - 48;
     u32 tz = u32_lz_bits(mask);
 
-    tmp = _mm_add_epi8(tmp, ascii0);
+    tmp = _mm_add_epi8(tmp, _mm_set1_epi8('0'));
 
     *ASCII = tmp;
 
