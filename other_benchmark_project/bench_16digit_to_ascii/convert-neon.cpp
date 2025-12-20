@@ -673,7 +673,7 @@ void to_string_sse2_v3(uint64_t v, char *out)
   y_mod_100 = _mm_sub_epi16(y, y_mod_100);
 
   // z            = [    ik |    kl |    mn |    op |    ab |    cd |    ef |    gh ]
-  __m128i z = _mm_add_epi64(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+  __m128i z = _mm_or_epi32(y_mod_100, _mm_slli_epi32(y_div_100, 16));
 
   // tmp          = [ i | j | k | l | m | n | o | p | a | b | c | d | e | f | g | h ]
   __m128i tmp = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(6554))));
