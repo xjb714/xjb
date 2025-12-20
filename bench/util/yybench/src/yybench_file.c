@@ -168,7 +168,7 @@ char **yy_dir_read_opts(const char *path, int *count, bool full) {
 
     if (count) *count = 0;
     if (path_len == 0) return NULL;
-    search = malloc(path_len + 3);
+    search = (char*)malloc(path_len + 3);
     if (!search) return NULL;
     memcpy(search, path, path_len);
     if (search[path_len - 1] == '\\') path_len--;
@@ -178,7 +178,7 @@ char **yy_dir_read_opts(const char *path, int *count, bool full) {
     if (handle == -1) goto fail;
 
     alc = 4;
-    names = malloc(alc * sizeof(char*));
+    names = (char**)malloc(alc * sizeof(char*));
     if (!names) goto fail;
 
     do {
@@ -189,12 +189,12 @@ char **yy_dir_read_opts(const char *path, int *count, bool full) {
         if (!name) goto fail;
         if (idx + 1 >= alc) {
             alc *= 2;
-            names_tmp = realloc(names, alc * sizeof(char*));
+            names_tmp = (char**)realloc(names, alc * sizeof(char*));
             if (!names_tmp) goto fail;
             names = names_tmp;
         }
         if (full) {
-            char *fullpath = malloc(strlen(path) + strlen(name) + 4);
+            char *fullpath = (char*)malloc(strlen(path) + strlen(name) + 4);
             if (!fullpath) goto fail;
             yy_path_combine(fullpath, path, name, NULL);
             free(name);
