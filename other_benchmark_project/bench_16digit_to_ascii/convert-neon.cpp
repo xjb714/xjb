@@ -946,14 +946,14 @@ void to_string_avx512ifma_vbmi(uint64_t n, char *out)
   uint64_t n_07_00 = n + n_15_08 * (-100000000);
   __m512i bcstq_h = _mm512_set1_epi64(n_15_08);
   __m512i bcstq_l = _mm512_set1_epi64(n_07_00);
-  __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
-  __m512i zmmTen = _mm512_set1_epi64(10);
-  __m512i asciiZero = _mm512_set1_epi64('0');
+  const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
+  const __m512i zmmTen = _mm512_set1_epi64(10);
+  const __m512i asciiZero = _mm512_set1_epi64('0');
 
-  __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b,
+  const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b,
                                          0x0000000010c6f7a0c, 0x00000000a7c5ac472, 0x000000068db8bac72, 0x0000004189374bc6b,
                                          0x0000028f5c28f5c29, 0x0000199999999999a);
-  __m512i permb_const = _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58,
+  const __m512i permb_const = _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58,
                                                             0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
   __m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
   __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
@@ -1035,6 +1035,53 @@ void to_string_avx512f_block32(uint64_t *data, char *out)
 }
 
 #endif
+
+#if defined(__AVX512F__) && defined(__AVX512BW__) && defined(__AVX512DQ__) && defined(__AVX2__) 
+
+void to_string_avx512f_BW(uint64_t n, char *out)
+{
+    // need AVX512F,AVX512CD,AVX512BW,AVX512BW,AVX,sse4.1
+
+    u64 aabbccdd = n / 100000000;
+    u64 eeffgghh = n + aabbccdd * (-100000000);
+
+    __m256i l8_4r = _mm256_set1_epi64x(eeffgghh); // AVX
+    __m512i h8_4r = _mm512_castsi256_si512(_mm256_set1_epi64x(aabbccdd));
+    __m512i n8r = _mm512_inserti64x4(h8_4r, l8_4r, 1); // AVX512F
+    const u64 m8 = 180143986;                          //>>> 2**54/1e8
+    const u64 m6 = 18014398510;                        //>>> 2**54/1e6
+    const u64 m4 = 1801439850949;                      //>>> 2**54/1e4
+    const u64 m2 = 180143985094820;                    //>>> 2**54/1e2
+    const __m512i mr = _mm512_set_epi64(m8, m6, m4, m2, m8, m6, m4, m2);
+    const __m512i M54_8_all = _mm512_set1_epi64(((u64)1 << 54) - 1);
+    const __m512i M8_8_2 = _mm512_set1_epi64(0xff00);
+    const __m512i t10r = _mm512_set1_epi64(10);
+    const __m512i ZERO = _mm512_set1_epi64((0x30303030ull << 32) + 0x30303030ull);
+    __m512i tmp_8_0 = _mm512_mullo_epi64(n8r, mr);          // AVX512DQ
+    __m512i tmp_8_1 = _mm512_and_epi64(tmp_8_0, M54_8_all); // AVX512F
+    __m512i tmp_8_2 = _mm512_mullo_epi64(tmp_8_1, t10r);
+    __m512i tmp_8_3_t = _mm512_and_epi64(tmp_8_2, M54_8_all);
+    __m512i tmp_8_3 = _mm512_mullo_epi64(tmp_8_3_t, t10r);
+    __m512i tmp_8_1_print = _mm512_srli_epi64(tmp_8_2, 54);
+    __m512i tmp_8_2_print = _mm512_and_epi64(_mm512_srli_epi64(tmp_8_3, (54 - 8)), M8_8_2);
+    __m512i BCD = tmp_8_1_print | tmp_8_2_print | ZERO;
+    const short idx[8] = {12, 8, 4, 0, 28, 24, 20, 16}; // 16byte
+    const __m512i idxr_epi16 = _mm512_castsi128_si512(_mm_loadu_epi64(idx));
+    BCD = _mm512_permutexvar_epi16(idxr_epi16, BCD); // AVX512BW
+    //__m512i ASCII = _mm512_or_epi64(ZERO , BCD);
+    
+    _mm_storeu_si128((__m128i*)out, _mm512_castsi512_si128(BCD));
+
+    // __m512i tz = _mm512_srli_epi64(_mm512_lzcnt_epi64(BCD), 3); // AVX512CD  , lzcnt(0)=64
+    // *out = _mm512_extracti32x4_epi32(ASCII, 0);                 // xmm register ; no operation on zmm register
+    // __m128i tz2 = _mm512_extracti32x4_epi32(tz, 0);             // xmm register
+    // u64 tz0 = _mm_extract_epi64(tz2, 0);                        // sse4.1
+    // u64 tz1 = _mm_extract_epi64(tz2, 1);
+    // return tz1 == 8 ? 8 + tz0 : tz1;
+}
+
+#endif
+
 
 void to_string_tree_bigtable(uint64_t x, char *out)
 {
@@ -1413,6 +1460,21 @@ int main()
   };
 #endif
 
+#if defined(__AVX512F__) && defined(__AVX512BW__) && defined(__AVX512DQ__) && defined(__AVX2__)
+  auto avx512f_BW_approach = [&data]() -> size_t
+  {
+    char *b = buf;
+    for (auto val : data)
+    {
+      to_string_avx512f_BW(val, b);
+      b += 16;
+    }
+    return data.size();
+  };
+#endif
+
+
+
   for (size_t i = 0; i < 3; i++)
   {
     // std::cout << "khuong     ";
@@ -1496,6 +1558,13 @@ int main()
     printf("%-20s", "avx512f_block32");
     std::cout << bench(avx512f_block32_approach) << std::endl;
 #endif
+
+#if defined(__AVX512F__) && defined(__AVX512BW__) && defined(__AVX512DQ__) && defined(__AVX2__)
+    // std::cout << "avx512f_BW    ";
+    printf("%-20s", "avx512f_BW");
+    std::cout << bench(avx512f_BW_approach) << std::endl;
+#endif
+
 
     std::cout << std::endl;
   }

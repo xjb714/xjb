@@ -1,4 +1,4 @@
-all:
+g:
 	g++ -O3 -march=native -Wall -Wextra -o main_gcc convert-neon.cpp
 	./main_gcc
 c:

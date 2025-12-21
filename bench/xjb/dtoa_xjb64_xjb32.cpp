@@ -519,7 +519,7 @@ static inline u32 u32_lz_bits(u32 v) {
 //     }
 #if HAS_NEON_OR_SSE2
     #if HAS_NEON
-    static inline u64 endcode_16digit_fast(const u64 x,byte16_reg* x_ASCII)
+    static inline u64 encode_16digit_fast(const u64 x,byte16_reg* x_ASCII)
         {
             // require x in [1 , 1e16 - 1] = [1 , 99999999*1e8 + 99999999]
             // return tail zero count of x in base 10
@@ -732,7 +732,7 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     #endif // endif HAS_NEON
 
     #if HAS_SSE2
-    static inline u64 endcode_16digit_fast(const u64 v,byte16_reg* ASCII)
+    static inline u64 encode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
 
 #if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) && (false)
@@ -759,6 +759,35 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 
 #else // sse2
 
+
+
+//method 1
+#if defined(__SSSE3__) && (false)
+const uint64_t a = v / 100000000;        // 8-digit number: abcdefgh
+  const uint64_t b = v + a * (-100000000); // 8-digit number: ijklmnop
+  //                [ 3 | 2 | 1 | 0 | 3 | 2 | 1 | 0 | 3 | 2 | 1 | 0 | 3 | 2 | 1 | 0 ]
+  // x            = [       0       |      ijklmnop |       0       |      abcdefgh ]
+  __m128i x = _mm_set_epi64x(b, a); // sse2
+  // y            = [          ijkl |          mnop |          abcd |          efgh ]
+  __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
+  // z            = [    ik |    kl |    mn |    op |    ab |    cd |    ef |    gh ]
+#ifdef __SSE4_1__
+  __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3))); //_mm_mullo_epi32 : sse4.1
+#else
+  __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3);
+  __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+  // z            = [    ik |    kl |    mn |    op |    ab |    cd |    ef |    gh ]
+  __m128i z = _mm_or_epi32(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+#endif
+  // big_endian   = [ i | j | k | l | m | n | o | p | a | b | c | d | e | f | g | h ]
+  __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(6554))));
+  __m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7)); // ssse3
+  __m128i little_endian_ascii = _mm_add_epi64(little_endian_bcd, _mm_set1_epi8('0')); // BCD to ASCII
+  *ASCII = little_endian_ascii;
+  __m128i tmp = little_endian_bcd;
+
+#else // cpu not contain ssse3 instruction set
+//method 2
 // magic numbers for 16-bit division
 #define DIV_10		0x199a	// shift = 0 + 16
 #define DIV_100		0x147b	// shift = 3 + 16
@@ -824,6 +853,11 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     //(z<<8) - 2559 * z/10;
     __m128i tmp = _mm_sub_epi16(_mm_slli_epi16(z,8) , _mm_mullo_epi16(_mm_set1_epi16(2559) , z_div_10));
 
+#endif // __SSSE3__
+
+
+
+
 #endif // sse2
 
     unsigned int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(tmp, _mm_setzero_si128()));
@@ -839,13 +873,46 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     return tz;
 
     }
-    static inline u64 encode_8digit_fast(u64 x, u64* ASCII){//to be completed
+    
+    
+    static inline u64 encode_8digit_fast(u64 x, u64* ASCII)
+    {//to be completed
         // this code convert 8 digit number to 8 digit ASCII number;
         // require x in [1 , 1e8 - 1] = [1 , 99999999]
         // return tail zero count of x in base 10 , range [0,7]
 
         // 12345678 => "12345678"
         // 01234567 => "12345670"
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
+  //uint64_t n_15_08 = v / 100000000;
+  uint64_t n_07_00 = x ;//+ n_15_08 * (-100000000);
+  //const __m512i bcstq_h = _mm512_set1_epi64(n_15_08);
+  __m512i bcstq_l = _mm512_set1_epi64(n_07_00);
+  const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
+  const __m512i zmmTen = _mm512_set1_epi64(10);
+  //const __m512i asciiZero = _mm512_set1_epi64('0');
+  const __m512i zero = _mm512_set1_epi64(0);
+
+  const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b,
+                                         0x0000000010c6f7a0c, 0x00000000a7c5ac472, 0x000000068db8bac72, 0x0000004189374bc6b,
+                                         0x0000028f5c28f5c29, 0x0000199999999999a);
+  const __m512i permb_const = _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58,
+                                                            0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
+  //__m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
+  __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
+  //__m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
+  __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
+  __m512i bcd = _mm512_permutexvar_epi8(permb_const, highbits_l);
+  u64 aabbccdd_BCD = _mm_cvtsi128_si64(_mm512_castsi512_si128(bcd));
+    aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8) ;
+    *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
+    return u64_lz_bits(aabbccdd_BCD) / 8;
+#else // endif avx512ifma avx512vbmi
+
+
+
+
+
         //u64 aabb = (x * 109951163) >> 40;
         u64 aabb = (x * (u128)1844674407370956) >> 64;
         u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * (aabb);
@@ -866,10 +933,14 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
         aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8) ;
         *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
         return u64_lz_bits(aabbccdd_BCD) / 8;
+
+#endif
+
+
     }
     #endif // endif HAS_SSE2
 #else
-    static inline u64 endcode_16digit_fast(const u64 v,byte16_reg* ASCII)
+    static inline u64 encode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
         // const u64 ZERO = (0x30303030ull << 32) + 0x30303030ull;
         // u64 aabbccdd = v / 100000000;
@@ -2726,7 +2797,7 @@ char* xjb64(double v,char* buf)
         D17 = (m >= (u64)1e15);
         byte16_reg ASCII_16;
         u64 mr = D17 ? m : m * 10;//remove left zero
-        tz = endcode_16digit_fast(mr,&ASCII_16);// convert mr to ASCII , and return tail zero number.
+        tz = encode_16digit_fast(mr,&ASCII_16);// convert mr to ASCII , and return tail zero number.
         memcpy(buf, "0.000000", 8);
 #if yy_is_real_gcc //  for gcc compiler , prevent branch instruction cause branch miss;
 
