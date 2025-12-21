@@ -352,23 +352,22 @@ void to_string_neon_v3_new(uint64_t v, char *out)
       .multipliers16 = {0xce0, -10 + 0x100},
       .multipliers64 = 1844674407370956,
   };
-    const struct to_string_constants *c = &constants;
-    asm("" : "+r"(c));
-    uint64_t hundred_million = c->hundred_million;
-    asm("" : "+r"(hundred_million));
-    uint64_t abcdefgh = ((__uint128_t)v * c->mul_const) >> 90;
-    uint64_t ijklmnop = v + abcdefgh * hundred_million;
-    uint64_t abcd_efgh = abcdefgh + c->multipliers32[0] * ((abcdefgh * (__uint128_t)c->multipliers64) >> 64); // (abcd << 32) + efgh
-    uint64_t ijkl_mnop = ijklmnop + c->multipliers32[0] * ((ijklmnop * (__uint128_t)c->multipliers64) >> 64); // (ijkl << 32) + mnop
-    // uint64_t abcd_efgh = abcdefgh + c->multipliers32[0] * ((abcdefgh * c->multipliers32[1]) >> 40); // (abcd << 32) + efgh
-    // uint64_t ijkl_mnop = ijklmnop + c->multipliers32[0] * ((ijklmnop * c->multipliers32[1]) >> 40); // (ijkl << 32) + mnop
-    uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
-    uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(c->multipliers32[2])), c->multipliers32[3]);
-    uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(c->multipliers16[0])), c->multipliers16[1]);
-    uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
-    uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    memcpy(out, &ASCII_16, sizeof(ASCII_16));
-
+  const struct to_string_constants *c = &constants;
+  asm("" : "+r"(c));
+  uint64_t hundred_million = c->hundred_million;
+  asm("" : "+r"(hundred_million));
+  uint64_t abcdefgh = ((__uint128_t)v * c->mul_const) >> 90;
+  uint64_t ijklmnop = v + abcdefgh * hundred_million;
+  uint64_t abcd_efgh = abcdefgh + c->multipliers32[0] * ((abcdefgh * (__uint128_t)c->multipliers64) >> 64); // (abcd << 32) + efgh
+  uint64_t ijkl_mnop = ijklmnop + c->multipliers32[0] * ((ijklmnop * (__uint128_t)c->multipliers64) >> 64); // (ijkl << 32) + mnop
+  // uint64_t abcd_efgh = abcdefgh + c->multipliers32[0] * ((abcdefgh * c->multipliers32[1]) >> 40); // (abcd << 32) + efgh
+  // uint64_t ijkl_mnop = ijklmnop + c->multipliers32[0] * ((ijklmnop * c->multipliers32[1]) >> 40); // (ijkl << 32) + mnop
+  uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
+  uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(c->multipliers32[2])), c->multipliers32[3]);
+  uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(c->multipliers16[0])), c->multipliers16[1]);
+  uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+  uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+  memcpy(out, &ASCII_16, sizeof(ASCII_16));
 }
 void to_string_neon_v4(uint64_t v, char *out) // equal to v3
 {
@@ -391,8 +390,8 @@ void to_string_neon_v5(uint64_t v, char *out) // slower than v2 or v3
 {
   uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
   uint64_t ijklmnop = v + abcdefgh * (-100000000);
-  uint64x2_t merge8 = vsetq_lane_s32(ijklmnop, vdupq_n_s32(abcdefgh) , 1 );
-  //uint64x2_t merge8 = vdupq_n_s64((ijklmnop << 32) | abcdefgh);
+  uint64x2_t merge8 = vsetq_lane_s32(ijklmnop, vdupq_n_s32(abcdefgh), 1);
+  // uint64x2_t merge8 = vdupq_n_s64((ijklmnop << 32) | abcdefgh);
   int32x4_t high_10000 = vshrq_n_u32(vqdmulhq_s32(merge8, vdupq_n_s32(0x68db8bb)), 9); // 0000 , abcd , 0000 , ijkl
   int32x4_t low_10000 = vmlaq_n_u32(merge8, high_10000, -10000);                       // 0000 , efgh , 0000 , mnop
   int32x4_t merge4 = vzip1q_s32(low_10000, high_10000);                                // abcd , efgh , ijkl , mnop
@@ -404,29 +403,29 @@ void to_string_neon_v5(uint64_t v, char *out) // slower than v2 or v3
 }
 void to_string_neon_v5_new(uint64_t v, char *out) // slower than v2 or v3
 {
-    struct to_string_constants
-    {
-      uint64_t mul_const;       // 8
-      int64_t hundred_million;  // 8
-      uint32x4_t multipliers32; // 16
-      int16x8_t multipliers16;  // 16
-    };
-    static const struct to_string_constants constants = {
-        .mul_const = 0xabcc77118461cefd,
-        .hundred_million = -100000000,
-        .multipliers32 = {0x100000000 - 10000, 109951163, 0x147b000, 0x10000 - 100},
-        .multipliers16 = {0xce0, -10 + 0x100,-10000},
-    };
-      const struct to_string_constants *c = &constants;
-      asm("" : "+r"(c));
-      uint64_t hundred_million = c->hundred_million;
-      asm("" : "+r"(hundred_million));
-      uint64_t abcdefgh = ((__uint128_t)v * c->mul_const) >> 90;
-      uint64_t ijklmnop = v + abcdefgh * hundred_million;
-  uint64x2_t merge8 = vsetq_lane_s32(ijklmnop, vdupq_n_s32(abcdefgh) , 1 );
+  struct to_string_constants
+  {
+    uint64_t mul_const;       // 8
+    int64_t hundred_million;  // 8
+    uint32x4_t multipliers32; // 16
+    int16x8_t multipliers16;  // 16
+  };
+  static const struct to_string_constants constants = {
+      .mul_const = 0xabcc77118461cefd,
+      .hundred_million = -100000000,
+      .multipliers32 = {0x100000000 - 10000, 109951163, 0x147b000, 0x10000 - 100},
+      .multipliers16 = {0xce0, -10 + 0x100, -10000},
+  };
+  const struct to_string_constants *c = &constants;
+  asm("" : "+r"(c));
+  uint64_t hundred_million = c->hundred_million;
+  asm("" : "+r"(hundred_million));
+  uint64_t abcdefgh = ((__uint128_t)v * c->mul_const) >> 90;
+  uint64_t ijklmnop = v + abcdefgh * hundred_million;
+  uint64x2_t merge8 = vsetq_lane_s32(ijklmnop, vdupq_n_s32(abcdefgh), 1);
   int32x4_t high_10000 = vshrq_n_u32(vqdmulhq_s32(merge8, vdupq_n_s32(c->multipliers32[1])), 9); // 0000 , abcd , 0000 , ijkl
-  int32x4_t low_10000 = vmlaq_n_u32(merge8, high_10000,c->multipliers16[2] );                       // 0000 , efgh , 0000 , mnop
-  int32x4_t merge4 = vzip1q_s32(low_10000, high_10000);                                // abcd , efgh , ijkl , mnop
+  int32x4_t low_10000 = vmlaq_n_u32(merge8, high_10000, c->multipliers16[2]);                    // 0000 , efgh , 0000 , mnop
+  int32x4_t merge4 = vzip1q_s32(low_10000, high_10000);                                          // abcd , efgh , ijkl , mnop
   uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(c->multipliers32[2])), c->multipliers32[3]);
   uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(c->multipliers16[0])), c->multipliers16[1]);
   uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
@@ -741,35 +740,31 @@ void to_string_sse2_v3(uint64_t v, char *out)
   // y            = [          ijkl |          mnop |          abcd |          efgh ]
   __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
   // z            = [    ik |    kl |    mn |    op |    ab |    cd |    ef |    gh ]
-  //__m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3))); //_mm_mullo_epi32 sse4.1
-
-  __m128i y_div_100;
-  y_div_100 = _mm_mulhi_epu16(y, _mm_set1_epi16(5243));
-  y_div_100 = _mm_srli_epi16(y_div_100, 3);
-  __m128i y_mod_100;
-  y_mod_100 = _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100));
-  y_mod_100 = _mm_sub_epi16(y, y_mod_100);
-
+#ifdef __SSE4_1__
+  __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3))); //_mm_mullo_epi32 : sse4.1
+#else
+  __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3);
+  __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
   // z            = [    ik |    kl |    mn |    op |    ab |    cd |    ef |    gh ]
   __m128i z = _mm_or_epi32(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+#endif
+  // big_endian   = [ i | j | k | l | m | n | o | p | a | b | c | d | e | f | g | h ]
+  __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(6554))));
+  __m128i big_endian_ascii = _mm_add_epi64(big_endian_bcd, _mm_set1_epi8('0')); // BCD to ASCII
 
-  // tmp          = [ i | j | k | l | m | n | o | p | a | b | c | d | e | f | g | h ]
-  __m128i tmp = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(6554))));
-  tmp = _mm_add_epi64(tmp, _mm_set1_epi8('0')); // BCD to ASCII
-
+#if defined(__SSSE3__)
   // method 1
+  __m128i little_endian_ascii = _mm_shuffle_epi8(big_endian_ascii, _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7)); // ssse3
+  _mm_storeu_si128((__m128i *)out, little_endian_ascii);
+#else
+  // method 2 : only need sse2;
   uint64_t tmp_buf[2];
-  _mm_storeu_si128((__m128i *)tmp_buf, tmp);
+  _mm_storeu_si128((__m128i *)tmp_buf, big_endian_ascii);
   uint64_t hi = _bswap64(tmp_buf[0]); // big-endian to little-endian
   uint64_t lo = _bswap64(tmp_buf[1]);
-  // uint64_t hi = _bswap64(_mm_cvtsi128_si64(tmp));
-  // uint64_t lo = _bswap64(_mm_cvtsi128_si64(_mm_srli_si128(tmp, 8)));
-  memcpy(out, &hi, 8);
+  memcpy(out + 0, &hi, 8);
   memcpy(out + 8, &lo, 8);
-
-  // method 2
-  //  tmp = _mm_shuffle_epi8(tmp, _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7));//ssse3
-  //  _mm_storeu_si128((__m128i *)out, tmp);
+#endif
 }
 
 #endif

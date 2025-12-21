@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdint>
+#include <cstring>
 
 #ifdef __ARM_NEON
 
@@ -86,7 +87,7 @@ void to_string_neon_v5(uint64_t v, char *out) // slower than v2 or v3
 {
     uint64_t abcdefgh = ((__uint128_t)v * 0xabcc77118461cefd) >> 90;
     uint64_t ijklmnop = v + abcdefgh * (-100000000);
-    uint64x2_t merge8 = vcombine_u64(vld1_u64(&abcdefgh), vld1_u64(&ijklmnop));
+    uint64x2_t merge8 = vsetq_lane_s32(ijklmnop, vld1q_u64(&abcdefgh) , 1);
     int32x4_t high_10000 = vshrq_n_u32(vqdmulhq_s32(merge8, vdupq_n_s32(0x68db8bb)), 9); // 0000 , abcd , 0000 , ijkl
     int32x4_t low_10000 = vmlaq_n_u32(merge8, high_10000, -10000);                       // 0000 , efgh , 0000 , mnop
     //int32x4_t merge4 = vorrq_u64(vshlq_n_u64(high_10000, 32), low_10000);              // abcd , efgh , ijkl , mnop
@@ -115,6 +116,7 @@ void to_string_neon_v6(uint64_t v, char *out) // slower than v2 or v3
     uint64x2_t ASCII_16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
     memcpy(out, &ASCII_16, sizeof(ASCII_16));
 }
+#endif
 void to_string_scalar(uint64_t v, char *out)
 {
   uint64_t abcdefgh = v / 100000000;
@@ -137,10 +139,10 @@ void to_string_scalar(uint64_t v, char *out)
   memcpy(out + 0, &h_g_f_e_d_c_b_a, sizeof(uint64_t));
   memcpy(out + 8, &p_o_n_m_l_k_j_i, sizeof(uint64_t));
 }
-#endif
+
 int main()
 {
-#ifdef __ARM_NEON
+
     uint64_t v[] = {
         12345678 * 100000000ull + 90123456,
         1234567 * 100000000ull + 90123456,
@@ -165,14 +167,17 @@ int main()
     char out[17];
     for (int i = 0; i < sizeof(v) / sizeof(v[0]); i++)
     {
+#ifdef __ARM_NEON
         to_string_neon_v6(v[i], out);
-        //to_string_scalar(v[i], out);
+#else
+        to_string_scalar(v[i], out);
+#endif
         out[16] = '\0';
         std::cout << out << std::endl;
     }
-#else
+
     printf("NEON not available\n");
-#endif
+
 
     return 0;
 }

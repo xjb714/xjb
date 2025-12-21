@@ -735,7 +735,7 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     static inline u64 endcode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
 
-#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__)
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) && (false)
   uint64_t n_15_08 = v / 100000000;
   uint64_t n_07_00 = v + n_15_08 * (-100000000);
   const __m512i bcstq_h = _mm512_set1_epi64(n_15_08);
@@ -778,7 +778,7 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     const __m128i div_10    = _mm_set1_epi16(DIV_10);//sse2
     const __m128i mul_10    = _mm_set1_epi16(10);
 
-    const __m128i ascii0    = _mm_set1_epi8('0');//sse2
+    //const __m128i ascii0    = _mm_set1_epi8('0');//sse2
 
 	// can't be easliy done in SSE
 	const uint32_t a = v / 100000000; // 8-digit number: abcdefgh
@@ -1369,7 +1369,7 @@ char* xjb64(double v,char* buf)
     u64 c;
     int32_t q;
     u32 nq = 1075 - ieee_exponent;
-    u64 c2 = ( (1ull<<52) + ieee_significand);
+    u64 c2 = ( (1ull<<52) | ieee_significand);
 #ifdef __amd64__
     c = c2;// 53 bit
     q = ieee_exponent - 1075;
@@ -1400,7 +1400,7 @@ char* xjb64(double v,char* buf)
     //     //     return buf + ((vi << 1) ? 6 : 3);
     //     // }
     // }
-    if(  (nq <= 52) && ((c >> nq) << nq) == c) return write_1_to_16_digit( c >> nq, buf);
+    //if(  (nq <= 52) && ((c >> nq) << nq) == c) return write_1_to_16_digit( c >> nq, buf);
 #else
     // c = (1ull<<52) + ieee_significand;// 53 bit
     // q = ieee_exponent + ( -1075 );

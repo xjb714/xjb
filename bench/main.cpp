@@ -8,7 +8,7 @@
 
 //#include "util/check_float_multi_thread.cpp" // use multi-thread to check float algorithm
 
-#define USE_YYBENCH 0
+#define USE_YYBENCH 1
 #if USE_YYBENCH
     #include "util/benchmark.cpp"
 #endif
