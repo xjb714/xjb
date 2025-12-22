@@ -757,6 +757,15 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
   __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
   __m128i tmp = _mm512_castsi512_si128(bcd);
 
+// #if defined(__AVX512CD__) // _mm512_lzcnt_epi64
+//       __m512i tz8 = _mm512_srli_epi64(_mm512_lzcnt_epi64(bcd),3);
+//       *ASCII = _mm_add_epi8(tmp, _mm_set1_epi8('0'));
+//       u64 tz8_tmp_array[8];
+//       _mm512_storeu_si512((__m512i*)tz8_tmp_array, tz8);
+//       return 16 + (n_07_00 ? tz8_tmp_array[0] : 8 + tz8_tmp_array[1]);
+// #endif
+
+
 #else // sse2
 
 
