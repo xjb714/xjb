@@ -735,7 +735,7 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     static inline u64 encode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
 
-#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) && (false)
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
   uint64_t n_15_08 = v / 100000000;
   uint64_t n_07_00 = v + n_15_08 * (-100000000);
   const __m512i bcstq_h = _mm512_set1_epi64(n_15_08);
@@ -762,7 +762,7 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 
 
 //method 1
-#if defined(__SSSE3__) && (false)
+#if defined(__SSSE3__) //&& (false)
 const uint64_t a = v / 100000000;        // 8-digit number: abcdefgh
   const uint64_t b = v + a * (-100000000); // 8-digit number: ijklmnop
   //                [ 3 | 2 | 1 | 0 | 3 | 2 | 1 | 0 | 3 | 2 | 1 | 0 | 3 | 2 | 1 | 0 ]
@@ -883,33 +883,47 @@ const uint64_t a = v / 100000000;        // 8-digit number: abcdefgh
 
         // 12345678 => "12345678"
         // 01234567 => "12345670"
-#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
-  //uint64_t n_15_08 = v / 100000000;
-  uint64_t n_07_00 = x ;//+ n_15_08 * (-100000000);
-  //const __m512i bcstq_h = _mm512_set1_epi64(n_15_08);
-  __m512i bcstq_l = _mm512_set1_epi64(n_07_00);
+#if defined(__AVX512F__) && defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
+  __m512i bcstq_l = _mm512_set1_epi64(x);
   const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
-  const __m512i zmmTen = _mm512_set1_epi64(10);
-  //const __m512i asciiZero = _mm512_set1_epi64('0');
-  const __m512i zero = _mm512_set1_epi64(0);
-
   const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b,
                                          0x0000000010c6f7a0c, 0x00000000a7c5ac472, 0x000000068db8bac72, 0x0000004189374bc6b,
                                          0x0000028f5c28f5c29, 0x0000199999999999a);
-  const __m512i permb_const = _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58,
-                                                            0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
-  //__m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
+  const u64 idx = 0x00 + (0x08 << 8) + (0x10<<16) + (0x18<<24) + (0x20ull<<32) + (0x28ull<<40) + (0x30ull<<48) + (0x38ull<<56);
+  const __m512i permb_const = _mm512_set1_epi64(idx);                                                          
   __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
-  //__m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
-  __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
+  __m512i highbits_l =  _mm512_srli_epi64 (_mm512_add_epi64(lowbits_l, _mm512_slli_epi64(lowbits_l, 2)),51);
   __m512i bcd = _mm512_permutexvar_epi8(permb_const, highbits_l);
   u64 aabbccdd_BCD = _mm_cvtsi128_si64(_mm512_castsi512_si128(bcd));
-    aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8) ;
+    aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
     *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
     return u64_lz_bits(aabbccdd_BCD) / 8;
-#else // endif avx512ifma avx512vbmi
 
+#elif defined(__SSSE3__)// && (false) // endif avx512ifma avx512vbmi
+  u64  abcd_efgh = x + ((1ull << 32) - 10000) * ((x * (u128)1844674407370956) >> 64);
+  __m128i y = _mm_set1_epi64x(abcd_efgh);
+  // y            = [          ijkl |          mnop |          abcd |          efgh ]
+  //__m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
+  // z            = [    ik |    kl |    mn |    op |    ab |    cd |    ef |    gh ]
+#ifdef __SSE4_1__
+  __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3))); //_mm_mullo_epi32 : sse4.1
+#else
+  __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3);
+  __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+  __m128i z = _mm_or_epi32(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+#endif
+  __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(6554))));
 
+  //__m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7)); // ssse3
+  const u64 idx = 7 + (6 << 8) + (5 << 16) + (4 << 24) + (3ull << 32) + (2ull << 40) + (1ull << 48) + (0ull << 56);
+  //__m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set_epi8(0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7));
+  __m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set1_epi64x(idx));
+  u64 aabbccdd_BCD = _mm_cvtsi128_si64(little_endian_bcd);
+    aabbccdd_BCD = (x >= (u64)1e7) ? aabbccdd_BCD : (aabbccdd_BCD >> 8);
+    *ASCII =  aabbccdd_BCD + ((0x30303030ull << 32) + 0x30303030ull);
+    return u64_lz_bits(aabbccdd_BCD) / 8;
+
+#else // endif ssse3
 
 
 
