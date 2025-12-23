@@ -734,7 +734,26 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     #if HAS_SSE2
     static inline u64 encode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
+// // this code produce incorrect result on intel compiler.only gcc and clang can run this code correctly.
+//     uint32_t hi = ((__uint128_t)v * 0xabcc77118461cefdULL) >> 90;
+//     uint32_t lo = v - hi * 100000000;
 
+//     __m128i hundredmillions = _mm_set_epi64x(lo, hi);
+
+//     __m128i high_10000 = _mm_srli_epi64(_mm_mul_epi32(hundredmillions, _mm_set1_epi32(0x68db8bb)), 40);
+//     __m128d tenthousands = _mm_fmadd_pd((_mm_set1_pd((double)(-10000 + 0x100000000))), _mm_castsi128_pd(high_10000), _mm_castsi128_pd(hundredmillions));
+
+//     __m128i high_100 = _mm_srli_epi32(_mm_mullo_epi32(_mm_castpd_si128(tenthousands), _mm_set1_epi32(0x147b)), 19);
+//     __m128i hundreds = _mm_castpd_si128(_mm_castps_pd(_mm_fmadd_ps(_mm_set1_ps((float)(-100 + 0x10000)), _mm_castsi128_ps(high_100), _mm_castpd_ps(tenthousands))));
+
+//     __m128i high_10 = _mm_mulhi_epi16( hundreds, _mm_set1_epi16(0x19c0));
+//     __m128i digits = _mm_add_epi16( hundreds, _mm_mullo_epi16(high_10, _mm_set1_epi16(-10 + 0x100)));
+
+//     __m128i little_endian_bcd = _mm_shuffle_epi8(digits, _mm_setr_epi8(7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8));
+    
+//     __m128i tmp = little_endian_bcd;
+
+#if 1
 #if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
   uint64_t n_15_08 = v / 100000000;
   uint64_t n_07_00 = v + n_15_08 * (-100000000);
@@ -868,6 +887,8 @@ const uint64_t a = v / 100000000;        // 8-digit number: abcdefgh
 
 
 #endif // sse2
+
+#endif //if 0
 
     unsigned int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(tmp, _mm_setzero_si128()));
 

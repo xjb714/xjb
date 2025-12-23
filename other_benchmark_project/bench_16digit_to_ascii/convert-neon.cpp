@@ -30,7 +30,7 @@ uint64_t nano()
       .count();
 }
 template <typename PROCEDURE>
-double bench(PROCEDURE f, uint64_t threshold = 50'000'000) // 50ms
+double bench(PROCEDURE f, uint64_t threshold = 20'000'000) // 50ms
 {
   uint64_t start = nano();
   uint64_t finish = start;
@@ -48,11 +48,12 @@ double bench(PROCEDURE f, uint64_t threshold = 50'000'000) // 50ms
     uint64_t a, b;
     memcpy(&a, buf_ref + i * sizeof(uint64_t), sizeof(uint64_t));
     memcpy(&b, buf + i * sizeof(uint64_t), sizeof(uint64_t));
-    is_ok &= (a == b);
-    // if(a != b){
-    //   is_ok = 0;
-    //   //break;
-    // }
+    //is_ok &= (a == b);
+    if(a != b){
+      is_ok = 0;
+      printf("a = %llx,b = %llx ",a,b);
+      break;
+    }
   }
   if (is_ok == 0)
   {
@@ -850,6 +851,27 @@ void to_string_sse2__pshufb(uint64_t v, char *out)
   // and save result
   _mm_storeu_si128((__m128i *)out, tmp);
 }
+void to_string_sse4_1_v2(uint64_t v, char *out) {
+    uint32_t hi = ((__uint128_t)v * 0xabcc77118461cefdULL) >> 90;
+    uint32_t lo = v - hi * 100000000;
+
+    __m128i hundredmillions = _mm_set_epi64x(lo, hi);
+
+    __m128i high_10000 = _mm_srli_epi64(_mm_mul_epi32(hundredmillions, _mm_set1_epi32(0x68db8bb)), 40);
+    __m128d tenthousands = _mm_fmadd_pd((_mm_set1_pd((double)(-10000 + 0x100000000))), _mm_castsi128_pd(high_10000), _mm_castsi128_pd(hundredmillions));
+
+    __m128i high_100 = _mm_srli_epi32(_mm_mullo_epi32(_mm_castpd_si128(tenthousands), _mm_set1_epi32(0x147b)), 19);
+    __m128i hundreds = _mm_castpd_si128(_mm_castps_pd(_mm_fmadd_ps(_mm_set1_ps((float)(-100 + 0x10000)), _mm_castsi128_ps(high_100), _mm_castpd_ps(tenthousands))));
+
+    __m128i high_10 = _mm_mulhi_epi16( hundreds, _mm_set1_epi16(0x19c0));
+    __m128i digits = _mm_add_epi16( hundreds, _mm_mullo_epi16(high_10, _mm_set1_epi16(-10 + 0x100)));
+
+    __m128i bcd = _mm_shuffle_epi8(digits, _mm_setr_epi8(7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8));
+
+    __m128i ascii = _mm_add_epi8(bcd, _mm_set1_epi8('0'));
+
+    _mm_storeu_si128((__m128i *)out, ascii);
+}
 #endif
 
 #ifdef __AVX2__
@@ -1202,6 +1224,8 @@ int main()
     // data.push_back(rand() % 10000000000000000);
     data[i] = rand() % 10000000000000000;
   }
+  data[0]=0;
+  data[1]=10000000000000000-1;
   buf_ref = new char[data.size() * 16];
   for (size_t i = 0; i < data.size(); i++)
   {
@@ -1408,6 +1432,17 @@ int main()
     }
     return data.size();
   };
+  auto sse41_v2_approach = [&data]() -> size_t
+  {
+    char *b = buf;
+    for (auto val : data)
+    {
+      to_string_sse4_1_v2(val, b);
+      b += 16;
+    }
+    return data.size();
+  };
+
 #endif
 
 #ifdef __AVX2__
@@ -1539,6 +1574,8 @@ int main()
     // std::cout << "sse2_pshufb   ";
     printf("%-20s", "sse2_pshufb");
     std::cout << bench(sse2_pshufb_approach) << std::endl;
+    printf("%-20s", "sse4_1_v2");
+    std::cout << bench(sse41_v2_approach) << std::endl;
 #endif
 
 #ifdef __AVX2__
