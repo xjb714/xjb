@@ -5,8 +5,11 @@ c:
 	clang++ -O3 -march=native -Wall -Wextra -o main_clang convert-neon.cpp
 	./main_clang
 i:
-	icpx -O3 -march=native -Wall -Wextra -o main_icpx convert-neon.cpp
+	icpx -O3 -march=native -no-ftz -Wall -Wextra -o main_icpx convert-neon.cpp
 	./main_icpx
+
+# for intel compiler : to_string_sse4_1_v2 need add "-no-ftz" compile option
+
 
 
 verify:verify.cpp
