@@ -732,29 +732,33 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     #endif // endif HAS_NEON
 
     #if HAS_SSE2
+    //#pragma intel optimization_parameter no_ftz
+    //__attribute__((optimize("no-ftz")))
+    //#pragma GCC optimize ("no-ftz")
     static inline u64 encode_16digit_fast(const u64 v,byte16_reg* ASCII)
     {
-// // this code produce incorrect result on intel compiler.only gcc and clang can run this code correctly.
-//     uint32_t hi = ((__uint128_t)v * 0xabcc77118461cefdULL) >> 90;
-//     uint32_t lo = v - hi * 100000000;
+// this code produce incorrect result on intel compiler.only gcc and clang can run this code correctly.
+    // uint32_t hi = ((__uint128_t)v * 0xabcc77118461cefdULL) >> 90;
+    // uint32_t lo = v - hi * 100000000;
 
-//     __m128i hundredmillions = _mm_set_epi64x(lo, hi);
+    // __m128i hundredmillions = _mm_set_epi64x(lo, hi);
 
-//     __m128i high_10000 = _mm_srli_epi64(_mm_mul_epi32(hundredmillions, _mm_set1_epi32(0x68db8bb)), 40);
-//     __m128d tenthousands = _mm_fmadd_pd((_mm_set1_pd((double)(-10000 + 0x100000000))), _mm_castsi128_pd(high_10000), _mm_castsi128_pd(hundredmillions));
+    // __m128i high_10000 = _mm_srli_epi64(_mm_mul_epi32(hundredmillions, _mm_set1_epi32(0x68db8bb)), 40);
+    // __m128d tenthousands = _mm_fmadd_pd((_mm_set1_pd((double)(-10000 + 0x100000000))), _mm_castsi128_pd(high_10000), _mm_castsi128_pd(hundredmillions));
 
-//     __m128i high_100 = _mm_srli_epi32(_mm_mullo_epi32(_mm_castpd_si128(tenthousands), _mm_set1_epi32(0x147b)), 19);
-//     __m128i hundreds = _mm_castpd_si128(_mm_castps_pd(_mm_fmadd_ps(_mm_set1_ps((float)(-100 + 0x10000)), _mm_castsi128_ps(high_100), _mm_castpd_ps(tenthousands))));
+    // __m128i high_100 = _mm_srli_epi32(_mm_mullo_epi32(_mm_castpd_si128(tenthousands), _mm_set1_epi32(0x147b)), 19);
+    // __m128i hundreds = _mm_castpd_si128(_mm_castps_pd(_mm_fmadd_ps(_mm_set1_ps((float)(-100 + 0x10000)), _mm_castsi128_ps(high_100), _mm_castpd_ps(tenthousands))));
 
-//     __m128i high_10 = _mm_mulhi_epi16( hundreds, _mm_set1_epi16(0x19c0));
-//     __m128i digits = _mm_add_epi16( hundreds, _mm_mullo_epi16(high_10, _mm_set1_epi16(-10 + 0x100)));
+    // __m128i high_10 = _mm_mulhi_epi16( hundreds, _mm_set1_epi16(0x19c0));
+    // __m128i digits = _mm_add_epi16( hundreds, _mm_mullo_epi16(high_10, _mm_set1_epi16(-10 + 0x100)));
 
-//     __m128i little_endian_bcd = _mm_shuffle_epi8(digits, _mm_setr_epi8(7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8));
+    // __m128i little_endian_bcd = _mm_shuffle_epi8(digits, _mm_setr_epi8(7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8));
     
-//     __m128i tmp = little_endian_bcd;
+    // __m128i tmp = little_endian_bcd;
 
 #if 1
-#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) && (false)
+
   uint64_t n_15_08 = v / 100000000;
   uint64_t n_07_00 = v + n_15_08 * (-100000000);
   const __m512i bcstq_h = _mm512_set1_epi64(n_15_08);
@@ -773,16 +777,77 @@ int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
   __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
   __m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
   __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
+
+  //__m512i highbits_h =  _mm512_srli_epi64(_mm512_add_epi64(_mm512_slli_epi64(lowbits_h, 2), lowbits_h),51); 
+  //__m512i highbits_l =  _mm512_srli_epi64(_mm512_add_epi64(_mm512_slli_epi64(lowbits_l, 2), lowbits_l),51); 
+
+
   __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
   __m128i tmp = _mm512_castsi512_si128(bcd);
 
-// #if defined(__AVX512CD__) // _mm512_lzcnt_epi64
-//       __m512i tz8 = _mm512_srli_epi64(_mm512_lzcnt_epi64(bcd),3);
-//       *ASCII = _mm_add_epi8(tmp, _mm_set1_epi8('0'));
-//       u64 tz8_tmp_array[8];
-//       _mm512_storeu_si512((__m512i*)tz8_tmp_array, tz8);
-//       return 16 + (n_07_00 ? tz8_tmp_array[0] : 8 + tz8_tmp_array[1]);
-// #endif
+#if defined(__AVX512CD__) && defined(__AVX512BW__) && (false)
+    //   __mmask64 tz1 = _mm512_cmpgt_epu8_mask(bcd, _mm512_set1_epi8('0'));
+    //   *ASCII = tmp;
+
+      __mmask64 tz1 = _mm512_cmpgt_epu8_mask(bcd, zero);
+      *ASCII = _mm_or_si128(tmp, _mm_set1_epi8('0'));
+
+      return u64_lz_bits( tz1 & 0xffff) - 32;
+#endif
+
+#elif defined(__AVX512F__) && defined(__AVX512BW__) && defined(__AVX512DQ__) && defined(__AVX2__)
+//method 2:
+    u64 aabbccdd = v / 100000000;
+    u64 eeffgghh = v + aabbccdd * (-100000000);
+
+    __m256i l8_4r = _mm256_set1_epi64x(eeffgghh); // AVX
+    __m512i h8_4r = _mm512_castsi256_si512(_mm256_set1_epi64x(aabbccdd));
+    __m512i n8r = _mm512_inserti64x4(h8_4r, l8_4r, 1); // AVX512F
+    const u64 m8 = 180143986;                          //>>> 2**54/1e8
+    const u64 m7 = 1801439851;                         //>>> 2**54/1e7
+    const u64 m6 = 18014398510;                        //>>> 2**54/1e6
+    const u64 m5 = 180143985095;                       //>>> 2**54/1e5
+    const u64 m4 = 1801439850949;                      //>>> 2**54/1e4
+    const u64 m3 = 18014398509482;                     //>>> 2**54/1e3
+    const u64 m2 = 180143985094820;                    //>>> 2**54/1e2
+    const u64 m1 = 1801439850948199;                   //>>> 2**54/1e1
+    const __m512i even = _mm512_set_epi64(m8, m6, m4, m2, m8, m6, m4, m2);
+    const __m512i odd = _mm512_set_epi64(m7, m5, m3, m1, m7, m5, m3, m1);
+    const __m512i M54_8_all = _mm512_set1_epi64(((u64)1 << 54) - 1);
+    const __m512i M8_8_2 = _mm512_set1_epi64(0xff00);
+    const __m512i t10r = _mm512_set1_epi64(10);
+    const __m512i ZERO = _mm512_set1_epi64((0x30303030ull << 32) + 0x30303030ull);
+
+    __m512i even_digit = _mm512_and_epi64(_mm512_mullo_epi64(n8r, even),M54_8_all);
+    __m512i odd_digit = _mm512_and_epi64(_mm512_mullo_epi64(n8r, odd),M54_8_all);
+    
+    // even_digit = _mm512_srli_epi64(_mm512_add_epi64(_mm512_slli_epi64(even_digit, 2), even_digit),53);
+    // odd_digit = _mm512_srli_epi64(_mm512_add_epi64(_mm512_slli_epi64(odd_digit, 2), odd_digit),53);
+
+    even_digit = _mm512_srli_epi64(_mm512_mullo_epi64(even_digit, t10r), 54);
+    odd_digit = _mm512_srli_epi64(_mm512_mullo_epi64(odd_digit, t10r), 54);
+
+
+    __m512i BCD = _mm512_or_epi64(even_digit, _mm512_slli_epi64(odd_digit, 8));
+    //BCD = _mm512_or_epi64(BCD , ZERO);
+
+
+    
+    // __m512i tmp_8_0 = _mm512_mullo_epi64(n8r, mr);          // AVX512DQ
+    // __m512i tmp_8_1 = _mm512_and_epi64(tmp_8_0, M54_8_all); // AVX512F
+    // __m512i tmp_8_2 = _mm512_mullo_epi64(tmp_8_1, t10r);
+    // __m512i tmp_8_3_t = _mm512_and_epi64(tmp_8_2, M54_8_all);
+    // __m512i tmp_8_3 = _mm512_mullo_epi64(tmp_8_3_t, t10r);
+    // __m512i tmp_8_1_print = _mm512_srli_epi64(tmp_8_2, 54);
+    // __m512i tmp_8_2_print = _mm512_and_epi64(_mm512_srli_epi64(tmp_8_3, (54 - 8)), M8_8_2);
+    // __m512i BCD = tmp_8_1_print | tmp_8_2_print | ZERO;
+    const short idx[8] = {12, 8, 4, 0, 28, 24, 20, 16}; // 16byte
+    const __m512i idxr_epi16 = _mm512_castsi128_si512(_mm_loadu_epi64(idx));
+
+
+
+    __m128i tmp = _mm512_castsi512_si128(_mm512_permutexvar_epi16(idxr_epi16, BCD)); // AVX512BW
+
 
 
 #else // sse2

@@ -465,7 +465,8 @@ static void dtoa_func_verify_all(void) {
     google_double_to_string(test_value, buf_test);
     printf("test value: %.16le buf = %s\n", test_value, buf_test);
     printf("if buf content is '3.3156184e-316' , the test is passed.\n");
-    printf("if buf content is '0' , the test is failed.\n\n");
+    printf("if buf content is '0' , the test is failed.\n");
+    printf("if test is failed, please add \"-no-ftz\" compile option for intel compiler.\n\n");
 
     for (int i = 1; i < func_count; i++) { // skip null func
         const char *name = func_name_arr[i];

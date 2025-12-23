@@ -2,6 +2,10 @@
 #include <cstdint>
 #include <cstring>
 
+#ifdef __SSE2__
+    #include <immintrin.h>
+#endif
+
 #ifdef __ARM_NEON
 
 #include <arm_neon.h>
@@ -140,6 +144,75 @@ void to_string_scalar(uint64_t v, char *out)
   memcpy(out + 8, &p_o_n_m_l_k_j_i, sizeof(uint64_t));
 }
 
+//#if defined(__AVX512F__) && defined(__AVX512BW__) && defined(__AVX512DQ__)
+
+// void to_string_avx512f(uint64_t n)
+// {
+//   // uint64_t n_15_08 = n / 100000000;
+//   // uint64_t n_07_00 = n + n_15_08 * (-100000000);
+//   // __m512i bcstq_h = _mm512_set1_epi64(n_15_08);
+//   // __m512i bcstq_l = _mm512_set1_epi64(n_07_00);
+//   uint64_t bit[16]={52,48,45,42,38,35,32,28,25,22,18,15,12,8,5,2};
+//   double p10[16]={
+//     1e-16,1e-15,1e-14,1e-13,1e-12,1e-11,1e-10,1e-9,
+//     1e-8,1e-7,1e-6,1e-5,1e-4,1e-3,1e-2,1e-1
+//   };
+//   double p10_new[16];
+//   for(int i=0;i<16;++i)
+//   {
+//     uint64_t u = (*(uint64_t*)&p10[i]) + (103ull << 52);
+//     p10_new[i] = *(double*)&u;
+//   }
+//   __m512d n8 = _mm512_castsi512_pd(_mm512_set1_epi64(n));
+//   __m512i zmmTen = _mm512_set1_epi64(10);
+//   double e32 = (1ull<<52);
+// //   double m16 = 1e-16;
+// //   double m15 = 1e-15;
+// //   double m14 = 1e-14;
+// //   double m13 = 1e-13;
+// //   double m12 = 1e-12;
+// //   double m11 = 1e-11;
+// //   double m10 = 1e-10;
+// //   double m9 = 1e-9;
+// //   uint64_t m16_u = (*(uint64_t*)&m16 ) + (52ull<<52);m16 = *(double*)&m16_u;
+// //   uint64_t m15_u = (*(uint64_t*)&m15 ) + (52ull<<52);m15 = *(double*)&m15_u;
+// //   uint64_t m14_u = (*(uint64_t*)&m14 ) + (52ull<<52);m14 = *(double*)&m14_u;
+// //   uint64_t m13_u = (*(uint64_t*)&m13 ) + (52ull<<52);m13 = *(double*)&m13_u;
+// //   uint64_t m12_u = (*(uint64_t*)&m12 ) + (52ull<<52);m12 = *(double*)&m12_u;
+// //   uint64_t m11_u = (*(uint64_t*)&m11 ) + (52ull<<52);m11 = *(double*)&m11_u;
+// //   uint64_t m10_u = (*(uint64_t*)&m10 ) + (52ull<<52);m10 = *(double*)&m10_u;
+// //   uint64_t m9_u = (*(uint64_t*)&m9 ) + (52ull<<52);m9 = *(double*)&m9_u;
+//   const __m512i MASK52 = _mm512_set1_epi64((1ull<<52) - 1);
+//   const __m512d fm_const = _mm512_loadu_pd(p10_new);
+//   const __m512d fm_const2 = _mm512_loadu_pd(&p10_new[8]);
+//   //__m512d low = _mm512_mul_pd(n8 , fm_const );
+//   __m512d low = _mm512_mul_round_pd(n8 , fm_const ,  _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+//   __m512i lowbit = _mm512_and_epi64( _mm512_castpd_si512(low), MASK52);
+//   __m512i digits = _mm512_srli_epi64(_mm512_mullo_epi64(lowbit, zmmTen),52);
+
+//    //__m512d low2 = _mm512_mul_pd(n8 , fm_const2 );
+//    __m512d low2 = _mm512_mul_round_pd(n8 , fm_const2 ,  _MM_FROUND_TO_NEG_INF | _MM_FROUND_NO_EXC);
+//   __m512i lowbit2 = _mm512_and_epi64( _mm512_castpd_si512(low2), MASK52);
+//   __m512i digits2 = _mm512_srli_epi64(_mm512_mullo_epi64(lowbit2, zmmTen),52);
+//   for(int i=0;i<8;++i)printf("i=%2d, digits=%lld\n",i,digits[i]);
+//   for(int i=8;i<16;++i)printf("i=%2d, digits=%lld\n",i,digits2[i-8]);
+
+
+// }
+
+// void test_to_string_avx512f()
+// {
+//     uint64_t n = 12345678 * 100000000ull + 90123456;
+//     int clz = __builtin_clzll(n);
+//     int shift = 53 - clz;
+//     uint64_t m = n << shift;
+//     double md = *(double*)&m;// equal to  n * 2**-1074;
+//     double m16 = md * 1e-16;//
+
+// }
+
+
+//#endif
 int main()
 {
 
@@ -178,6 +251,7 @@ int main()
 
     printf("NEON not available\n");
 
+    // to_string_avx512f(12345678 * 100000000ull + 90123456);
 
     return 0;
 }
