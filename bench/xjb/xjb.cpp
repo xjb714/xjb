@@ -42,44 +42,47 @@ char *xjb64(double v, char *buf)
     memcpy(&vi, &v, sizeof(v));
     buf[0] = '-';
     buf += vi >> 63;
+    u64 vi_abs = (vi << 1) >> 1;
     u64 ieee_significand = vi & ((1ull << 52) - 1);
     u64 ieee_exponent = (vi << 1) >> 53;
-    if ((vi << 1) - 3 >= (2047ull << 53) - 3) [[unlikely]]
+    // if ((vi << 1) - 3 >= (2047ull << 53) - 3) [[unlikely]]
+    // {
+    //     if ((vi << 1) == 0)
+    //         memcpy(buf, "0.0\0\0\0\0", 8);
+    //     if ((vi << 1) == (1 << 1))
+    //         memcpy(buf, "5e-324\0", 8);
+    //     if ((vi << 1) == (2047ull << 53))
+    //         memcpy(buf, "Inf\0\0\0\0", 8);
+    //     if ((vi << 1) > (2047ull << 53))
+    //         memcpy(buf, "NaN\0\0\0\0", 8);
+    //     return buf + ((vi << 1) == 2 ? 6 : 3);
+    // }
+    if (vi_abs - 2 >= (2047ull << 52) - 2) //[[unlikely]]
     {
-        if ((vi << 1) == 0)
+        if (vi_abs == 0)
             memcpy(buf, "0.0\0\0\0\0", 8);
-        if ((vi << 1) == (1 << 1))
+        if (vi_abs == 1)
             memcpy(buf, "5e-324\0", 8);
-        if ((vi << 1) == (2047ull << 53))
+        if (vi_abs == (2047ull << 52))
             memcpy(buf, "Inf\0\0\0\0", 8);
-        if ((vi << 1) > (2047ull << 53))
+        if (vi_abs > (2047ull << 52))
             memcpy(buf, "NaN\0\0\0\0", 8);
-        return buf + ((vi << 1) == 2 ? 6 : 3);
+        return buf + (vi_abs == 1 ? 6 : 3);
     }
-    u64 c;
-    int32_t q;
-    u32 nq = 1075 - ieee_exponent;
-    u64 c2 = ((1ull << 52) | ieee_significand);
-#ifdef __amd64__
-    c = c2;
-    q = ieee_exponent - 1075;
+    int32_t q = ieee_exponent - 1075;
+    u32 nq = -q;
+    u64 c = ((1ull << 52) | ieee_significand);
+    if (nq <= u64_tz_bits(c))
+        return write_1_to_16_digit(c >> nq, buf); // fast path for integer
     if (ieee_exponent == 0) [[unlikely]]
     {
         c = ieee_significand;
         q = 1 - 1075; // -1074
     }
-    // if(  (nq <= 52) && ((c >> nq) << nq) == c) return write_1_to_16_digit( c >> nq, buf);// fast path for integer
-#else
-    c = (ieee_exponent > 0) ? c2 : ieee_significand;
-    q = (ieee_exponent > 0) ? (ieee_exponent - 1075) : 1 - 1075;
-    // if (nq <= u64_tz_bits(c2))
-    //     return write_1_to_16_digit(c >> nq, buf); // fast path for integer
-#endif
     int k;
     const int offset = 6;
     u64 regular = ieee_significand > 0;
     u64 irregular = (ieee_significand == 0);
-    static const u64 *pow10_ptr = pow10_double + 293 * 2;
 #ifdef __amd64__
     if (!irregular) [[likely]] // branch
         k = ((ieee_exponent - 1075) * 315653) >> 20;
@@ -90,6 +93,7 @@ char *xjb64(double v, char *buf)
 #endif
     int get_e10 = -1 - k;
     int h = q + ((get_e10 * 217707) >> 16);
+    static const u64 *pow10_ptr = pow10_double + 293 * 2;
     u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
     u128 cb = c << (h + (1 + offset));
     u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
@@ -129,6 +133,7 @@ char *xjb64(double v, char *buf)
 #if HAS_NEON_OR_SSE2
 #if HAS_NEON
     vst1q_u64((uint64_t *)buf, s.ascii16);
+    // memcpy(buf, &(s.ascii16), 16);
 #endif
 #if HAS_SSE2
     _mm_storeu_si128((__m128i *)buf, s.ascii16);
@@ -141,17 +146,21 @@ char *xjb64(double v, char *buf)
     byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
     buf_origin[dot_pos] = '.';
     static const u64 *exp_ptr = (u64 *)&exp_result_double[324];
-    if (m < (u64)1e14) [[unlikely]]
+    // if (m < (u64)1e14) [[unlikely]]
+    if (ieee_exponent == 0) [[unlikely]]
     {
         // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-        u64 lz = 0;
-        while (buf[2 + lz] == '0')
-            lz++;
-        lz += 2;
-        e10 -= lz - 1;
-        buf[0] = buf[lz];
-        byte_move_16(&buf[2], &buf[lz + 1]);
-        exp_pos = exp_pos - lz + (exp_pos - lz != 1);
+        if (buf[0] == '0')
+        {
+            u64 lz = 0;
+            while (buf[2 + lz] == '0')
+                lz++;
+            lz += 2;
+            e10 -= lz - 1;
+            buf[0] = buf[lz];
+            byte_move_16(&buf[2], &buf[lz + 1]);
+            exp_pos = exp_pos - lz + (exp_pos - lz != 1);
+        }
         // #if is_intel_compiler
         //             buf += exp_pos;
         //             u64 exp_result = exp_ptr[e10];
@@ -174,47 +183,44 @@ char *xjb32(float v, char *buf)
     buf += vi >> 31;
     u32 sig = vi & ((1 << 23) - 1);
     u32 exp = (vi << 1) >> 24;
+    unsigned char h37_precalc = h37[exp];
     int exp_bin, k;
     u64 sig_bin, regular = sig > 0;
     exp_bin = exp - 150;
-    sig_bin = sig | (1u << 23);
+    sig_bin = sig | (1 << 23);
     if (exp == 0) [[unlikely]]
     {
-        // if (sig == 0)
-        //     return (char *)memcpy(buf, "0.0", 4) + 3;
-        if(sig == 0)//[[unlikely]]
-        {
-            memcpy(buf, "0.0" , 4);//end with '\0'
-            return buf + 3;
-        }
+        if (sig == 0)
+            return (char *)memcpy(buf, "0.0", 4) + 3;
         exp_bin = 1 - 150;
         sig_bin = sig;
     }
-    if(exp == 255)[[unlikely]]
-    {
-        memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
-        return buf + 3;
-    }
-    // if (exp == 255) [[unlikely]]
-    //     return (char *)memcpy(buf, sig ? "NaN" : "Inf", 4) + 3;
+    if (exp == 255) [[unlikely]]
+        return (char *)memcpy(buf, sig ? "NaN" : "Inf", 4) + 3;
     u64 irregular = (sig_bin == 1 << 23);
 #if 1
     if (regular) [[likely]] // branch
         k = (exp_bin * 315653) >> 20;
-    else
+    else{
         k = (exp_bin * 315653 - 131237) >> 20;
+        h37_precalc = exp_bin + ((k * -217707 + (-217707)) >> 16) + 37;
+    }
 #else
     k = (exp_bin * 315653 - (irregular ? 131237 : 0)) >> 20;
 #endif
-    int h = exp_bin + ((k * -217707 + (-217707)) >> 16);
-    static const u64 *pow10_reverse = &pow10_float_reverse[45];
+    //int h = exp_bin + ((k * -217707 + (-217707)) >> 16);
+    //int nh = (nh_cache[exp] >> (irregular ? 4 : 0)) & 15;
+    // int nh = nh_cache[exp] & 15;
+    // if(irregular)[[unlikely]]
+    //     nh = (nh_cache[exp] >> 4) & 15;
+    //static const u64 *pow10_reverse = &pow10_float_reverse[45];
     //u64 pow10_hi = pow10_reverse[k]; // get 10^(-k-1)
-    u64 pow10_hi = pow10_float_reverse[k+45];
+    u64 pow10_hi = pow10_float_reverse[45 + k];
     u64 even = (sig + 1) & 1; // or = (sig_bin + 1) & 1
-    const int BIT = 36; // [33,36] all right
-    u64 cb = sig_bin << (h + (1 + BIT));
+    const int BIT = 36;       // [33,36] all right
+    u64 cb = sig_bin << ( h37_precalc );
     u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64;
-    u64 half_ulp = (pow10_hi >> ((64 - BIT) - h)) + even;
+    u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + even;
     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1);
 #ifdef __amd64__
     u64 up = (half_ulp + dot_one_36bit) >> BIT;
@@ -251,17 +257,21 @@ char *xjb32(float v, char *buf)
     memcpy(&buf[7 + D9], &one, 8);
     byte_move_8(&buf[move_pos], &buf[dot_pos]);
     buf_origin[dot_pos] = '.';
-    static const u32 *exp_ptr = (u32 *)&exp_result_float[45];
-    if (m < 1000000u) [[unlikely]]
+    //static const u32 *exp_ptr = (u32 *)&exp_result_float[45];
+    // if (m < 1000000u) [[unlikely]]
+    if (exp == 0) [[unlikely]]
     {
-        u64 lz = 0;
-        while (buf[2 + lz] == '0')
-            lz++;
-        lz += 2;
-        e10 -= lz - 1;
-        buf[0] = buf[lz];
-        byte_move_8(&buf[2], &buf[lz + 1]);
-        exp_pos = exp_pos - lz + (exp_pos - lz != 1);
+        if (buf[0] == '0')
+        {
+            u64 lz = 0;
+            while (buf[2 + lz] == '0')
+                lz++;
+            lz += 2;
+            e10 -= lz - 1;
+            buf[0] = buf[lz];
+            byte_move_8(&buf[2], &buf[lz + 1]);
+            exp_pos = exp_pos - lz + (exp_pos - lz != 1);
+        }
     }
     //u64 exp_result = exp_ptr[e10];
     u64 exp_result = exp_result_float[45 + e10];
