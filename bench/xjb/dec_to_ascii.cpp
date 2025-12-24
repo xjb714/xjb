@@ -1,0 +1,313 @@
+#include <stdint.h>
+
+#define USE_NEON_SSE2 1
+
+#if USE_NEON_SSE2
+
+#if defined(__aarch64__) && defined(__ARM_NEON__)
+#include <arm_neon.h>
+#ifndef HAS_NEON_OR_SSE2
+    #define HAS_NEON_OR_SSE2 1
+#endif
+#ifndef HAS_NEON
+    #define HAS_NEON 1
+#endif
+#endif
+
+#if defined(__GNUC__) && defined(__SSE2__) && defined(__amd64__)
+#include <immintrin.h>
+#ifndef HAS_NEON_OR_SSE2
+    #define HAS_NEON_OR_SSE2 1
+#endif
+#ifndef HAS_SSE2
+    #define HAS_SSE2 1
+#endif
+#endif
+
+#endif // endif USE_NEON_SSE2
+
+#ifndef is_real_gcc
+#   if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
+        !defined(__clang__) && !defined(__llvm__) && \
+        !defined(__INTEL_COMPILER) && !defined(__ICC)
+#       define is_real_gcc 1
+#   endif
+#endif
+
+typedef __uint128_t u128;
+typedef uint64_t u64;
+typedef int64_t i64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+
+inline int u64_lz_bits(uint64_t x)
+{
+#if defined(__has_builtin) && __has_builtin(__builtin_clzll)
+    return __builtin_clzll(x);
+#elif defined(_MSC_VER) && defined(__AVX2__)
+    // Use lzcnt only on AVX2-capable CPUs that have this BMI instruction.
+    return __lzcnt64(x);
+#elif defined(_MSC_VER)
+    unsigned long idx;
+    _BitScanReverse64(&idx, x); // Fallback to the BSR instruction.
+    return 63 - idx;
+#else
+    int n = 64;
+    for (; x > 0; x >>= 1)
+        --n;
+    return n;
+#endif
+}
+inline int u64_tz_bits(uint64_t x)
+{
+#if defined(__has_builtin) && __has_builtin(__builtin_ctzll)
+    return __builtin_ctzll(x);
+#elif defined(_MSC_VER) && defined(__AVX2__)
+    // Use lzcnt only on AVX2-capable CPUs that have this BMI instruction.
+    return __tzcnt64(x);
+#elif defined(_MSC_VER)
+    unsigned long idx;
+    _BitScanForward64(&idx, x); // Fallback to the BSF instruction.
+    return 63 - idx;
+#else
+    int n = 64;
+    for (; x > 0; x <<= 1)
+        --n;
+    return n;
+#endif
+}
+
+typedef struct
+{
+#if HAS_NEON
+    uint64x2_t ascii16;
+#elif HAS_SSE2
+    __m128i ascii16;
+#else
+    u64 hi;
+    u64 lo;
+#endif
+    u64 dec_sig_len; // range : [0,16]
+} shortest_ascii16;
+
+typedef struct
+{
+    u64 ascii;
+    u64 dec_sig_len; // range : [0,8]
+} shortest_ascii8;
+
+static inline uint64_t is_little_endian()
+{
+    const int n = 1;
+    return *(char *)(&n) == 1;
+}
+static inline uint64_t bswap64(uint64_t x)
+{
+#if defined(__has_builtin) && __has_builtin(__builtin_bswap64)
+    return __builtin_bswap64(x);
+#elif defined(_MSC_VER)
+    return _byteswap_uint64(x);
+#else
+    return ((x & 0xff00000000000000) >> 56) | ((x & 0x00ff000000000000) >> 40) |
+           ((x & 0x0000ff0000000000) >> 24) | ((x & 0x000000ff00000000) >> 8) |
+           ((x & 0x00000000ff000000) << 8) | ((x & 0x0000000000ff0000) << 24) |
+           ((x & 0x000000000000ff00) << 40) | ((x & 0x00000000000000ff) << 56);
+#endif
+}
+
+static inline u64 cmov_branchless(u64 up_down, u64 a, u64 b)
+{
+    // if up_down == 1 return a
+    // if up_down == 0 return b
+#if is_real_gcc
+    // prevent the gcc compiler generating branch instructions
+    return ( (~(up_down - 1)) & a) | ((up_down - 1) & b); // only up_down = 1 or 0 can correctly execute.
+#else
+    return up_down ? a : b;
+#endif
+}
+
+static inline uint64_t compute_double_dec_sig_len(uint64_t up_down, uint64_t tz, uint64_t D17)
+{
+    return cmov_branchless(up_down, 15 - tz, 15 + D17);
+}
+static inline uint64_t compute_double_dec_sig_len_sse2(uint64_t up_down, int tz_add_48, uint64_t D17)
+{
+    return cmov_branchless(up_down, 15 + 48 - tz_add_48, 15 + D17);
+}
+static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint64_t D9)
+{
+    return cmov_branchless(up_down, 7 - tz, 7 + D9);
+}
+
+static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_down, const uint64_t D17)
+{
+    // m range : [1, 1e16 - 1] ; m = abcdefgh * 10^8 + ijklmnop
+    const uint64_t ZERO = 0x3030303030303030;
+    uint64_t abcdefgh = m / 100000000;
+    uint64_t ijklmnop = m - abcdefgh * 100000000;
+#if HAS_NEON
+    // src from : https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
+    // bolg : https://dougallj.wordpress.com/2022/04/01/converting-integers-to-fixed-width-strings-faster-with-neon-simd-on-the-apple-m1/
+    // author : https://github.com/dougallj
+    uint64x1_t hundredmillions = {abcdefgh | ((uint64_t)ijklmnop << 32)};
+    int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(0x68db8bb)), 9);
+    int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(-10000 + 0x10000));
+    int32x4_t extended = vshll_n_u16(tenthousands, 0);
+    int32x4_t high_100 = vqdmulhq_s32(extended, vdupq_n_s32(0x147b000));
+    int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(-100 + 0x10000));
+    int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(0xce0));
+    int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(-10 + 0x100));
+    int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+    int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+    u64 abcdefgh_BCD = vgetq_lane_u64(BCD_little_endian, 0);
+    u64 ijklmnop_BCD = vgetq_lane_u64(BCD_little_endian, 1);
+    u64 abcdefgh_tz = u64_lz_bits(abcdefgh_BCD);
+    u64 ijklmnop_tz = u64_lz_bits(ijklmnop_BCD);
+    u64 tz = ijklmnop ? ijklmnop_tz : 64 + abcdefgh_tz;
+    tz = tz / 8;
+    return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
+#endif
+
+#if HAS_SSE2
+// method 1 : AVX512IFMA, AVX512VBMI
+// method 2 : SSE4.1
+// method 3 : SSSE3
+// method 4 : SSE2
+
+// method 1 : AVX512IFMA, AVX512VBMI
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
+    const __m512i bcstq_h = _mm512_set1_epi64(abcdefgh);
+    const __m512i bcstq_l = _mm512_set1_epi64(ijklmnop);
+    const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
+    const __m512i zmmTen = _mm512_set1_epi64(10);
+    const __m512i zero = _mm512_set1_epi64(0);
+    const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b, 0x0000000010c6f7a0c, 0x00000000a7c5ac472,
+                                                 0x000000068db8bac72, 0x0000004189374bc6b, 0x0000028f5c28f5c29, 0x0000199999999999a);
+    const __m512i permb_const = _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58, 0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
+    __m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
+    __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
+    __m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
+    __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
+    __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
+    __m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
+#elif defined(__SSSE3__) //&& (false)
+    __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
+    __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
+#ifdef __SSE4_1__
+    __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3))); //_mm_mullo_epi32 : sse4.1
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_epi32(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+#endif
+    __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a))));
+    __m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7)); // ssse3
+#else // sse2
+    __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
+    __m128i x_div_10000 = _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi32(0xd1b71759)), 45);
+    __m128i x_mod_10000 = _mm_sub_epi32(x, _mm_mul_epu32(x_div_10000, _mm_set1_epi32(10000)));
+    __m128i y = _mm_or_si128(x_div_10000, _mm_slli_epi64(x_mod_10000, 32));
+#if defined(__SSE4_1__)
+    __m128i z = _mm_sub_epi32(_mm_slli_epi32(y, 16), _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+#endif
+    __m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
+    __m128i little_endian_bcd = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+#endif
+    unsigned int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
+    int tz = u64_lz_bits(mask);
+    __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+    return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+#endif // endif HAS_SSE2
+
+#if !HAS_NEON_OR_SSE2
+    uint64_t abcd_efgh = abcdefgh + (0x100000000 - 10000) * ((abcdefgh * 0x68db8bb) >> 40);
+    uint64_t ijkl_mnop = ijklmnop + (0x100000000 - 10000) * ((ijklmnop * 0x68db8bb) >> 40);
+    uint64_t ab_cd_ef_gh = abcd_efgh + (0x10000 - 100) * (((abcd_efgh * 0x147b) >> 19) & 0x7f0000007f);
+    uint64_t ij_kl_mn_op = ijkl_mnop + (0x10000 - 100) * (((ijkl_mnop * 0x147b) >> 19) & 0x7f0000007f);
+    uint64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f);
+    uint64_t i_j_k_l_m_n_o_p = ij_kl_mn_op + (0x100 - 10) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f);
+    u64 abcdefgh_tz = u64_tz_bits(a_b_c_d_e_f_g_h);
+    u64 ijklmnop_tz = u64_tz_bits(i_j_k_l_m_n_o_p);
+    uint64_t abcdefgh_bcd = is_little_endian() ? bswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+    uint64_t ijklmnop_bcd = is_little_endian() ? bswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
+    u64 tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
+    tz = tz / 8;
+    return {abcdefgh_bcd + ZERO, ijklmnop_bcd + ZERO, compute_double_dec_sig_len(up_down, tz, D17)};
+#endif
+}
+
+static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down, const uint64_t D9)
+{
+    // m range : [0, 1e8 - 1] ; m = abcdefgh
+    const uint64_t ZERO = 0x3030303030303030;
+#if HAS_NEON
+    u64 abcd_efgh = m + ((1ull << 32) - 10000) * ((m * (u128)1844674407370956) >> 64);
+    int32x2_t tenthousands = vld1_u64((uint64_t const *)&abcd_efgh);
+    int32x2_t hundreds = vmla_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(0x147b000)), vdup_n_s32(-100 + 0x10000));
+    int16x4_t BCD_big_endian = vmla_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
+    int8x8_t BCD_little_endian = vrev64_u8(BCD_big_endian); // big_endian to little_endian , reverse 8 bytes
+    u64 abcdefgh_BCD = vget_lane_u64(BCD_little_endian, 0);
+#endif
+
+#if HAS_SSE2
+
+#if defined(__AVX512F__) && defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
+    __m512i bcstq_l = _mm512_set1_epi64(m);
+    const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
+    const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b,
+                                                 0x0000000010c6f7a0c, 0x00000000a7c5ac472, 0x000000068db8bac72, 0x0000004189374bc6b,
+                                                 0x0000028f5c28f5c29, 0x0000199999999999a);
+    const u64 idx = 0x00 + (0x08 << 8) + (0x10 << 16) + (0x18 << 24) + (0x20ull << 32) + (0x28ull << 40) + (0x30ull << 48) + (0x38ull << 56);
+    const __m512i permb_const = _mm512_set1_epi64(idx);
+    __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
+    __m512i highbits_l = _mm512_srli_epi64(_mm512_add_epi64(lowbits_l, _mm512_slli_epi64(lowbits_l, 2)), 51);
+    __m512i bcd = _mm512_permutexvar_epi8(permb_const, highbits_l);
+    u64 abcdefgh_BCD = _mm_cvtsi128_si64(_mm512_castsi512_si128(bcd));
+#elif defined(__SSSE3__) // && (false) // endif avx512ifma avx512vbmi
+    u64 abcd_efgh = m + ((1ull << 32) - 10000) * ((m * (u128)1844674407370956) >> 64);
+    __m128i y = _mm_set1_epi64x(abcd_efgh);
+#ifdef __SSE4_1__
+    __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3))); //_mm_mullo_epi32 : sse4.1
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_epi32(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+#endif
+    __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(6554))));
+    const u64 idx = 7 + (6 << 8) + (5 << 16) + (4 << 24) + (3ull << 32) + (2ull << 40) + (1ull << 48) + (0ull << 56);
+    __m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set1_epi64x(idx));
+    u64 abcdefgh_BCD = _mm_cvtsi128_si64(little_endian_bcd);
+#else
+    // u64 aabb = (x * 109951163) >> 40;
+    u64 aabb_ccdd_merge = (m << 32) - ((10000ull << 32) - 1) * ((m * (u128)1844674407370956) >> 64);
+    __m128i y = _mm_set1_epi64x(aabb_ccdd_merge);
+#if defined(__SSE4_1__)
+    __m128i z = _mm_sub_epi32(_mm_slli_epi32(y, 16), _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epi16(y, _mm_set1_epi16(0x147b)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+#endif
+    __m128i z_div_10 = _mm_mulhi_epi16(z, _mm_set1_epi16(0x199a));
+    __m128i tmp = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+    u64 abcdefgh_BCD = _mm_cvtsi128_si64(tmp);
+#endif
+
+#endif // endif HAS_SSE2
+
+#if !HAS_NEON_OR_SSE2
+    i64 aabb_ccdd_merge = (xi << 32) + (1 - (10000ull << 32)) * ((xi * 109951163) >> 40);
+    i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull << 16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
+    u64 abcdefgh_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
+#endif
+
+    abcdefgh_BCD = D9 ? abcdefgh_BCD : (abcdefgh_BCD >> 8);
+    int tz = u64_lz_bits(abcdefgh_BCD) / 8;
+    abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : bswap64(abcdefgh_BCD);
+    return {abcdefgh_BCD + ZERO, compute_float_dec_sig_len(up_down, tz, D9)};
+}

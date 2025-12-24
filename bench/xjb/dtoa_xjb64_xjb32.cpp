@@ -2874,6 +2874,7 @@ char* xjb64(double v,char* buf)
         0xca5e89b18b602368, 0x385bb19cb14bdfc5, // 322
         0xfcf62c1dee382c42, 0x46729e03dd9ed7b6, // 323
     };
+    
     static const u64 *pow10_ptr = g + 293 * 2;
 #ifdef __amd64__
 //#if 1

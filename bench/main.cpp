@@ -181,7 +181,7 @@ void init_double()
     double_to_string_algorithm_set.push_back(std::string("fmt_full"));        // 8
     double_to_string_algorithm_set.push_back(std::string("xjb64"));           // 9
     double_to_string_algorithm_set.push_back(std::string("xjb64_comp"));      // 10
-    double_to_string_algorithm_set.push_back(std::string("schubfach_vitaut"));// 11
+    //double_to_string_algorithm_set.push_back(std::string("schubfach_vitaut"));// 11
     double_to_string_algorithm_set.push_back(std::string("zmij"));// 12
     double_to_string_algorithm_set.push_back(std::string("jnum"));// 13
 
@@ -233,6 +233,7 @@ void init_float()
     float_to_string_algorithm_set.push_back(std::string("dragonbox_full32"));
     float_to_string_algorithm_set.push_back(std::string("fmt_comp32"));
     float_to_string_algorithm_set.push_back(std::string("fmt_full32"));
+    float_to_string_algorithm_set.push_back(std::string("zmij32"));
 
     printf("init float algorithm set finish\n");
 }
@@ -354,13 +355,13 @@ void bench_double_single_impl(int i)
         if (i == 10)
             for (int j = 0; j < N; ++j)
                 xjb64_comp_f64_to_str(data[j], buffer);
+        // if (i == 11)
+        //     for (int j = 0; j < N; ++j)
+        //         schubfach_vitaut_f64_to_str(data[j], buffer);
         if (i == 11)
             for (int j = 0; j < N; ++j)
-                schubfach_vitaut_f64_to_str(data[j], buffer);
-        if (i == 12)
-            for (int j = 0; j < N; ++j)
                 zmij_f64_to_str(data[j], buffer);
-        if (i == 13)
+        if (i == 12)
             for (int j = 0; j < N; ++j)
                 jnum_f64_to_str(data[j], buffer);
     }
@@ -458,6 +459,9 @@ void bench_float_single_impl(int i)
         if (i == 9)
             for (int j = 0; j < N; ++j)
                 fmt_full_f32_to_str(data_float[j], buffer);
+        if (i == 10)
+            for (int j = 0; j < N; ++j)
+                zmij_f32_to_str(data_float[j], buffer);
     }
 
     auto t2 = getns();
