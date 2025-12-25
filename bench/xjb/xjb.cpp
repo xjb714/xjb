@@ -72,9 +72,11 @@ char *xjb64(double v,char *buf)
     i64 q = (i64)ieee_exponent - 1075;
     u64 nq = -q;
     u64 c = ((1ull << 52) | ieee_significand);
+#if 0
     if (nq <= u64_tz_bits(c))[[unlikely]]
         return write_1_to_16_digit(c >> nq, buf); // fast path for integer
-    if (ieee_exponent == 0) [[unlikely]]
+#endif
+        if (ieee_exponent == 0) [[unlikely]]
     {
         c = ieee_significand;
         q = 1 - 1075; // -1074
@@ -89,12 +91,13 @@ char *xjb64(double v,char *buf)
     else
         k = (i64)((ieee_exponent - 1075) * 315653 - 131237) >> 20;
 #else
-    k = ((ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
+    k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
 #endif
-    i64 get_e10 = -1 - k;
-    i64 h = q + ((get_e10 * 217707) >> 16);
-    static const u64 *pow10_ptr = pow10_double + 293 * 2;
-    u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
+    //i64 get_e10 = -1 - k;
+    //i64 h = q + ((get_e10 * 217707) >> 16);
+    i64 h = q + (( k * -217707 - 217707) >> 16);
+    static const u64 *pow10_ptr = pow10_double + 293 * 2 - 2;
+    u64 *p10 = (u64 *)&pow10_ptr[k * -2];//get 10**(-k-1)
     u128 cb = c << (h + (1 + offset));
     u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
     u64 dot_one = hi128 >> offset;
@@ -108,7 +111,7 @@ char *xjb64(double v,char *buf)
     shortest_ascii16 s = to_ascii16(mr, up_down, D17);
     k += 15 + D17;
     i64 e10 = k;
-    memcpy(buf, "0.00", 4);
+    memcpy(buf, "0.000000", 8);
 #ifdef __amd64__
     u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull << 63) + 6;
     u64 one = ((dot_one * (u128)10 + offset_num) >> 64) + (u64)('0' + '0' * 256);
@@ -240,8 +243,8 @@ char *xjb32(float v, char *buf)
         if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150))
             one += 1;
     }
-    const int e10_DN = -3;
-    const int e10_UP = 7;
+    const i64 e10_DN = -3;
+    const i64 e10_UP = 7;
     u64 e10_3 = e10 + (-e10_DN);
     u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
     u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
