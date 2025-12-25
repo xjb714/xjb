@@ -72,7 +72,7 @@ char *xjb64(double v,char *buf)
     i64 q = (i64)ieee_exponent - 1075;
     u64 nq = -q;
     u64 c = ((1ull << 52) | ieee_significand);
-#if 0
+#if 1
     if (nq <= u64_tz_bits(c))[[unlikely]]
         return write_1_to_16_digit(c >> nq, buf); // fast path for integer
 #endif
@@ -93,11 +93,16 @@ char *xjb64(double v,char *buf)
 #else
     k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
 #endif
-    //i64 get_e10 = -1 - k;
-    //i64 h = q + ((get_e10 * 217707) >> 16);
+#if 1
+    i64 get_e10 = -1 - k;
+    i64 h = q + ((get_e10 * 217707) >> 16);
+    static const u64 *pow10_ptr = pow10_double + 293 * 2;
+    u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];//get 10**(-k-1)
+#else
     i64 h = q + (( k * -217707 - 217707) >> 16);
     static const u64 *pow10_ptr = pow10_double + 293 * 2 - 2;
     u64 *p10 = (u64 *)&pow10_ptr[k * -2];//get 10**(-k-1)
+#endif
     u128 cb = c << (h + (1 + offset));
     u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
     u64 dot_one = hi128 >> offset;
