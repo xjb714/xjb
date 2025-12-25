@@ -131,13 +131,7 @@ char *xjb64(double v, char *buf)
     char *buf_origin = buf;
     buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
-#if HAS_NEON
-    vst1q_u64((uint64_t *)buf, s.ascii16);
-    // memcpy(buf, &(s.ascii16), 16);
-#endif
-#if HAS_SSE2
-    _mm_storeu_si128((__m128i *)buf, s.ascii16);
-#endif
+    memcpy(buf, &(s.ascii16), 16);
 #else
     memcpy(buf + 0, &(s.ascii16.hi), 8);
     memcpy(buf + 8, &(s.ascii16.lo), 8);
@@ -146,7 +140,7 @@ char *xjb64(double v, char *buf)
     byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
     buf_origin[dot_pos] = '.';
     static const u64 *exp_ptr = (u64 *)&exp_result_double[324];
-    // if (m < (u64)1e14) [[unlikely]]
+    //if (m < (u64)1e14) [[unlikely]]
     if (ieee_exponent == 0) [[unlikely]]
     {
         // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
@@ -168,7 +162,8 @@ char *xjb64(double v, char *buf)
         //             return buf + 5;
         // #endif
     }
-    u64 exp_result = exp_ptr[e10];
+    //u64 exp_result = exp_ptr[e10];
+    u64 exp_result = exp_result_double[e10+324];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
@@ -183,7 +178,7 @@ char *xjb32(float v, char *buf)
     buf += vi >> 31;
     u32 sig = vi & ((1 << 23) - 1);
     u32 exp = (vi << 1) >> 24;
-    unsigned char h37_precalc = h37[exp];
+    
     int exp_bin, k;
     u64 sig_bin, regular = sig > 0;
     exp_bin = exp - 150;
@@ -198,6 +193,7 @@ char *xjb32(float v, char *buf)
     if (exp == 255) [[unlikely]]
         return (char *)memcpy(buf, sig ? "NaN" : "Inf", 4) + 3;
     u64 irregular = (sig_bin == 1 << 23);
+    unsigned char h37_precalc = h37[exp];
 #if 1
     if (regular) [[likely]] // branch
         k = (exp_bin * 315653) >> 20;
