@@ -36,7 +36,7 @@ static inline void byte_move_8(void *dst, const void *src)
     memcpy(&src_value, src, 8);
     memcpy(dst, &src_value, 8);
 }
-char *xjb64(double v, char *buf)
+char *xjb64(double v,char *buf)
 {
     u64 vi;
     memcpy(&vi, &v, sizeof(v));
@@ -57,7 +57,7 @@ char *xjb64(double v, char *buf)
     //         memcpy(buf, "NaN\0\0\0\0", 8);
     //     return buf + ((vi << 1) == 2 ? 6 : 3);
     // }
-    if (vi_abs - 2 >= (2047ull << 52) - 2) //[[unlikely]]
+    if ( (u64)(vi_abs - 2) >= (u64)((2047ull << 52) - 2) ) //[[unlikely]]
     {
         if (vi_abs == 0)
             memcpy(buf, "0.0\0\0\0\0", 8);
@@ -69,30 +69,30 @@ char *xjb64(double v, char *buf)
             memcpy(buf, "NaN\0\0\0\0", 8);
         return buf + (vi_abs == 1 ? 6 : 3);
     }
-    int32_t q = ieee_exponent - 1075;
-    u32 nq = -q;
+    i64 q = (i64)ieee_exponent - 1075;
+    u64 nq = -q;
     u64 c = ((1ull << 52) | ieee_significand);
-    if (nq <= u64_tz_bits(c))
+    if (nq <= u64_tz_bits(c))[[unlikely]]
         return write_1_to_16_digit(c >> nq, buf); // fast path for integer
     if (ieee_exponent == 0) [[unlikely]]
     {
         c = ieee_significand;
         q = 1 - 1075; // -1074
     }
-    int k;
+    i64 k;
     const int offset = 6;
     u64 regular = ieee_significand > 0;
     u64 irregular = (ieee_significand == 0);
 #ifdef __amd64__
     if (!irregular) [[likely]] // branch
-        k = ((ieee_exponent - 1075) * 315653) >> 20;
+        k = (i64)((ieee_exponent - 1075) * 315653) >> 20;
     else
-        k = ((ieee_exponent - 1075) * 315653 - 131237) >> 20;
+        k = (i64)((ieee_exponent - 1075) * 315653 - 131237) >> 20;
 #else
     k = ((ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
 #endif
-    int get_e10 = -1 - k;
-    int h = q + ((get_e10 * 217707) >> 16);
+    i64 get_e10 = -1 - k;
+    i64 h = q + ((get_e10 * 217707) >> 16);
     static const u64 *pow10_ptr = pow10_double + 293 * 2;
     u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
     u128 cb = c << (h + (1 + offset));
@@ -106,9 +106,9 @@ char *xjb64(double v, char *buf)
     u64 D17 = (m >= (u64)1e15);
     u64 mr = D17 ? m : m * 10;
     shortest_ascii16 s = to_ascii16(mr, up_down, D17);
-    memcpy(buf, "0.000000", 8);
     k += 15 + D17;
-    int e10 = k;
+    i64 e10 = k;
+    memcpy(buf, "0.00", 4);
 #ifdef __amd64__
     u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull << 63) + 6;
     u64 one = ((dot_one * (u128)10 + offset_num) >> 64) + (u64)('0' + '0' * 256);
@@ -120,9 +120,10 @@ char *xjb64(double v, char *buf)
     if (irregular) [[unlikely]] // Since the compiler tries to prevent access to memory, it generates branch instructions.
         one += (bit_array_irregular[ieee_exponent / 64] >> (ieee_exponent % 64)) & 1;
 #endif
-    const int e10_DN = -3;
-    const int e10_UP = 15;
-    u64 e10_3 = e10 - e10_DN;
+    
+    const i64 e10_DN = -3;
+    const i64 e10_UP = 15;
+    u64 e10_3 = e10 + (-e10_DN);
     u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1; // compute offset , min(e10_3,19)
     u64 first_sig_pos = e10_variable_data2[e10_data_ofs][17 + 0];
     u64 dot_pos = e10_variable_data2[e10_data_ofs][17 + 1];
@@ -133,8 +134,8 @@ char *xjb64(double v, char *buf)
 #if HAS_NEON_OR_SSE2
     memcpy(buf, &(s.ascii16), 16);
 #else
-    memcpy(buf + 0, &(s.ascii16.hi), 8);
-    memcpy(buf + 8, &(s.ascii16.lo), 8);
+    memcpy(buf + 0, &(s.hi), 8);
+    memcpy(buf + 8, &(s.lo), 8);
 #endif
     memcpy(&buf[15 + D17], &one, 8);
     byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
@@ -176,12 +177,13 @@ char *xjb32(float v, char *buf)
     memcpy(&vi, &v, 4);
     buf[0] = '-';
     buf += vi >> 31;
-    u32 sig = vi & ((1 << 23) - 1);
-    u32 exp = (vi << 1) >> 24;
+    u64 sig = vi & ((1 << 23) - 1);
+    u64 exp = (vi << 1) >> 24;
     
-    int exp_bin, k;
+    i64 exp_bin;
+    i64 k;
     u64 sig_bin, regular = sig > 0;
-    exp_bin = exp - 150;
+    exp_bin = (i64)exp - 150;
     sig_bin = sig | (1 << 23);
     if (exp == 0) [[unlikely]]
     {
@@ -196,9 +198,9 @@ char *xjb32(float v, char *buf)
     unsigned char h37_precalc = h37[exp];
 #if 1
     if (regular) [[likely]] // branch
-        k = (exp_bin * 315653) >> 20;
+        k = (i64)(exp_bin * 315653) >> 20;
     else{
-        k = (exp_bin * 315653 - 131237) >> 20;
+        k = (i64)(exp_bin * 315653 - 131237) >> 20;
         h37_precalc = exp_bin + ((k * -217707 + (-217707)) >> 16) + 37;
     }
 #else
@@ -230,7 +232,7 @@ char *xjb32(float v, char *buf)
     memcpy(buf, "0.000000", 8);
     shortest_ascii8 s = to_ascii8(m, up_down, D9);
     k += 7 + D9;
-    int e10 = k;
+    i64 e10 = k;
     u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
     u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
     if (irregular) [[unlikely]]
@@ -240,9 +242,9 @@ char *xjb32(float v, char *buf)
     }
     const int e10_DN = -3;
     const int e10_UP = 7;
-    u32 e10_3 = e10 + (-e10_DN);
+    u64 e10_3 = e10 + (-e10_DN);
     u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
-    u32 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
+    u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
     u64 first_sig_pos = e10_variable_data[e10_data_ofs][9 + 0];
     u64 dot_pos = e10_variable_data[e10_data_ofs][9 + 1];
     u64 move_pos = e10_variable_data[e10_data_ofs][9 + 2];

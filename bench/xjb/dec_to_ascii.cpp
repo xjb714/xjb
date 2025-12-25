@@ -2,7 +2,9 @@
 
 #define USE_NEON_SSE2 1
 
+
 #if USE_NEON_SSE2
+
 
 #if defined(__aarch64__) && defined(__ARM_NEON__)
 #include <arm_neon.h>
@@ -40,7 +42,7 @@ typedef int64_t i64;
 typedef uint32_t u32;
 typedef uint16_t u16;
 
-inline int u64_lz_bits(uint64_t x)
+static inline int u64_lz_bits(uint64_t x)
 {
 #if defined(__has_builtin) && __has_builtin(__builtin_clzll)
     return __builtin_clzll(x);
@@ -58,7 +60,7 @@ inline int u64_lz_bits(uint64_t x)
     return n;
 #endif
 }
-inline int u64_tz_bits(uint64_t x)
+static inline int u64_tz_bits(uint64_t x)
 {
 #if defined(__has_builtin) && __has_builtin(__builtin_ctzll)
     return __builtin_ctzll(x);
@@ -84,16 +86,16 @@ typedef struct
 #elif HAS_SSE2
     __m128i ascii16;
 #else
-    u64 hi;
-    u64 lo;
+    uint64_t hi;
+    uint64_t lo;
 #endif
-    u64 dec_sig_len; // range : [1,17] - 1 = [0,16]
+    uint64_t dec_sig_len; // range : [1,17] - 1 = [0,16]
 } shortest_ascii16;
 
 typedef struct
 {
-    u64 ascii;
-    u64 dec_sig_len; // range : [1,9] - 1 = [0,8]
+    uint64_t ascii;
+    uint64_t dec_sig_len; // range : [1,9] - 1 = [0,8]
 } shortest_ascii8;
 
 static inline uint64_t is_little_endian()
@@ -115,7 +117,7 @@ static inline uint64_t bswap64(uint64_t x)
 #endif
 }
 
-static inline u64 cmov_branchless(u64 up_down, u64 a, u64 b)
+static inline uint64_t cmov_branchless(uint64_t up_down, uint64_t a, uint64_t b)
 {
     // if up_down == 1 return a
     // if up_down == 0 return b
@@ -143,7 +145,7 @@ static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint6
 static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_down, const uint64_t D17)
 {
     // m range : [1, 1e16 - 1] ; m = abcdefgh * 10^8 + ijklmnop
-    const uint64_t ZERO = 0x3030303030303030;
+    const uint64_t ZERO = 0x3030303030303030ull;
     uint64_t abcdefgh = m / 100000000;
     uint64_t ijklmnop = m - abcdefgh * 100000000;
 #if HAS_NEON
@@ -232,14 +234,15 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     uint64_t ij_kl_mn_op = ijkl_mnop + (0x10000 - 100) * (((ijkl_mnop * 0x147b) >> 19) & 0x7f0000007f);
     uint64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f);
     uint64_t i_j_k_l_m_n_o_p = ij_kl_mn_op + (0x100 - 10) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f);
-    u64 abcdefgh_tz = u64_tz_bits(a_b_c_d_e_f_g_h);
-    u64 ijklmnop_tz = u64_tz_bits(i_j_k_l_m_n_o_p);
+    int abcdefgh_tz = u64_tz_bits(a_b_c_d_e_f_g_h);
+    int ijklmnop_tz = u64_tz_bits(i_j_k_l_m_n_o_p);
     uint64_t abcdefgh_bcd = is_little_endian() ? bswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
     uint64_t ijklmnop_bcd = is_little_endian() ? bswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
-    u64 tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
+    int tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
     tz = tz / 8;
     return {abcdefgh_bcd | ZERO, ijklmnop_bcd | ZERO, compute_double_dec_sig_len(up_down, tz, D17)};
 #endif
+
 }
 
 static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down,const uint64_t D9)
@@ -301,7 +304,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 #endif // endif HAS_SSE2
 
 #if !HAS_NEON_OR_SSE2
-    i64 aabb_ccdd_merge = (xi << 32) + (1 - (10000ull << 32)) * ((xi * 109951163) >> 40);
+    i64 aabb_ccdd_merge = (m << 32) + (1 - (10000ull << 32)) * ((m * 109951163) >> 40);
     i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull << 16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
     u64 abcdefgh_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
 #endif
@@ -343,7 +346,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf)
         int64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f);
         u64 lz = u64_lz_bits(a_b_c_d_e_f_g_h) / 8;
         uint64_t abcdefgh_bcd = is_little_endian() ? bswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
-        uint64_t abcdefgh_ascii = abcdefgh_bcd + ZERO;
+        uint64_t abcdefgh_ascii = abcdefgh_bcd | ZERO;
         abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * lz) : abcdefgh_ascii << (8 * lz); // remove leading zeros
         memcpy(buf, &abcdefgh_ascii, 8);
         buf = buf + 8 - lz;
