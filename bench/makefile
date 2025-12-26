@@ -16,13 +16,13 @@ BENCH_F_TO_STR = 1 # 0 : float/double to decimal , 1 : float/double to string
 
 # with -march=native for better performance
 g:
-	g++ -O3 -std=c++20 -march=native main.cpp util/yybench/src/yybench.cpp  -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_gcc
+	g++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_gcc
 	./main_gcc
 i:
-	icpx -O3 -std=c++20 -march=native -no-ftz main.cpp util/yybench/src/yybench.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_icpx
+	icpx -O3 -std=c++20 -march=native -no-ftz main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_icpx
 	./main_icpx
 c:
-	clang++ -O3 -std=c++20 -march=native main.cpp util/yybench/src/yybench.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang
+	clang++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang
 	./main_clang
 
 

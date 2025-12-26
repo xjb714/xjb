@@ -3,13 +3,16 @@
 #include <chrono>
 #include <random>
 #include <stdint.h>
+#include <filesystem> //c++17
 
 #include "util/get_cpu_name.cpp"
 
 //#include "util/check_float_multi_thread.cpp" // use multi-thread to check float algorithm
 
 #define USE_YYBENCH 1
+
 #if USE_YYBENCH
+    #include "util/yybench/src/yybench.cpp"
     #include "util/benchmark.cpp"
 #endif
 
@@ -725,11 +728,30 @@ void check_double()
     printf("check finish\n");
 }
 #if USE_YYBENCH && BENCH_STR
+bool createDirectories(const std::string& path) {
+    try {
+        if (std::filesystem::create_directories(path)) {
+            std::cout << "OK : create directory success: " << path << std::endl;
+            return true;
+        } else if (std::filesystem::exists(path)) {
+            std::cout << "OK : directory already exists: " << path << std::endl;
+            return true;
+        } else {
+            std::cout << "ERROR : create directory failed: " << path << std::endl;
+            return false;
+        }
+    } catch (const std::filesystem::filesystem_error& e) {
+        std::cerr << "ERROR : create directory failed: " << e.what() << std::endl;
+        return false;
+    }
+}
 std::string getFileName(char* float_or_double)
 {
-    std::string fileName = std::string("result/bench");
-    fileName += std::string("_") + std::string(float_or_double);
-    fileName += std::string("_") + getCPUName();
+    std::string directoryName = std::string("bench_result/") + getCPUName();
+    createDirectories(directoryName);
+    std::string fileName = directoryName;
+    fileName += std::string("/") + std::string(float_or_double);
+    //fileName += std::string("_") + getCPUName();
     fileName += std::string("_") + keepAlnumOnly(std::string(yy_env_get_compiler_desc()));
     fileName += std::string(".html");
     return fileName;

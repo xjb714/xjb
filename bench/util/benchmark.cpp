@@ -264,8 +264,11 @@ static void dtoa_func_benchmark_all(const char *output_path) {
     yy_cpu_measure_freq();
 
 
-    int num_per_case = 10000 * 10; //1e5
-    int meansure_count = 1;
+    const int num_per_case = 10000 * 10; //1e5
+    const int meansure_count = 1;
+
+    //bool recovery_from_file = true;         // read from file or not
+    //std::string file_path = std::string(BENCHMARK_DATA_PATH) + "/dtoa_func_benchmark.txt";
 
     typedef struct {
         const char *name;
@@ -281,7 +284,7 @@ static void dtoa_func_benchmark_all(const char *output_path) {
     dataset_arr[dataset_num++] = (dataset_t) {
         "random",
         "random double number in all binary range, ignore nan and inf",
-        (void*)rand_f64, false
+        (void*)rand_f64, false, false
     };
     dataset_arr[dataset_num++] = (dataset_t) {
         "random length",
@@ -298,7 +301,7 @@ static void dtoa_func_benchmark_all(const char *output_path) {
     dataset_arr[dataset_num++] = (dataset_t) {
         "nomalized",
         "random double number in range 0.0 to 1.0",
-        (void*)rand_f64_normalize, false
+        (void*)rand_f64_normalize, false, false
     };
     dataset_arr[dataset_num++] = (dataset_t) {
         "nomalized (random len)",
@@ -314,7 +317,7 @@ static void dtoa_func_benchmark_all(const char *output_path) {
     dataset_arr[dataset_num++] = (dataset_t) {
         "integer",
         "random double number from integer",
-        (void*)rand_f64_integer, false
+        (void*)rand_f64_integer, false, false
     };
     dataset_arr[dataset_num++] = (dataset_t) {
         "integer (random len)",
@@ -330,19 +333,53 @@ static void dtoa_func_benchmark_all(const char *output_path) {
     dataset_arr[dataset_num++] = (dataset_t) {
         "subnormal",
         "random subnormal double number",
-        (void*)rand_f64_subnormal, false
+        (void*)rand_f64_subnormal, false, false
     };
     dataset_arr[dataset_num++] = (dataset_t) {
         "float",
         "random float number",
-        (void*)rand_f64_from_f32, false
+        (void*)rand_f64_from_f32, false, false
     };
 
     char buf[64];
-    f64 *vals = (f64 *)malloc(num_per_case * sizeof(f64));
+    //f64 *vals = (f64 *)malloc(num_per_case * sizeof(f64));
+    int fixed_len_count = 3; // func_has_len = true; use_random_len=false;
+    int all_vals_number = 17 * num_per_case * fixed_len_count + num_per_case * (dataset_num - fixed_len_count);
+    std::vector<f64> all_vals;
+    all_vals.resize(all_vals_number);
+    int all_vals_begin_pos = 0;
+    for(int d = 0; d < dataset_num; ++d){
+        dataset_t dataset = dataset_arr[d];
+        if(dataset.func_has_len && !dataset.use_random_len){// fixed_len_count = 3
+            // fixed_len_count ++;
+            for(int len = 1; len <= 17; len++){
+                yy_random_reset();
+                for(int v = 0; v < num_per_case; ++v){
+                    double val = ((fill_len_func)dataset.fill_func)(len);
+                    all_vals[v + all_vals_begin_pos + (len - 1) * num_per_case] = val;
+                }
+            }
+            all_vals_begin_pos += 17 * num_per_case;
+        }else{// dataset_num - fixed_len_count = 11 - 3 = 8
+            yy_random_reset();
+            if (dataset.func_has_len) {
+                for (int v = 0; v < num_per_case; v++) {
+                    double val = ((fill_len_func)dataset.fill_func)((int)yy_random32_range(1, 17));
+                    all_vals[v + all_vals_begin_pos] = val;
+                }
+            } else {
+                for (int v = 0; v < num_per_case; v++) {
+                    double val =  ((fill_func)dataset.fill_func)();
+                    all_vals[v + all_vals_begin_pos] = val;
+                }
+            }
+            all_vals_begin_pos += num_per_case;
+        }
+    }
     yy_report *report = yy_report_new();
     yy_report_add_env_info(report);
-
+    assert(all_vals_begin_pos == all_vals_number);
+    all_vals_begin_pos = 0;
     for (int d = 0; d < dataset_num; d++) {
         dataset_t dataset = dataset_arr[d];
         printf("run benchmark %s...", dataset.name);
@@ -374,14 +411,18 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                 for (int len = 1; len <= 17; len++) {
                     yy_random_reset();
                     for (int i = 0; i < num_per_case; i++) {
-                        vals[i] = ((fill_len_func)dataset.fill_func)(len);
+                        //vals[i] = ((fill_len_func)dataset.fill_func)(len);
+                        //all_vals.push_back(vals[i]);
                     }
 
                     u64 ticks_min = UINT64_MAX;
                     for (int r = 0; r < meansure_count; r++) {
+                        f64* data = (f64*)&all_vals[all_vals_begin_pos + (len - 1) * num_per_case];
                         u64 t1 = yy_time_get_ticks();
                         for (int v = 0; v < num_per_case; v++) {
-                            f64 val = vals[v];
+                            //f64 val = vals[v];
+                            //f64 val = all_vals[v + all_vals_begin_pos + (len - 1) * num_per_case];
+                            f64 val = data[v];
                             func(val, buf);
                         }
                         u64 t2 = yy_time_get_ticks();
@@ -390,11 +431,12 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                     }
                     f64 cycle = (f64)ticks_min / (f64)num_per_case * yy_cpu_get_cycle_per_tick();
                     yy_chart_item_add_float(chart, (f32)cycle);
+                    
                 }
 
                 yy_chart_item_end(chart);
             }
-
+            all_vals_begin_pos += num_per_case * 17;
         } else { // bar chart
             op.type = YY_CHART_BAR;
             op.h_axis.title = "CPU cycles";
@@ -412,11 +454,13 @@ static void dtoa_func_benchmark_all(const char *output_path) {
             yy_random_reset();
             if (dataset.func_has_len) {
                 for (int i = 0; i < num_per_case; i++) {
-                    vals[i] = ((fill_len_func)dataset.fill_func)((int)yy_random32_range(1, 17));
+                    //vals[i] = ((fill_len_func)dataset.fill_func)((int)yy_random32_range(1, 17));
+                    //all_vals.push_back(vals[i]);
                 }
             } else {
                 for (int i = 0; i < num_per_case; i++) {
-                    vals[i] = ((fill_func)dataset.fill_func)();
+                    //vals[i] = ((fill_func)dataset.fill_func)();
+                    //all_vals.push_back(vals[i]);
                 }
             }
 
@@ -425,9 +469,12 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                 dtoa_func func = func_arr[f];
                 u64 ticks_min = UINT64_MAX;
                 for (int r = 0; r < meansure_count; r++) {
+                    f64* data = (f64*)&all_vals[all_vals_begin_pos];
                     u64 t1 = yy_time_get_ticks();
                     for (int v = 0; v < num_per_case; v++) {
-                        f64 val = vals[v];
+                        //f64 val = vals[v];
+                        //f64 val = all_vals[v + all_vals_begin_pos];
+                        f64 val = data[v];
                         func(val, buf);
                     }
                     u64 t2 = yy_time_get_ticks();
@@ -436,8 +483,8 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                 }
                 f64 cycle = (f64)ticks_min / (f64)num_per_case * yy_cpu_get_cycle_per_tick();
                 yy_chart_item_with_float(chart, func_name, (f32)cycle);
-
             }
+            all_vals_begin_pos += num_per_case;
         }
         yy_chart_sort_items_with_value(chart, false);
         yy_chart_set_options(chart, &op);
@@ -446,14 +493,15 @@ static void dtoa_func_benchmark_all(const char *output_path) {
 
         printf("[OK]\n");
     }
-
+    
     // export report to html
     bool suc = yy_report_write_html_file(report, output_path);
     if (!suc) {
         printf("write report file failed: %s\n", output_path);
     }
     yy_report_free(report);
-    free(vals);
+    //free(vals);
+    //all_vals.clear();
 }
 
 static void dtoa_func_verify_all(void) {
