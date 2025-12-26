@@ -767,7 +767,7 @@ inline auto countl_zero(uint64_t x) noexcept -> int {
 #endif
 }
 
-inline auto bswap64(uint64_t x) noexcept -> uint64_t {
+inline auto byteswap64(uint64_t x) noexcept -> uint64_t {
 #if defined(__has_builtin) && __has_builtin(__builtin_bswap64)
   return __builtin_bswap64(x);
 #elif defined(_MSC_VER)
@@ -827,7 +827,7 @@ auto to_bcd8(uint64_t abcdefgh) noexcept -> uint64_t {
   uint64_t a_b_c_d_e_f_g_h =
       ab_cd_ef_gh +
       (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f);
-  return is_big_endian() ? a_b_c_d_e_f_g_h : bswap64(a_b_c_d_e_f_g_h);
+  return is_big_endian() ? a_b_c_d_e_f_g_h : byteswap64(a_b_c_d_e_f_g_h);
 }
 
 inline auto write_if_nonzero(char* buffer, uint32_t digit) noexcept -> char* {

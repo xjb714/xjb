@@ -136,7 +136,7 @@ char *xjb64(double v,char *buf)
 #if is_real_gcc
     if (nq <= u64_tz_bits(c)) [[unlikely]] // use unlikely will generate jmp instruction
 #else
-    if (nq <= u64_tz_bits(c)) //[[unlikely]] ;use unlikely will generate jmp instruction
+    if (nq <= u64_tz_bits(c))
 #endif
         return write_1_to_16_digit(c >> nq, buf); // fast path for integer
 #endif
@@ -157,6 +157,7 @@ char *xjb64(double v,char *buf)
 #else
     k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
 #endif
+
 #ifdef __amd64__
     i64 get_e10 = -1 - k;
     i64 h = q + ((get_e10 * 217707) >> 16);

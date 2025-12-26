@@ -103,8 +103,7 @@ static inline uint64_t is_little_endian()
     const int n = 1;
     return *(char *)(&n) == 1;
 }
-static inline uint64_t bswap64(uint64_t x)
-{
+static inline uint64_t byteswap64(uint64_t x){
 #if defined(__has_builtin) && __has_builtin(__builtin_bswap64)
     return __builtin_bswap64(x);
 #elif defined(_MSC_VER)
@@ -236,8 +235,8 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     uint64_t i_j_k_l_m_n_o_p = ij_kl_mn_op + (0x100 - 10) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f);
     int abcdefgh_tz = u64_tz_bits(a_b_c_d_e_f_g_h);
     int ijklmnop_tz = u64_tz_bits(i_j_k_l_m_n_o_p);
-    uint64_t abcdefgh_bcd = is_little_endian() ? bswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
-    uint64_t ijklmnop_bcd = is_little_endian() ? bswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
+    uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+    uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
     int tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
     tz = tz / 8;
     return {abcdefgh_bcd | ZERO, ijklmnop_bcd | ZERO, compute_double_dec_sig_len(up_down, tz, D17)};
@@ -254,7 +253,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
     int32x2_t tenthousands = vld1_u64((uint64_t const *)&abcd_efgh);
     int32x2_t hundreds = vmla_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(0x147b000)), vdup_n_s32(-100 + 0x10000));
     int16x4_t BCD_big_endian = vmla_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
-    u64 abcdefgh_BCD = bswap64(vget_lane_u64(BCD_big_endian, 0));// big_endian to little_endian , reverse 8 bytes
+    u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0));// big_endian to little_endian , reverse 8 bytes
 #endif
 
 #if HAS_SSE2
@@ -311,7 +310,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 
     abcdefgh_BCD = D9 ? abcdefgh_BCD : (abcdefgh_BCD >> 8);
     int tz = u64_lz_bits(abcdefgh_BCD) / 8;
-    abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : bswap64(abcdefgh_BCD);
+    abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64(abcdefgh_BCD);
     return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, D9)};
 }
 
@@ -332,7 +331,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf)
         int16x4_t a_b_c_d_e_f_g_h = vmla_s16(ab_cd_ef_gh, vqdmulh_s16(ab_cd_ef_gh, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
         u64 bcd_big_endian = vget_lane_u64(a_b_c_d_e_f_g_h, 0);
         u64 lz = u64_lz_bits(bcd_big_endian) / 8; // lz max is 7 , bcd_big_endian = 0 is impossible
-        u64 abcdefgh_bcd = is_little_endian() ? bswap64(bcd_big_endian) : bcd_big_endian ;
+        u64 abcdefgh_bcd = is_little_endian() ? byteswap64(bcd_big_endian) : bcd_big_endian ;
         u64 abcdefgh_ascii = abcdefgh_bcd | ZERO;
         abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * lz) : abcdefgh_ascii << (8 * lz);
         memcpy(buf, &abcdefgh_ascii, 8);
@@ -345,7 +344,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf)
         int64_t ab_cd_ef_gh = abcd_efgh + (0x10000 - 100) * (((abcd_efgh * 0x147b) >> 19) & 0x7f0000007f);
         int64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f);
         u64 lz = u64_lz_bits(a_b_c_d_e_f_g_h) / 8;
-        uint64_t abcdefgh_bcd = is_little_endian() ? bswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+        uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
         uint64_t abcdefgh_ascii = abcdefgh_bcd | ZERO;
         abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * lz) : abcdefgh_ascii << (8 * lz); // remove leading zeros
         memcpy(buf, &abcdefgh_ascii, 8);
@@ -405,8 +404,8 @@ static inline char *write_1_to_16_digit(u64 x, char *buf)
         uint64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f); //+ 0x3030303030303030;
         uint64_t i_j_k_l_m_n_o_p = ij_kl_mn_op + (0x100 - 10) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f); //+ 0x3030303030303030;
         u64 abcdefgh_lz = u64_lz_bits(a_b_c_d_e_f_g_h) / 8;
-        uint64_t abcdefgh_bcd = is_little_endian() ? bswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
-        uint64_t ijklmnop_bcd = is_little_endian() ? bswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
+        uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+        uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
         u64 abcdefgh_ascii = abcdefgh_bcd | ZERO;
         u64 ijklmnop_ascii = ijklmnop_bcd | ZERO;
         abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * abcdefgh_lz) : abcdefgh_ascii << (8 * abcdefgh_lz);
