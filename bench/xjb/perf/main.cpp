@@ -22,7 +22,7 @@ typedef uint64_t u64;
 
 std::random_device rd;
 std::mt19937_64 gen(rd());
-const u64 N = 10'000'000; // double data size
+const u64 N = 100'000'000; // data size
 #if PERF_DOUBLE_OR_FLOAT == FLOAT
     float *data;
 #else
@@ -111,7 +111,7 @@ int main()
         u64 random_seed = gen();
         auto t1 = getns();
         auto c1 = get_cycle();
-        double num;
+        //double num;
         u64 random_num = random_seed;
         for (u64 i = 0; i < N; ++i)
         {
@@ -138,7 +138,7 @@ int main()
 #ifdef __amd64__
         printf("every number cost %lf ns,%lf cycle\n", (double)(t2 - t1) * (1.0 / double(N)), (double)(c2 - c1) * (1.0 / double(N)));
 #else
-        printf("every number cost %lf ns\n", (t2 - t1) * (1.0 / double(N)));
+        printf("every number cost %lf ns\n", (double)(t2 - t1) * (1.0 / double(N)));
 #endif
 
 #if PERF_DOUBLE_OR_FLOAT == FLOAT

@@ -351,73 +351,72 @@ LBB0_17:
 __Z5xjb32fPc:                           ; @_Z5xjb32fPc
 	.cfi_startproc
 ; %bb.0:
-	mov	x8, x0
-	fmov	w10, s0
+	fmov	w8, s0
 	mov	w9, #45                         ; =0x2d
 	strb	w9, [x0]
-	lsr	w9, w10, #31
+	lsr	w9, w8, #31
 	add	x0, x0, x9
-	and	w14, w10, #0x7fffff
-	ubfx	x10, x10, #23, #8
-	cbz	w10, LBB1_7
+	and	w12, w8, #0x7fffff
+	ubfx	x8, x8, #23, #8
+	cbz	w8, LBB1_7
 ; %bb.1:
-	cmp	w10, #255
+	cmp	w8, #255
 	b.eq	LBB1_9
 ; %bb.2:
-	orr	x15, x14, #0x800000
-	sub	x11, x10, #150
-	mov	w12, #1233                      ; =0x4d1
-	smull	x12, w11, w12
-	cbz	w14, LBB1_18
+	orr	x13, x12, #0x800000
+	sub	x9, x8, #150
+	mov	w10, #1233                      ; =0x4d1
+	smull	x10, w9, w10
+	cbz	w12, LBB1_16
 ; %bb.3:
-	mov	x16, #0                         ; =0x0
-	mov	w13, #0                         ; =0x0
+	mov	x14, #0                         ; =0x0
+	mov	w11, #0                         ; =0x0
 Lloh8:
-	adrp	x17, __ZL3h37@PAGE
+	adrp	x15, __ZL3h37@PAGE
 Lloh9:
-	add	x17, x17, __ZL3h37@PAGEOFF
-	ldrb	w17, [x17, x10]
-	asr	x12, x12, #12
+	add	x15, x15, __ZL3h37@PAGEOFF
+	ldrb	w16, [x15, x8]
+	asr	x10, x10, #12
 LBB1_4:
 Lloh10:
-	adrp	x1, __ZL19pow10_float_reverse@PAGE
+	adrp	x15, __ZZ5xjb32fPcE9constants@PAGE
 Lloh11:
-	add	x1, x1, __ZL19pow10_float_reverse@PAGEOFF
-	add	x1, x1, x12, lsl #3
-	ldr	x1, [x1, #360]
-	mvn	w14, w14
-	and	x14, x14, #0x1
-	lsl	x15, x15, x17
-	umulh	x15, x15, x1
-	mov	w2, #65                         ; =0x41
-	sub	w17, w2, w17, uxtb
-	lsr	x17, x1, x17
-	and	x1, x15, #0xfffffffff
-	eor	x2, x1, #0xfffffffff
-	add	x14, x17, x14
-	lsr	x16, x14, x16
-	cmp	x16, x1
-	cset	w16, hi
-	cmp	x14, x2
-	lsr	x14, x15, #36
+	add	x15, x15, __ZZ5xjb32fPcE9constants@PAGEOFF
+	; InlineAsm Start
+	; InlineAsm End
+Lloh12:
+	adrp	x17, __ZL19pow10_float_reverse@PAGE
+Lloh13:
+	add	x17, x17, __ZL19pow10_float_reverse@PAGEOFF
+	add	x17, x17, x10, lsl #3
+	ldr	x17, [x17, #360]
+	mvn	w12, w12
+	and	x1, x12, #0x1
+	lsl	x12, x13, x16
+	umulh	x2, x12, x17
+	mov	w12, #65                        ; =0x41
+	sub	w12, w12, w16, uxtb
+	lsr	x13, x17, x12
+	and	x12, x2, #0xfffffffff
+	eor	x16, x12, #0xfffffffff
+	add	x17, x13, x1
+	lsr	x13, x17, x14
+	cmp	x13, x12
+	cset	w13, hi
+	cmp	x17, x16
+	lsr	x14, x2, #36
 	cinc	x14, x14, hi
-	mov	w15, #808464432                 ; =0x30303030
-	str	w15, [x0]
-	mov	x15, #4300                      ; =0x10cc
-	movk	x15, #47815, lsl #16
-	movk	x15, #36280, lsl #32
-	movk	x15, #6, lsl #48
-	umulh	x15, x14, x15
-	mov	w17, #-10000                    ; =0xffffd8f0
-	umaddl	x15, w15, w17, x14
-	fmov	d0, x15
-	mov	w15, #45056                     ; =0xb000
-	movk	w15, #327, lsl #16
-	dup.2s	v1, w15
-	sqdmulh.2s	v1, v0, v1
-	mov	w15, #65436                     ; =0xff9c
-	dup.2s	v2, w15
-	mla.2s	v0, v1, v2
+	ldr	w16, [x15, #16]
+	mov	w17, #808464432                 ; =0x30303030
+	str	w17, [x0]
+	ldr	w17, [x15, #20]
+	ldp	x2, x1, [x15]
+	umulh	x1, x14, x1
+	umaddl	x17, w1, w17, x14
+	fmov	d0, x17
+	ldr	d1, [x15, #24]
+	sqdmulh.2s	v2, v0, v1[0]
+	mla.2s	v0, v2, v1[1]
 	mov	w15, #3296                      ; =0xce0
 	dup.4h	v1, w15
 	sqdmulh.4h	v1, v0, v1
@@ -426,146 +425,141 @@ Lloh11:
 	fmov	x15, d0
 	rev	x15, x15
 	lsr	x17, x15, #8
-	csinc	w16, w16, wzr, ls
-	mov	w2, #38527                      ; =0x967f
-	movk	w2, #152, lsl #16
-	cmp	x14, x2
-	csel	x14, x15, x17, hi
-	clz	x17, x14
-	orr	x14, x14, #0x3030303030303030
-	mov	w2, #7                          ; =0x7
-	cinc	x15, x2, hi
-	sub	w17, w2, w17, lsr #3
-	sxtw	x17, w17
-	cmp	w16, #0
-	csel	x16, x17, x15, ne
-	add	x12, x15, x12
-	add	x17, x1, x1, lsl #2
-	add	x17, x17, x1, lsr #32
-	mov	x1, #-7                         ; =0xfffffffffffffff9
-	movk	x1, #33155, lsl #32
-	movk	x1, #1, lsl #48
-	add	x17, x17, x1
-	lsr	x17, x17, #35
-	cbnz	w13, LBB1_10
+	csinc	w1, w13, wzr, ls
+	cmp	x14, x16
+	csel	x13, x15, x17, hi
+	clz	x15, x13
+	orr	x13, x13, #0x3030303030303030
+	mov	w16, #7                         ; =0x7
+	cinc	x14, x16, hi
+	sub	w15, w16, w15, lsr #3
+	sxtw	x15, w15
+	cmp	w1, #0
+	csel	x15, x15, x14, ne
+	add	x10, x14, x10
+	add	x16, x12, x12, lsl #2
+	add	x12, x16, x12, lsr #32
+	add	x12, x12, x2
+	lsr	x12, x12, #35
+	cbnz	w11, LBB1_10
 LBB1_5:
-	add	x11, x12, #3
-	cmp	x11, #10
-	cset	w13, hi
-	mov	w1, #11                         ; =0xb
-	cmp	x11, #11
-	csel	x11, x11, x1, lo
-	mov	w1, #12                         ; =0xc
-Lloh12:
-	adrp	x2, __ZL17e10_variable_data@PAGE
-Lloh13:
-	add	x2, x2, __ZL17e10_variable_data@PAGEOFF
-	madd	x11, x11, x1, x2
-	ldrb	w1, [x11, #9]
-	ldrb	w2, [x11, #10]
-	ldrb	w3, [x11, #11]
-	ldrb	w16, [x11, x16]
-	add	x11, x0, x1
-	str	x14, [x11]
-	str	x17, [x11, x15]
-	ldr	x14, [x11, x2]
-	ubfiz	x13, x13, #2, #32
-	str	x14, [x11, x3]
-	mov	w14, #46                        ; =0x2e
-	strb	w14, [x0, x2]
-	cbz	w10, LBB1_14
-LBB1_6:
+	add	x9, x10, #3
+	cmp	x9, #10
+	cset	w16, hi
+	mov	w11, #11                        ; =0xb
+	cmp	x9, #11
+	csel	x9, x9, x11, lo
+	mov	w11, #12                        ; =0xc
 Lloh14:
-	adrp	x8, __ZL16exp_result_float@PAGE
+	adrp	x17, __ZL17e10_variable_data@PAGE
 Lloh15:
+	add	x17, x17, __ZL17e10_variable_data@PAGEOFF
+	madd	x9, x9, x11, x17
+	ldrb	w17, [x9, #9]
+	ldrb	w1, [x9, #10]
+	ldrb	w2, [x9, #11]
+	ldrb	w11, [x9, x15]
+	add	x9, x0, x17
+	str	x13, [x9]
+	str	x12, [x9, x14]
+	ldr	x13, [x9, x1]
+	ubfiz	x12, x16, #2, #32
+	str	x13, [x9, x2]
+	mov	w13, #46                        ; =0x2e
+	strb	w13, [x0, x1]
+	cbz	w8, LBB1_14
+LBB1_6:
+Lloh16:
+	adrp	x8, __ZL16exp_result_float@PAGE
+Lloh17:
 	add	x8, x8, __ZL16exp_result_float@PAGEOFF
-	add	x8, x8, x12, lsl #2
+	add	x8, x8, x10, lsl #2
 	ldr	w8, [x8, #180]
-	add	x9, x11, x16
-	add	x0, x9, x13
+	add	x9, x9, x11
+	add	x0, x9, x12
 	str	x8, [x9]
 	ret
 LBB1_7:
-	cbz	w14, LBB1_19
+	cbz	w12, LBB1_17
 ; %bb.8:
-	mov	x16, #0                         ; =0x0
-	mov	w13, #0                         ; =0x0
-Lloh16:
-	adrp	x11, __ZL3h37@PAGE
-Lloh17:
-	add	x11, x11, __ZL3h37@PAGEOFF
-	ldrb	w17, [x11, x10]
-	mov	x12, #-45                       ; =0xffffffffffffffd3
-	mov	x11, #-149                      ; =0xffffffffffffff6b
-	mov	x15, x14
+	mov	x14, #0                         ; =0x0
+	mov	w11, #0                         ; =0x0
+Lloh18:
+	adrp	x9, __ZL3h37@PAGE
+Lloh19:
+	add	x9, x9, __ZL3h37@PAGEOFF
+	ldrb	w16, [x9, x8]
+	mov	x10, #-45                       ; =0xffffffffffffffd3
+	mov	x9, #-149                       ; =0xffffffffffffff6b
+	mov	x13, x12
 	b	LBB1_4
 LBB1_9:
 	mov	w8, #24910                      ; =0x614e
 	movk	w8, #78, lsl #16
 	mov	w9, #28233                      ; =0x6e49
 	movk	w9, #102, lsl #16
-	cmp	w14, #0
+	cmp	w12, #0
 	csel	w8, w9, w8, eq
 	str	w8, [x0], #3
 	ret
 LBB1_10:
-	cmn	x11, #119
+	cmn	x9, #119
 	b.eq	LBB1_13
 ; %bb.11:
-	cmp	x11, #67
+	cmp	x9, #67
 	b.eq	LBB1_13
 ; %bb.12:
-	cmp	x11, #64
+	cmp	x9, #64
 	b.ne	LBB1_5
 LBB1_13:
-	add	x17, x17, #1
+	add	x12, x12, #1
 	b	LBB1_5
 LBB1_14:
-	ldrb	w10, [x11]
-	cmp	w10, #48
+	ldrb	w8, [x9]
+	cmp	w8, #48
 	b.ne	LBB1_6
 ; %bb.15:
-	add	x9, x9, x1
-	add	x8, x9, x8
-	add	x9, x8, #2
-	mov	w8, #1                          ; =0x1
-	sub	x8, x8, x16
-LBB1_16:                                ; =>This Inner Loop Header: Depth=1
-	ldrb	w10, [x9], #1
-	sub	x12, x12, #1
-	add	x8, x8, #1
-	cmp	w10, #48
-	b.eq	LBB1_16
-; %bb.17:
-	strb	w10, [x11]
-	ldr	x9, [x9]
-	stur	x9, [x11, #2]
-	cmn	x8, #1
-	cset	w9, ne
-	sub	x16, x9, x8
+	ldur	x8, [x9, #2]
+	and	x8, x8, #0xf0f0f0f0f0f0f0f
+	rbit	x8, x8
+	clz	x8, x8
+	ubfx	x8, x8, #3, #29
+	mov	w8, w8
+	add	x8, x8, #2
+	sub	x10, x10, x8
+	add	x10, x10, #1
+	add	x13, x9, x8
+	ldrb	w14, [x13]
+	strb	w14, [x9]
+	ldur	x13, [x13, #1]
+	stur	x13, [x9, #2]
+	sub	x8, x11, x8
+	cmp	x8, #1
+	cinc	x11, x8, ne
 	b	LBB1_6
-LBB1_18:
-	sub	x12, x12, #512
-	asr	x12, x12, #12
-	mov	w13, #63835                     ; =0xf95b
-	movk	w13, #1, lsl #16
-	smaddl	x13, w12, w13, x13
-	lsr	x13, x13, #9
-	add	w13, w10, w13
-	add	w17, w13, #143
-	mov	w16, #1                         ; =0x1
-	mov	w13, #1                         ; =0x1
+LBB1_16:
+	sub	x10, x10, #512
+	asr	x10, x10, #12
+	mov	w11, #63835                     ; =0xf95b
+	movk	w11, #1, lsl #16
+	smaddl	x11, w10, w11, x11
+	lsr	x11, x11, #9
+	add	w11, w8, w11
+	add	w16, w11, #143
+	mov	w14, #1                         ; =0x1
+	mov	w11, #1                         ; =0x1
 	b	LBB1_4
-LBB1_19:
+LBB1_17:
 	mov	w8, #11824                      ; =0x2e30
 	movk	w8, #48, lsl #16
 	str	w8, [x0], #3
 	ret
 	.loh AdrpAdd	Lloh8, Lloh9
-	.loh AdrpAdd	Lloh10, Lloh11
 	.loh AdrpAdd	Lloh12, Lloh13
+	.loh AdrpAdd	Lloh10, Lloh11
 	.loh AdrpAdd	Lloh14, Lloh15
 	.loh AdrpAdd	Lloh16, Lloh17
+	.loh AdrpAdd	Lloh18, Lloh19
 	.cfi_endproc
                                         ; -- End function
 	.section	__TEXT,__const
@@ -2498,6 +2492,15 @@ __ZL17exp_result_double:
 	.quad	360288202926533477              ; 0x500003630332b65
 	.quad	360288207221500773              ; 0x500003730332b65
 	.quad	360288211516468069              ; 0x500003830332b65
+
+	.p2align	3, 0x0                          ; @_ZZ5xjb32fPcE9constants
+__ZZ5xjb32fPcE9constants:
+	.quad	423878912376825                 ; 0x18183fffffff9
+	.quad	1844674407370956                ; 0x68db8bac710cc
+	.long	9999999                         ; 0x98967f
+	.long	4294957296                      ; 0xffffd8f0
+	.long	21475328                        ; 0x147b000
+	.long	65436                           ; 0xff9c
 
 	.section	__TEXT,__cstring,cstring_literals
 __ZL3h37:                               ; @_ZL3h37
