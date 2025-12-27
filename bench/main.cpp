@@ -94,7 +94,7 @@ std::mt19937_64 gen(rd());
 // #endif
 // }
 
-unsigned long long getns()
+auto getns()
 {
     auto now = std::chrono::high_resolution_clock::now();
     auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
@@ -377,7 +377,7 @@ void bench_double_single_impl(int i)
         (void)d;
         (void)e;
     }
-    printf("cost %5.4lf ms,every double cost %3.4lf ns\n", (t2 - t1) / 1e6, (t2 - t1) * (1.0 / N) );
+    printf("cost %5.4lf ms,every double cost %3.4lf ns\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N) );
 }
 void bench_float_single_impl(int i)
 {
@@ -475,7 +475,7 @@ void bench_float_single_impl(int i)
         (void)d;
         (void)e;
     }
-    printf("cost %5.4lf ms,every float cost %3.4lf ns\n", (t2 - t1) / 1e6, (t2 - t1) * (1.0 / N));
+    printf("cost %5.4lf ms,every float cost %3.4lf ns\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N));
 }
 
 void bench_double_all_algorithm()

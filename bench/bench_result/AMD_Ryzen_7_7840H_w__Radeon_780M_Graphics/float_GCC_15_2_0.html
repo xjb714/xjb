@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset='utf-8'>
+<title>Report</title>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/highcharts.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/modules/series-label.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/modules/exporting.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/modules/export-data.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/modules/offline-exporting.min.js'></script>
+<script src='https://cdnjs.cloudflare.com/ajax/libs/sortable/0.8.0/js/sortable.min.js'></script>
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.0/css/bulma.min.css' />
+<link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/sortable/0.8.0/css/sortable-theme-bootstrap.min.css' />
+<script>window.onload=Sortable.init</script>
+<style type='text/css'>
+hr {
+    height: 1px;
+    margin: 5px 0; 
+    background-color: #999999; 
+}
+.table thead {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+.highcharts-data-table table, th, td { 
+    border: 1px solid gray;
+    padding: 2pt;
+}
+.highcharts-data-table table {
+    margin: auto;
+}
+table .number { 
+    align-items: initial;
+    border-radius: initial;
+    display: table-cell;
+    font-size: initial;
+    height: initial;
+    justify-content: initial;
+    margin-right: initial;
+    min-width: initial;
+    padding: 2pt;
+    vertical-align: initial;
+    text-align: initial;
+    background-color: initial;
+}
+.table.is-narrow td, .table.is-narrow th {
+    padding: .1em .5em;
+}
+</style>
+</head>
+
+<body>
+<nav class='navbar is-light is-fixed-top' role='navigation' aria-label='main navigation'>
+    <div class='navbar-brand'>
+        <a class='navbar-item' href='#'>Report</a>
+        <a role='button' class='navbar-burger burger' aria-label='menu' data-target='main-menu'
+            onclick='document.querySelector(".navbar-menu").classList.toggle("is-active");'>
+            <span aria-hidden='true'></span>
+            <span aria-hidden='true'></span>
+            <span aria-hidden='true'></span>
+        </a>
+    </div>
+    <div id='main-menu' class='navbar-menu'>
+        <div class='navbar-start'>
+            <div class='navbar-item has-dropdown is-hoverable'>
+                <a class='navbar-link'>Info</a>
+                <div class='navbar-dropdown'>
+                    <a class='navbar-item'>Compiler: GCC 15.2.0</a>
+                    <a class='navbar-item'>OS: Linux 64-bit</a>
+                    <a class='navbar-item'>CPU: AMD Ryzen 7 7840H w/ Radeon 780M Graphics</a>
+                    <a class='navbar-item'>CPU Frequency: 5115.28 MHz</a>
+                </div>
+            </div>
+            <div class='navbar-item has-dropdown is-hoverable'>
+                <a class='navbar-link'>Charts</a>
+                <div class='navbar-dropdown'>
+                    <a class='navbar-item' href='#chart_0'>random</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<a name='chart_0'></a>
+<div style='width: 60px; height: 60px; margin: 0 auto'></div>
+<div id='chart_id_0' style='width: 640px; height: 420px; margin: 0 auto'></div>
+<script type='text/javascript'>
+Highcharts.chart('chart_id_0', {
+    chart: { type: 'bar' },
+    title: { text: 'random' },
+    subtitle: { text: 'random float number in all binary range, ignore nan and inf' },
+    credits: { enabled: false },
+    xAxis: { allowDecimals: true, categories: ['dragonbox_comp', 'fmt_comp', 'fmt_full', 'ryu', 'dragonbox_full', 'schubfach_xjb', 'schubfach', 'zmij', 'xjb32_comp', 'xjb32', 'yyjson', 'null'], type: 'linear' },
+    yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
+    tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
+    legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
+    plotOptions: {
+        bar: { groupPadding: 0.000000, pointPadding: 0.100000, borderWidth: 0.000000, colorByPoint: true },
+        series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
+    },
+    series: [
+        { data: [124.172813, 118.490326, 118.027763, 116.560310, 100.143890, 96.703423, 96.065689, 91.183189, 58.600197, 35.886608, 8.200977, 5.001369] }
+    ]
+});
+</script>
+
+</body>
+</html>

@@ -257,6 +257,7 @@ char *xjb32(float v, char *buf)
     u64 exp = (vi << 1) >> 24;
     u64 sig_bin = sig | (1 << 23);
     i64 exp_bin = (i64)exp - 150;
+    unsigned char h37_precalc = h37[exp];
     if (exp == 0) [[unlikely]]
     {
         if (sig == 0)
@@ -267,16 +268,15 @@ char *xjb32(float v, char *buf)
     if (exp == 255) [[unlikely]]
         return (char *)memcpy(buf, sig ? "NaN" : "Inf", 4) + 3;
     u64 irregular = sig == 0;
-    unsigned char h37_precalc = h37[exp];
+    const int BIT = 36;                  // [33,36] all right
     i64 k = (i64)(exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
     if (irregular) [[unlikely]]
     {
         k = (i64)(exp_bin * 1233 - 512) >> 12;
-        h37_precalc = 37 + exp_bin + ((k * -1701 + (-1701)) >> 9);
+        h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
     }
     u64 pow10_hi = pow10_float_reverse[45 + k];
     u64 even = (sig + 1) & 1; // or (sig_bin + 1) & 1
-    const int BIT = 36;       // [33,36] all right
     u64 cb = sig_bin << h37_precalc;
     u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64;
     u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + even;
@@ -313,7 +313,6 @@ char *xjb32(float v, char *buf)
     byte_move_8(&buf[move_pos], &buf[dot_pos]);
     buf_origin[dot_pos] = '.';
     if (exp == 0) [[unlikely]]
-    {
         if (buf[0] == '0')
         {
             u64 lz = 0;
@@ -325,7 +324,6 @@ char *xjb32(float v, char *buf)
             byte_move_8(&buf[2], &buf[lz + 1]);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
-    }
     u64 exp_result = exp_result_float[45 + e10];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);

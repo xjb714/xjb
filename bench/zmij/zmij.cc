@@ -793,7 +793,7 @@ inline auto count_trailing_nonzeros(uint64_t x) noexcept -> int {
   // high bit is unused we can avoid the zero check by shifting the
   // datum left by one and inserting a sentinel bit at the end. This can
   // be faster than the automatically inserted range check.
-  if (is_big_endian()) x = bswap64(x);
+  if (is_big_endian()) x = byteswap64(x);
   return (70 - countl_zero((x << 1) | 1)) / 8;
 }
 

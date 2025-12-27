@@ -802,7 +802,7 @@ static void ftoa_func_benchmark_all(const char *output_path) {
                     if (t < ticks_min) ticks_min = t;
                 }
                 f64 cycle = (f64)ticks_min * (1.0 / (f64)num_per_case) * yy_cpu_get_cycle_per_tick();
-                printf("\n%s: %.4lf cycles, %llu ticks", func_name, cycle, ticks_min);
+                printf("\n%s: %.4lf cycles, %llu ticks", func_name, cycle, (unsigned long long)ticks_min);
                 yy_chart_item_with_float(chart, func_name, (f32)cycle);
 
             }
