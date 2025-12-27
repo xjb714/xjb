@@ -249,11 +249,30 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
     // m range : [0, 1e8 - 1] ; m = abcdefgh
     const uint64_t ZERO = 0x3030303030303030;
 #if HAS_NEON
+
     u64 abcd_efgh = m + ((1ull << 32) - 10000) * ((m * (u128)1844674407370956) >> 64);
     int32x2_t tenthousands = vld1_u64((uint64_t const *)&abcd_efgh);
     int32x2_t hundreds = vmla_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(0x147b000)), vdup_n_s32(-100 + 0x10000));
     int16x4_t BCD_big_endian = vmla_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
     u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0));// big_endian to little_endian , reverse 8 bytes
+
+    // struct to_bcd8_neon_constants {
+    //     uint64_t mul_const;
+    //     int64_t mul_const2;
+    //     int32x2_t multipliers32;
+    // };
+    // static const struct to_bcd8_neon_constants constants = {
+	//     .mul_const = 1844674407370956,
+	//     .mul_const2 = (1ull << 32) - 10000,
+	//     .multipliers32 = {0x147b000, -100 + 0x10000},
+	// };
+    // const struct to_bcd8_neon_constants *c = &constants;
+    // asm ("" : "+r"(c));
+    // u64 abcd_efgh = m + c->mul_const2 * ((m * (u128)c->mul_const) >> 64);
+    // int32x2_t tenthousands = vld1_u64((uint64_t const *)&abcd_efgh);
+    // int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->multipliers32[0])), c->multipliers32[1]);
+    // int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10+0x100);
+    // u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0));// big_endian to little_endian , reverse 8 bytes
 #endif
 
 #if HAS_SSE2
@@ -307,7 +326,6 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
     i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull << 16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
     u64 abcdefgh_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
 #endif
-
     abcdefgh_BCD = D9 ? abcdefgh_BCD : (abcdefgh_BCD >> 8);
     int tz = u64_lz_bits(abcdefgh_BCD) / 8;
     abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64(abcdefgh_BCD);

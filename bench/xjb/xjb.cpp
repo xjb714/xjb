@@ -36,7 +36,7 @@ static inline void byte_move_8(void *dst, const void *src)
     memcpy(&src_value, src, 8);
     memcpy(dst, &src_value, 8);
 }
-char *xjb64(double v,char *buf)
+char *xjb64(double v, char *buf)
 {
     u64 vi;
     memcpy(&vi, &v, sizeof(v));
@@ -57,7 +57,7 @@ char *xjb64(double v,char *buf)
     //         memcpy(buf, "NaN\0\0\0\0", 4);
     //     return buf + ((vi << 1) == 2 ? 6 : 3);
     // }
-    
+
     // if(vi_abs >= (2047ull << 52))[[unlikely]]
     // {
     //     if(vi_abs == (2047ull << 52))[[likely]]
@@ -81,8 +81,8 @@ char *xjb64(double v,char *buf)
     //         }
     // }
 
-    //if(0)
-    if ( (u64)(vi_abs - 2) >= (u64)((2047ull << 52) - 2) ) [[unlikely]]
+    // if(0)
+    if ((u64)(vi_abs - 2) >= (u64)((2047ull << 52) - 2)) [[unlikely]]
     {
         // generate branch instruction
         if (vi_abs == 0)
@@ -95,7 +95,6 @@ char *xjb64(double v,char *buf)
             memcpy(buf, "NaN\0\0\0\0", 4);
         return buf + (vi_abs == 1 ? 6 : 3);
 
-        
         // if (vi_abs == (2047ull << 52))
         //     memcpy(buf, "Inf", 4);
         // else if (vi_abs > (2047ull << 52))
@@ -104,7 +103,7 @@ char *xjb64(double v,char *buf)
         //     memcpy(buf, "0.0", 4);
         // else
         //     memcpy(buf, "5e-324\0", 8);
-        //return buf + (vi_abs == 1 ? 6 : 3);
+        // return buf + (vi_abs == 1 ? 6 : 3);
 
         // if(vi_abs == (2047ull << 52))[[likely]]
         // {
@@ -116,7 +115,7 @@ char *xjb64(double v,char *buf)
         //     memcpy(buf, "5e-324\0", 8);
         //     return buf + 6;
         // }
-        // else 
+        // else
         // {
         //     if(vi_abs > 0)[[likely]]
         //     {
@@ -126,10 +125,10 @@ char *xjb64(double v,char *buf)
         //         memcpy(buf, "0.0", 4);
         //         return buf + 3;
         //     }
-            
+
         // }
     }
-    i64 q = (i64)ieee_exponent -1075;
+    i64 q = (i64)ieee_exponent - 1075;
     u64 nq = -q;
     u64 c = ((1ull << 52) | ieee_significand);
 #if 1
@@ -162,12 +161,12 @@ char *xjb64(double v,char *buf)
     i64 get_e10 = -1 - k;
     i64 h = q + ((get_e10 * 217707) >> 16);
     static const u64 *pow10_ptr = pow10_double + 293 * 2;
-    u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];//get 10**(-k-1)
-    //u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2]; // gcc use this method , may cause performance issue. why?
+    u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2]; // get 10**(-k-1)
+    // u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2]; // gcc use this method , may cause performance issue. why?
 #else
-    i64 h = q + (( k * -217707 - 217707) >> 16);
+    i64 h = q + ((k * -217707 - 217707) >> 16);
     static const u64 *pow10_ptr = pow10_double + 293 * 2 - 2;
-    u64 *p10 = (u64 *)&pow10_ptr[k * -2];//get 10**(-k-1)
+    u64 *p10 = (u64 *)&pow10_ptr[k * -2]; // get 10**(-k-1)
 #endif
     u128 cb = c << (h + (1 + offset));
     u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
@@ -184,9 +183,10 @@ char *xjb64(double v,char *buf)
     k += 15 + D17;
     i64 e10 = k;
 #ifdef __amd64__
-    //u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull << 63) + 6;
+    // u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull << 63) + 6;
     u64 offset_num = (1ull << 63) + 6;
-    if(dot_one == (1ull << 62)) [[unlikely]] offset_num = 0;
+    if (dot_one == (1ull << 62)) [[unlikely]]
+        offset_num = 0;
     u64 one = ((dot_one * (u128)10 + offset_num) >> 64) + (u64)('0' + '0' * 256);
     if (irregular) [[unlikely]]
         if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
@@ -196,7 +196,7 @@ char *xjb64(double v,char *buf)
     if (irregular) [[unlikely]] // Since the compiler tries to prevent access to memory, it generates branch instructions.
         one += (bit_array_irregular[ieee_exponent / 64] >> (ieee_exponent % 64)) & 1;
 #endif
-    
+
     const i64 e10_DN = -3;
     const i64 e10_UP = 15;
     u64 e10_3 = e10 + (-e10_DN);
@@ -217,7 +217,7 @@ char *xjb64(double v,char *buf)
     byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
     buf_origin[dot_pos] = '.';
     static const u64 *exp_ptr = (u64 *)&exp_result_double[324];
-    //if (m < (u64)1e14) [[unlikely]]
+    // if (m < (u64)1e14) [[unlikely]]
     if (ieee_exponent == 0) [[unlikely]]
     {
         // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
@@ -240,7 +240,7 @@ char *xjb64(double v,char *buf)
         // #endif
     }
     u64 exp_result = exp_ptr[e10];
-    //u64 exp_result = exp_result_double[e10 +  324];
+    // u64 exp_result = exp_result_double[e10 +  324];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
@@ -255,12 +255,8 @@ char *xjb32(float v, char *buf)
     buf += vi >> 31;
     u64 sig = vi & ((1 << 23) - 1);
     u64 exp = (vi << 1) >> 24;
-    
-    i64 exp_bin;
-    i64 k;
-    u64 sig_bin, regular = sig > 0;
-    exp_bin = (i64)exp - 150;
-    sig_bin = sig | (1 << 23);
+    u64 sig_bin = sig | (1 << 23);
+    i64 exp_bin = (i64)exp - 150;
     if (exp == 0) [[unlikely]]
     {
         if (sig == 0)
@@ -270,29 +266,18 @@ char *xjb32(float v, char *buf)
     }
     if (exp == 255) [[unlikely]]
         return (char *)memcpy(buf, sig ? "NaN" : "Inf", 4) + 3;
-    u64 irregular = (sig_bin == 1 << 23);
+    u64 irregular = sig == 0;
     unsigned char h37_precalc = h37[exp];
-#if 1
-    if (regular) [[likely]] // branch
-        k = (i64)(exp_bin * 315653) >> 20;
-    else{
-        k = (i64)(exp_bin * 315653 - 131237) >> 20;
-        h37_precalc = exp_bin + ((k * -217707 + (-217707)) >> 16) + 37;
+    i64 k = (i64)(exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
+    if (irregular) [[unlikely]]
+    {
+        k = (i64)(exp_bin * 1233 - 512) >> 12;
+        h37_precalc = 37 + exp_bin + ((k * -1701 + (-1701)) >> 9);
     }
-#else
-    k = (exp_bin * 315653 - (irregular ? 131237 : 0)) >> 20;
-#endif
-    //int h = exp_bin + ((k * -217707 + (-217707)) >> 16);
-    //int nh = (nh_cache[exp] >> (irregular ? 4 : 0)) & 15;
-    // int nh = nh_cache[exp] & 15;
-    // if(irregular)[[unlikely]]
-    //     nh = (nh_cache[exp] >> 4) & 15;
-    //static const u64 *pow10_reverse = &pow10_float_reverse[45];
-    //u64 pow10_hi = pow10_reverse[k]; // get 10^(-k-1)
     u64 pow10_hi = pow10_float_reverse[45 + k];
-    u64 even = (sig + 1) & 1; // or = (sig_bin + 1) & 1
+    u64 even = (sig + 1) & 1; // or (sig_bin + 1) & 1
     const int BIT = 36;       // [33,36] all right
-    u64 cb = sig_bin << ( h37_precalc );
+    u64 cb = sig_bin << h37_precalc;
     u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64;
     u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + even;
     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1);
@@ -305,19 +290,15 @@ char *xjb32(float v, char *buf)
     u64 up_down = up + down;
     u64 m = (sig_hi >> BIT) + up;
     u64 D9 = m >= 10000000u;
-    memcpy(buf, "0.000000", 8);
+    memcpy(buf, "0000", 4);
     shortest_ascii8 s = to_ascii8(m, up_down, D9);
-    k += 7 + D9;
-    i64 e10 = k;
+    i64 e10 = k + (7 + D9);
     u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
     u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
     if (irregular) [[unlikely]]
-    {
         if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150))
-            one += 1;
-    }
-    const i64 e10_DN = -3;
-    const i64 e10_UP = 7;
+            ++one;
+    const i64 e10_DN = -3, e10_UP = 7;
     u64 e10_3 = e10 + (-e10_DN);
     u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
     u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
@@ -331,8 +312,6 @@ char *xjb32(float v, char *buf)
     memcpy(&buf[7 + D9], &one, 8);
     byte_move_8(&buf[move_pos], &buf[dot_pos]);
     buf_origin[dot_pos] = '.';
-    //static const u32 *exp_ptr = (u32 *)&exp_result_float[45];
-    // if (m < 1000000u) [[unlikely]]
     if (exp == 0) [[unlikely]]
     {
         if (buf[0] == '0')
@@ -347,7 +326,6 @@ char *xjb32(float v, char *buf)
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
     }
-    //u64 exp_result = exp_ptr[e10];
     u64 exp_result = exp_result_float[45 + e10];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);

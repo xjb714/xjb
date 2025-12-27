@@ -633,8 +633,8 @@ static void ftoa_func_benchmark_all(const char *output_path) {
     yy_cpu_measure_freq();
 
 
-    int num_per_case = 10000 * 1000; //1e6
-    int meansure_count = 1;
+    int num_per_case = (1<<17); //131072
+    int meansure_count = 2;
 
     typedef struct {
         const char *name;
@@ -801,7 +801,8 @@ static void ftoa_func_benchmark_all(const char *output_path) {
                     u64 t = t2 - t1;
                     if (t < ticks_min) ticks_min = t;
                 }
-                f64 cycle = (f64)ticks_min / (f64)num_per_case * yy_cpu_get_cycle_per_tick();
+                f64 cycle = (f64)ticks_min * (1.0 / (f64)num_per_case) * yy_cpu_get_cycle_per_tick();
+                printf("\n%s: %.4lf cycles, %llu ticks", func_name, cycle, ticks_min);
                 yy_chart_item_with_float(chart, func_name, (f32)cycle);
 
             }
