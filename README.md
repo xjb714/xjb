@@ -16,12 +16,12 @@ the code is still under development and may contain bugs. if you find any bugs, 
 **warning: The current code can only run on little-endian CPUs. The code for the big-endian CPU is currently under development.**
 
 (1)float/double to decimal algorithm  
-&emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `xjb32_i.cpp`;  <!-- https://godbolt.org/z/eT57sW9q1   -->  
-&emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
+&emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `bench/xjb/xjb32_i.cpp`;  <!-- https://godbolt.org/z/eT57sW9q1   -->  
+&emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `bench/xjb/xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
 
 (2)float/double to string algorithm  
-&emsp;&emsp;   full lookup table : `dtoa_xjb64_xjb32.cpp` 
-&emsp;&emsp;   compress lookup table : `dtoa_xjb_comp.cpp` 
+&emsp;&emsp;   full lookup table : `bench/xjb/xjb.cpp` 
+&emsp;&emsp;   compress lookup table : `bench/xjb/dtoa_xjb_comp.cpp` 
 
 lookup table size:
 <table border="1px">

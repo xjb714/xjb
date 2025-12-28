@@ -2,7 +2,7 @@
 #include <cmath>
 
 #include "bench/xjb/dtoa_xjb_comp.cpp" // compress table
-#include "bench/xjb/dtoa_xjb64_xjb32.cpp" // full table
+#include "bench/xjb/xjb.cpp" // full table
 
 
 int main()
@@ -35,16 +35,17 @@ int main()
         // some subnormal numbers
         5e-324,
         1.23e-315,
-        3e-310
+        3e-310,
+        1e-45,//min float
     };
     char buf_full_double[33],buf_full_float[24];
     char buf_comp_double[33],buf_comp_float[24];
     for(int i = 0; i < sizeof(v) / sizeof(double); i++)
     {
-        xjb64_32::xjb64(v[i],buf_full_double);
+        xjb64(v[i],buf_full_double);
         xjb64_32_comp::xjb64(v[i],buf_comp_double);
 
-        xjb64_32::xjb32(v[i],buf_full_float);
+        xjb32(v[i],buf_full_float);
         xjb64_32_comp::xjb32(v[i],buf_comp_float);
 
         printf("i = %d, xjb64_full : %10s  xjb32_full : %10s\n",i,buf_full_double,buf_full_float);
@@ -57,9 +58,9 @@ int main()
         double num;
         scanf("%le",&num);
 
-        char* buf_end_full_double = xjb64_32::xjb64(num,buf_full_double);
+        char* buf_end_full_double = xjb64(num,buf_full_double);
         char* buf_end_comp_double = xjb64_32_comp::xjb64(num,buf_comp_double);
-        char* buf_end_full_float = xjb64_32::xjb32(num,buf_full_float);
+        char* buf_end_full_float = xjb32(num,buf_full_float);
         char* buf_end_comp_float = xjb64_32_comp::xjb32(num,buf_comp_float);
 
         int write_length_full_double = buf_end_full_double - buf_full_double;
