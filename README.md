@@ -12,9 +12,11 @@ xjb32:
 (2)f32 to decimal : please run `bench/main.cpp/check_all_float_number_to_decimal()` to check the correctness of the algorithm.  
 Test all positive single-precision floating-point numbers. The running time only takes about one minute.  
 
+### note:
 the code is still under development and may contain bugs. if you find any bugs, please let me know.  
 **warning: The current code can only run on little-endian CPUs. The code for the big-endian CPU is currently under development.**
 
+### src files:
 (1)float/double to decimal algorithm  
 &emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `bench/xjb/xjb32_i.cpp`;  <!-- https://godbolt.org/z/eT57sW9q1   -->  
 &emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `bench/xjb/xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
@@ -42,6 +44,7 @@ lookup table size:
     </tr>
 </table>
 
+### examples:
 Here are a few examples for double to string algorithm:
 <table border="1px">
     <tr>
@@ -88,9 +91,16 @@ Here are a few examples for double to string algorithm:
 
 <!-- demo link: https://onlinegdb.com/OPKdOpikG -->
 
-This algorithm is based on the schubfach algorithm.
-This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and grisu.
+### Algorithm characteristics:  
+This algorithm is based on the schubfach algorithm.  
+This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and grisu.  
+(1) Algorithm process optimization  
+(2) Low branch prediction failure rate  
+(3) Acceleration using SIMD instruction set  
+(4) Low instruction dependency, high IPC  
+(5) Fewer instructions  
 
+### benchmark:
 The latest benchmark results:  
 to be completed.  
 
