@@ -23,7 +23,7 @@ the code is still under development and may contain bugs. if you find any bugs, 
 
 (2)float/double to string algorithm  
 &emsp;&emsp;   full lookup table : `bench/xjb/xjb.cpp` 
-&emsp;&emsp;   compress lookup table : `bench/xjb/dtoa_xjb_comp.cpp` 
+&emsp;&emsp;   compress lookup table : `bench/xjb/xjb_comp.cpp` 
 
 lookup table size:
 <table border="1px">

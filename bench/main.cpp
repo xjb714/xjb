@@ -567,37 +567,41 @@ unsigned check_xjb32_and_schubfach32_xjb_string(float f)
 {
     u32 u = *(u32 *)&f;
     char buf_xjb[32];
+    char buf_xjb_comp[32];
     char buf_schubfach_xjb[32];
     char* end_buf_xjb = xjb32_f32_to_str(f, buf_xjb);
+    char* end_buf_xjb_comp = xjb32_comp_f32_to_str(f, buf_xjb_comp);
     char* end_buf_schubfach_xjb = schubfach_xjb_f32_to_str(f, buf_schubfach_xjb);
     int len_xjb = end_buf_xjb - buf_xjb;
+    int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
     int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
-    if (len_xjb != len_schubfach_xjb)
+    if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
     {
-        printf("f = %.8le, u = %x, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
+        //printf("f = %.8le, u = %x, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
         // unsigned int dec, dec_xjb,dec_xjb_comp;
         // int e10, e10_xjb,e10_xjb_comp;
         // schubfach_xjb_f32_to_dec(f, &dec, &e10);
         // xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         // printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
-        
-        // exit(0);
+        //printf("f = %.8le, u = %x, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_xjb_comp,len_schubfach_xjb,buf_xjb,buf_xjb_comp,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
+        //exit(0);
         return 1;
     }
-    if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     {
         return 0;
     }
     else
     {
-        printf("f = %.8le, u = %x, buf_xjb=%s, buf_schubfach_xjb=%s\n",f,u,buf_xjb,buf_schubfach_xjb);
+        //printf("f = %.8le, u = %x, buf_xjb=%s, buf_schubfach_xjb=%s\n",f,u,buf_xjb,buf_schubfach_xjb);
         // unsigned int dec, dec_xjb,dec_xjb_comp;
         // int e10, e10_xjb,e10_xjb_comp;
         // schubfach_xjb_f32_to_dec(f, &dec, &e10);
         // xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         // printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
 
-        // exit(0);
+        //printf("f = %.8le, u = %x, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n",f,u,buf_xjb_comp,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
+        //exit(0);
     }
     return 1;
 }
@@ -877,7 +881,7 @@ int main()
 #if BENCH_STR
     check_all_float_number_to_string(); // check all float number , may cost long time
 #else
-    //check_all_float_number_to_decimal(); // check all float number , may cost long time
+    check_all_float_number_to_decimal(); // check all float number , may cost long time
 #endif
 
 #endif

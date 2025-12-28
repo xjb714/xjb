@@ -2,13 +2,17 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "dec_to_ascii.cpp"
-#include "table.cpp"
+
 
 typedef __uint128_t u128;
 typedef uint64_t u64;
 typedef int64_t i64;
 typedef uint32_t u32;
+
+#include "dec_to_ascii.cpp"
+#include "table.cpp"
+
+namespace xjb {
 
 static inline void byte_move_16(void *dst, const void *src)
 {
@@ -304,8 +308,7 @@ char *xjb32(float v, char *buf, bool debug_mode = false)
     // u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
     u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
     u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
-    //one = up_down ? ('0' + '0' * 256) : one;
-    one = cmov_branchless(up_down,'0' + '0' * 256, one);// prevent gcc generate branch instruction
+    one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
     if (irregular) [[unlikely]]
         if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
             ++one;
@@ -324,21 +327,23 @@ char *xjb32(float v, char *buf, bool debug_mode = false)
     byte_move_8(&buf[move_pos], &buf[dot_pos]);
     buf_origin[dot_pos] = '.';
     // if ( (is_little_endian() ? (s.ascii & 0xf) : (s.ascii & (0xfull<<56))) == 0)
-    if (m < c->e5) // m < 100000
-    {
-        u64 lz = 0;
-        // while (buf[2 + lz] == '0')
-        //     lz++;
-        u64 u;
-        memcpy(&u, &buf[2], 8);
-        u = is_little_endian() ? u : byteswap64(u);
-        lz = u64_tz_bits(u & 0x0f0f0f0f0f0f0f0f) / 8;
-        lz += 2;
-        e10 -= lz - 1;
-        buf[0] = buf[lz];
-        byte_move_8(&buf[2], &buf[lz + 1]);
-        exp_pos = exp_pos - lz + (exp_pos - lz != 1);
-    }
+    if (exp == 0) [[unlikely]]
+        //if (m < c->e5) // m < 100000
+        if (m < 100000)
+        {
+            u64 lz = 0;
+            // while (buf[2 + lz] == '0')
+            //     lz++;
+            u64 u;
+            memcpy(&u, &buf[2], 8);
+            u = is_little_endian() ? u : byteswap64(u);
+            lz = u64_tz_bits(u & 0x0f0f0f0f0f0f0f0f) / 8;
+            lz += 2;
+            e10 -= lz - 1;
+            buf[0] = buf[lz];
+            byte_move_8(&buf[2], &buf[lz + 1]);
+            exp_pos = exp_pos - lz + (exp_pos - lz != 1);
+        }
     u64 exp_result = t->exp_result_float[45 + e10];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
@@ -356,3 +361,5 @@ char *to_string(Float v, char *buf)
         return buf;
 }
 #endif
+
+}//end of namespace xjb
