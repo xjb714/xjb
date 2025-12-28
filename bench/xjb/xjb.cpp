@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <string.h>
+#include <stdio.h>
 
 #include "dec_to_ascii.cpp"
 #include "table.cpp"
@@ -247,18 +248,12 @@ char *xjb64(double v, char *buf)
     return buf + exp_len;
 }
 #if 1
-char *xjb32(float v, char *buf)
+char *xjb32(float v, char *buf, bool debug_mode = false)
 {
-    static const struct const_varibale constants = {
-	    .c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
-        .div10000 = 1844674407370956,
-	    .e7 = 10000000 - 1,
-        .m = (1ull << 32) - 10000,
-	    .m32 = {0x147b000, -100 + 0x10000},
-	};
-    const struct const_varibale *c = &constants;
+    const struct const_value_float *c = &constants_float;
+    const struct float_table_t *t = &float_table;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions
-    asm ("" : "+r"(c)); // read from memory to register
+    asm("" : "+r"(c));                                                // read from memory to register
 #endif
 
     u32 vi;
@@ -277,8 +272,8 @@ char *xjb32(float v, char *buf)
         sig_bin = sig;
     }
     if (exp == 255) [[unlikely]]
-        return (char *)memcpy(buf, sig ? "NaN" : "Inf", 4) + 3;
-    unsigned char h37_precalc = h37[exp];
+        return (char *)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
+    unsigned char h37_precalc = t->h37[exp];
     u64 irregular = sig == 0;
     const int BIT = 36;                  // [33,36] all right
     i64 k = (i64)(exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
@@ -287,7 +282,7 @@ char *xjb32(float v, char *buf)
         k = (i64)(exp_bin * 1233 - 512) >> 12;
         h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
     }
-    u64 pow10_hi = pow10_float_reverse[45 + k];
+    u64 pow10_hi = t->pow10_float_reverse[45 + k];
     u64 even = (sig + 1) & 1; // or (sig_bin + 1) & 1
     u64 cb = sig_bin << h37_precalc;
     u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64;
@@ -301,49 +296,49 @@ char *xjb32(float v, char *buf)
     u64 down = (half_ulp >> irregular) > dot_one_36bit;
     u64 up_down = up + down;
     u64 m = (sig_hi >> BIT) + up;
-    //u64 D9 = m >= 10000000u;
-    u64 D9 = m > c->e7;
     memcpy(buf, "0000", 4);
-    //memcpy(buf, &(c->ZERO), 4);
-    shortest_ascii8 s = to_ascii8(m, up_down, D9, c);
-    i64 e10 = k + (7 + D9);
-    //u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
+    // u64 lz = (m < (u32)1e6) + (m < (u32)1e7); // 0, 1, 2
+    u64 lz = (m < c->e6) + (m < c->e7);
+    shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
+    i64 e10 = k + (8 - lz);
+    // u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
     u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
     u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
+    one = up_down ? ('0' + '0' * 256) : one;
     if (irregular) [[unlikely]]
-        if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150))
+        if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
             ++one;
     const i64 e10_DN = -3, e10_UP = 7;
     u64 e10_3 = e10 + (-e10_DN);
     u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
     u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
-    u64 first_sig_pos = e10_variable_data[e10_data_ofs][9 + 0];
-    u64 dot_pos = e10_variable_data[e10_data_ofs][9 + 1];
-    u64 move_pos = e10_variable_data[e10_data_ofs][9 + 2];
-    u64 exp_pos = e10_variable_data[e10_data_ofs][s.dec_sig_len];
+    u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
+    u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
+    u64 move_pos = t->e10_variable_data[e10_data_ofs][9 + 2];
+    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
     char *buf_origin = (char *)buf;
     buf += first_sig_pos;
     memcpy(buf, &(s.ascii), 8);
-    memcpy(&buf[7 + D9], &one, 8);
+    memcpy(&buf[8 - lz], &one, 8);
     byte_move_8(&buf[move_pos], &buf[dot_pos]);
     buf_origin[dot_pos] = '.';
-    if (exp == 0) [[unlikely]]
-        if (buf[0] == '0')
-        //if ( (s.ascii & 15) == 0)[[unlikely]]
-        {
-            u64 lz = 0;
-            // while (buf[2 + lz] == '0')
-            //     lz++;
-            u64 u;
-            memcpy(&u,&buf[2],8);
-            lz = u64_tz_bits(u & 0x0f0f0f0f0f0f0f0f) / 8;
-            lz += 2;
-            e10 -= lz - 1;
-            buf[0] = buf[lz];
-            byte_move_8(&buf[2], &buf[lz + 1]);
-            exp_pos = exp_pos - lz + (exp_pos - lz != 1);
-        }
-    u64 exp_result = exp_result_float[45 + e10];
+    // if ( (is_little_endian() ? (s.ascii & 0xf) : (s.ascii & (0xfull<<56))) == 0)
+    if (m < c->e5) // m < 100000
+    {
+        u64 lz = 0;
+        // while (buf[2 + lz] == '0')
+        //     lz++;
+        u64 u;
+        memcpy(&u, &buf[2], 8);
+        u = is_little_endian() ? u : byteswap64(u);
+        lz = u64_tz_bits(u & 0x0f0f0f0f0f0f0f0f) / 8;
+        lz += 2;
+        e10 -= lz - 1;
+        buf[0] = buf[lz];
+        byte_move_8(&buf[2], &buf[lz + 1]);
+        exp_pos = exp_pos - lz + (exp_pos - lz != 1);
+    }
+    u64 exp_result = t->exp_result_float[45 + e10];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     return buf + exp_len;

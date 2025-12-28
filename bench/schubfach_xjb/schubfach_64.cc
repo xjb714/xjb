@@ -31,7 +31,7 @@
 //
 //==================================================================================================
 
-namespace xjb
+namespace schubfach_xjb64
 {
 
     template <typename Dest, typename Source>

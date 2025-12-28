@@ -2889,8 +2889,10 @@ static inline int32_t DecimalLength(uint32_t v)
 
 static inline char *FormatDigits(char *buffer, uint32_t digits, int32_t decimal_exponent, bool force_trailing_dot_zero = false)
 {
-    static constexpr int32_t MinFixedDecimalPoint = -4;
-    static constexpr int32_t MaxFixedDecimalPoint = 9;
+    // static constexpr int32_t MinFixedDecimalPoint = -4;
+    // static constexpr int32_t MaxFixedDecimalPoint = 9;
+    static constexpr int32_t MinFixedDecimalPoint = -3 + 1;//for check;
+    static constexpr int32_t MaxFixedDecimalPoint = 7 + 1;
     static_assert(MinFixedDecimalPoint <= -1, "internal error");
     static_assert(MaxFixedDecimalPoint >= 1, "internal error");
 
@@ -2988,15 +2990,19 @@ static inline char *FormatDigits(char *buffer, uint32_t digits, int32_t decimal_
         buffer += 2;
 
         const uint32_t k = static_cast<uint32_t>(scientific_exponent < 0 ? -scientific_exponent : scientific_exponent);
-        if (k < 10)
-        {
-            *buffer++ = static_cast<char>('0' + k);
-        }
-        else
-        {
-            Utoa_2Digits(buffer, k);
-            buffer += 2;
-        }
+        Utoa_2Digits(buffer, k); // example : 4 -> "04" , 23 -> "23"
+        buffer += 2;
+        // if (k < 10)
+        // {
+        //     *buffer++ = static_cast<char>('0' + k);
+        //     // Utoa_2Digits(buffer, k); // example : 4 -> "04"
+        //     // buffer += 2;
+        // }
+        // else
+        // {
+        //     Utoa_2Digits(buffer, k);
+        //     buffer += 2;
+        // }
     }
 
     return buffer;
@@ -3009,23 +3015,20 @@ static inline char *ToChars(char *buffer, float value, bool force_trailing_dot_z
     const uint32_t significand = v.PhysicalSignificand();
     const uint32_t exponent = v.PhysicalExponent();
 
+    buffer[0] = '-';
+    buffer += v.SignBit();
     if (exponent != Single::MaxIeeeExponent) // [[likely]]
     {
         // Finite
-
-        buffer[0] = '-';
-        buffer += v.SignBit();
-
         if (exponent != 0 || significand != 0) // [[likely]]
         {
             // != 0
-
-            const auto dec = ToDecimal32(significand, exponent);
+            const auto dec = ToDecimal32_xjb(significand, exponent);
             return FormatDigits(buffer, dec.digits, dec.exponent, force_trailing_dot_zero);
         }
         else
         {
-            std::memcpy(buffer, "0.0 ", 4);
+            std::memcpy(buffer, "0.0", 4);
             buffer += force_trailing_dot_zero ? 3 : 1;
             return buffer;
         }
@@ -3033,15 +3036,16 @@ static inline char *ToChars(char *buffer, float value, bool force_trailing_dot_z
 
     if (significand == 0)
     {
-        buffer[0] = '-';
-        buffer += v.SignBit();
-
-        std::memcpy(buffer, "inf ", 4);
+        // buffer[0] = '-';
+        // buffer += v.SignBit();
+        std::memcpy(buffer, "inf", 4);
         return buffer + 3;
     }
     else
     {
-        std::memcpy(buffer, "nan ", 4);
+        // buffer[0] = '-';
+        // buffer += v.SignBit();
+        std::memcpy(buffer, "nan", 4);
         return buffer + 3;
     }
 }
@@ -3052,6 +3056,6 @@ static inline char *ToChars(char *buffer, float value, bool force_trailing_dot_z
 
 char *Ftoa(char *buffer, float value)
 {
-    return ToChars(buffer, value);
+    return ToChars(buffer, value, true);
 }
 }

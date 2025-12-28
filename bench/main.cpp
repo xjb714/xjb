@@ -542,21 +542,62 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
 }
 unsigned check_xjb32_and_schubfach32_xjb(float f)
 {
+    u32 u = *(u32 *)&f;
     unsigned int dec, dec_xjb,dec_xjb_comp;
     int e10, e10_xjb,e10_xjb_comp;
     schubfach_xjb_f32_to_dec(f, &dec, &e10);
     xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
     // if ((dec == dec_xjb && e10 == e10_xjb))
     xjb_comp_f32_to_dec(f, &dec_xjb_comp, &e10_xjb_comp);
+    // if( dec < (u32)1e7 && u > (1<<23) ){
+    //     printf("f = %.8le, u = %x, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d, dec_xjb_comp=%u,e10_xjb_comp=%d,",f,u,dec,e10,dec_xjb,e10_xjb,dec_xjb_comp,e10_xjb_comp);
+    // }
     if ((dec == dec_xjb && e10 == e10_xjb && dec == dec_xjb_comp && e10 == e10_xjb_comp))
     {
         return 0;
     }
     else
     {
-        //printf("");
         //printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
         //exit(0);
+    }
+    return 1;
+}
+unsigned check_xjb32_and_schubfach32_xjb_string(float f)
+{
+    u32 u = *(u32 *)&f;
+    char buf_xjb[32];
+    char buf_schubfach_xjb[32];
+    char* end_buf_xjb = xjb32_f32_to_str(f, buf_xjb);
+    char* end_buf_schubfach_xjb = schubfach_xjb_f32_to_str(f, buf_schubfach_xjb);
+    int len_xjb = end_buf_xjb - buf_xjb;
+    int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
+    if (len_xjb != len_schubfach_xjb)
+    {
+        printf("f = %.8le, u = %x, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
+        // unsigned int dec, dec_xjb,dec_xjb_comp;
+        // int e10, e10_xjb,e10_xjb_comp;
+        // schubfach_xjb_f32_to_dec(f, &dec, &e10);
+        // xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
+        // printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
+        
+        // exit(0);
+        return 1;
+    }
+    if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    {
+        return 0;
+    }
+    else
+    {
+        printf("f = %.8le, u = %x, buf_xjb=%s, buf_schubfach_xjb=%s\n",f,u,buf_xjb,buf_schubfach_xjb);
+        // unsigned int dec, dec_xjb,dec_xjb_comp;
+        // int e10, e10_xjb,e10_xjb_comp;
+        // schubfach_xjb_f32_to_dec(f, &dec, &e10);
+        // xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
+        // printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
+
+        // exit(0);
     }
     return 1;
 }
@@ -580,24 +621,42 @@ void check_subnormal()
         printf("check_subnormal fail error sum = %u\n", error_sum);
     }
 }
-void check_all_float_number()
+void check_all_float_number_to_dec()
 {
-    printf("check xjb32 algorithm ; check all float number start\n");
+    printf("check xjb32 algorithm ; about one minute, check all float number start\n");
     u64 error_sum = 0;
     auto t1 = getns();
-    // #pragma parallel omp for reduce(+:error_sum)
     for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)
     {
         float f = *(float *)&i;
         error_sum += check_xjb32_and_schubfach32_xjb(f);
+        // if( (i & ((1u<<26) - 1)) == 0) {
+        //     printf("check float number progress : %.3lf %% \r", (double)i * (100.0 / (double)0x7F7FFFFF)  );
+        // }
     }
-    // uint32_t start = 0x00000001u;
-    // uint32_t end = 0x7F7FFFFFu;
-    // int num_threads = 4;
-
-    // error_sum = parallel_reduce_pthreads(start, end,
-    //                                               check_xjb32_and_schubfach32_xjb,
-    //                                               num_threads);
+    auto t2 = getns();
+    if (error_sum == 0)
+    {
+        printf("check_all_float ok, cost %.3lf second\n",(t2-t1)/1e9);
+    }
+    else
+    {
+        printf("check_all_float fail error sum = %llu , cost %.3lf second\n", (unsigned long long)error_sum, (double)(t2-t1)/1e9);
+    }
+}
+void check_all_float_number_to_string()
+{
+    printf("check xjb32 algorithm ; about one minute, check all float number start\n");
+    u64 error_sum = 0;
+    auto t1 = getns();
+    for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)
+    {
+        float f = *(float *)&i;
+        error_sum += check_xjb32_and_schubfach32_xjb_string(f);//about 50 second on apple M1
+        // if( (i & ((1u<<26) - 1)) == 0) {
+        //     printf("check float number progress : %.3lf %% \r", (double)i * (100.0 / (double)0x7F7FFFFF)  );
+        // }
+    }
     auto t2 = getns();
     if (error_sum == 0)
     {
@@ -815,7 +874,12 @@ int main()
 #if BENCH_FLOAT
     bench_float();
 
-    //check_all_float_number(); // check all float number , may cost long time
+#if BENCH_STR
+    check_all_float_number_to_string(); // check all float number , may cost long time
+#else
+    //check_all_float_number_to_dec(); // check all float number , may cost long time
+#endif
+
 #endif
 
 #if BENCH_DOUBLE
