@@ -3,7 +3,14 @@ xjb : a fast float to string algorithm.
 
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
-The document explaining the working principle of the code is called `code_explain.ipynb`.The document is currently under preparation.
+### algorithm correctness proof:  
+xjb64:  
+The document explaining the working principle of the code is called `code_explain.ipynb`.The document is currently under preparation.  
+
+xjb32:  
+(1)f32 to string : please run `bench/main.cpp/check_all_float_number_to_string()` to check the correctness of the algorithm.  
+(2)f32 to decimal : please run `bench/main.cpp/check_all_float_number_to_decimal()` to check the correctness of the algorithm.  
+Test all positive single-precision floating-point numbers. The running time only takes about one minute.  
 
 the code is still under development and may contain bugs. if you find any bugs, please let me know.  
 **warning: The current code can only run on little-endian CPUs. The code for the big-endian CPU is currently under development.**
@@ -25,13 +32,13 @@ lookup table size:
     </tr>
     <tr>
         <td>float</td>
-        <td>1096byte</td>
-        <td>64byte</td>
+        <td>1352+40 byte</td>
+        <td>64 byte</td>
     </tr>
     <tr>
         <td>double</td>
-        <td>amd64:15336byte <br> arm64:15336+256 = 15592byte</td>
-        <td>amd64:592byte <br> arm64:592+256 = 848byte</td>
+        <td>amd64:15336 byte <br> arm64:15336+256 = 15592 byte</td>
+        <td>amd64:592 byte <br> arm64:592+256 = 848 byte</td>
     </tr>
 </table>
 

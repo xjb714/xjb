@@ -2107,7 +2107,8 @@ static const struct const_value_float constants_float = {
         .e6 = 1000000,
         .e5 = 100000,
         .m = (1ull << 32) - 10000,
-	    .m32 = {0x147b000, -100 + 0x10000},
+	    .m32_0 = 0x147b000, 
+        .m32_1 = -100 + 0x10000,
 	};
 static const struct float_table_t float_table = {
     // .c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),

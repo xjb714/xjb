@@ -44,5 +44,6 @@
         "stack": "cpp",
         "text_encoding": "cpp",
         "unordered_map": "cpp"
-    }
+    },
+    "cmake.sourceDirectory": "/run/media/xjb/3T/paper_mdpi/xjb/bench/teju"
 }

@@ -621,7 +621,7 @@ void check_subnormal()
         printf("check_subnormal fail error sum = %u\n", error_sum);
     }
 }
-void check_all_float_number_to_dec()
+void check_all_float_number_to_decimal()
 {
     printf("check xjb32 algorithm ; about one minute, check all float number start\n");
     u64 error_sum = 0;
@@ -652,7 +652,7 @@ void check_all_float_number_to_string()
     for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)
     {
         float f = *(float *)&i;
-        error_sum += check_xjb32_and_schubfach32_xjb_string(f);//about 50 second on apple M1
+        error_sum += check_xjb32_and_schubfach32_xjb_string(f);//about 50 second on apple M1 ; 40-45 second on AMD R7 7840H
         // if( (i & ((1u<<26) - 1)) == 0) {
         //     printf("check float number progress : %.3lf %% \r", (double)i * (100.0 / (double)0x7F7FFFFF)  );
         // }
@@ -877,7 +877,7 @@ int main()
 #if BENCH_STR
     check_all_float_number_to_string(); // check all float number , may cost long time
 #else
-    //check_all_float_number_to_dec(); // check all float number , may cost long time
+    //check_all_float_number_to_decimal(); // check all float number , may cost long time
 #endif
 
 #endif

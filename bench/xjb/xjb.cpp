@@ -252,8 +252,8 @@ char *xjb32(float v, char *buf, bool debug_mode = false)
 {
     const struct const_value_float *c = &constants_float;
     const struct float_table_t *t = &float_table;
-#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions
-    asm("" : "+r"(c));                                                // read from memory to register
+#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions , MSVC not support inline asm
+    asm("" : "+r"(c));                                                // read constant values from memory to register
 #endif
 
     u32 vi;
@@ -304,7 +304,8 @@ char *xjb32(float v, char *buf, bool debug_mode = false)
     // u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
     u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
     u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
-    one = up_down ? ('0' + '0' * 256) : one;
+    //one = up_down ? ('0' + '0' * 256) : one;
+    one = cmov_branchless(up_down,'0' + '0' * 256, one);// prevent gcc generate branch instruction
     if (irregular) [[unlikely]]
         if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
             ++one;

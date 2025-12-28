@@ -410,7 +410,7 @@ _Z5xjb64dPc:                            #
 	.cfi_endproc
                                         # -- End function
 	.section	.rodata.cst16,"aM",@progbits,16
-	.p2align	4, 0x0                          # -- Begin function _Z5xjb32fPc
+	.p2align	4, 0x0                          # -- Begin function _Z5xjb32fPcb
 .LCPI1_0:
 	.long	27370496                        # 0x1a1a400
 	.long	0                               # 0x0
@@ -470,221 +470,222 @@ _Z5xjb64dPc:                            #
 .LCPI1_4:
 	.long	27370496                        # 0x1a1a400
 	.text
-	.globl	_Z5xjb32fPc
+	.globl	_Z5xjb32fPcb
 	.p2align	4
-	.type	_Z5xjb32fPc,@function
-_Z5xjb32fPc:                            # 
+	.type	_Z5xjb32fPcb,@function
+_Z5xjb32fPcb:                           # 
 	.cfi_startproc
 # %bb.0:
-	pushq	%rbp
-	.cfi_def_cfa_offset 16
-	pushq	%r15
-	.cfi_def_cfa_offset 24
-	pushq	%r14
-	.cfi_def_cfa_offset 32
-	pushq	%r13
-	.cfi_def_cfa_offset 40
-	pushq	%r12
-	.cfi_def_cfa_offset 48
-	pushq	%rbx
-	.cfi_def_cfa_offset 56
-	.cfi_offset %rbx, -56
-	.cfi_offset %r12, -48
-	.cfi_offset %r13, -40
-	.cfi_offset %r14, -32
-	.cfi_offset %r15, -24
-	.cfi_offset %rbp, -16
 	vmovd	%xmm0, %eax
 	movb	$45, (%rdi)
 	movl	%eax, %ecx
-	movl	%eax, %r10d
-	shrl	$23, %eax
+	movl	%eax, %r8d
 	shrl	$31, %ecx
-	andl	$8388607, %r10d                 # imm = 0x7FFFFF
-	leaq	(%rdi,%rcx), %r8
-	movzbl	%al, %r9d
-	testb	%r9b, %r9b
+	shrl	$23, %eax
+	andl	$8388607, %r8d                  # imm = 0x7FFFFF
+	addq	%rdi, %rcx
+	movzbl	%al, %edi
+	testb	%dil, %dil
 	je	.LBB1_3
 # %bb.1:
-	cmpl	$255, %r9d
+	cmpl	$255, %edi
 	je	.LBB1_2
 # %bb.7:
-	leaq	-150(%r9), %rax
-	leaq	8388608(%r10), %rdx
+	leaq	-150(%rdi), %rax
+	leaq	8388608(%r8), %rdx
 	imulq	$1233, %rax, %rsi               # imm = 0x4D1
-	testq	%r10, %r10
+	testq	%r8, %r8
 	je	.LBB1_9
 # %bb.8:
-	movzbl	_ZL3h37(%r9), %r11d
+	movzbl	_ZL11float_table+1096(%rdi), %r9d
 	sarq	$12, %rsi
-	xorl	%ebx, %ebx
-	xorl	%r9d, %r9d
+	xorl	%r10d, %r10d
+	xorl	%edi, %edi
 .LBB1_10:
-	movq	_ZL19pow10_float_reverse+360(,%rsi,8), %r14
-	movb	$65, %r15b
-	shlxq	%r11, %rdx, %rdx
-	notl	%r10d
-	xorl	%r12d, %r12d
+	pushq	%r15
+	.cfi_def_cfa_offset 16
+	pushq	%r14
+	.cfi_def_cfa_offset 24
+	pushq	%r12
+	.cfi_def_cfa_offset 32
+	pushq	%rbx
+	.cfi_def_cfa_offset 40
+	.cfi_offset %rbx, -40
+	.cfi_offset %r12, -32
+	.cfi_offset %r14, -24
+	.cfi_offset %r15, -16
+	movq	_ZL11float_table+360(,%rsi,8), %r11
+	movb	$65, %bl
+	shlxq	%r9, %rdx, %rdx
+	notl	%r8d
 	vmovd	.LCPI1_4(%rip), %xmm1           # xmm1 = [27370496,0,0,0]
-	subb	%r11b, %r15b
-	andl	$1, %r10d
-	mulxq	%r14, %rdx, %rdx
-	shrxq	%r15, %r14, %r11
-	movl	$808464432, (%r8)               # imm = 0x30303030
-	addq	%r10, %r11
-	movb	$36, %r10b
-	bzhiq	%r10, %rdx, %r15
-	shrxq	%rbx, %r11, %r10
-	movabsq	$3472328296227680304, %rbx      # imm = 0x3030303030303030
-	leaq	(%r15,%r11), %r14
-	shrq	$36, %r14
-	cmpq	%r15, %r10
-	seta	%r12b
+	movabsq	$423878912376825, %r12          # imm = 0x18183FFFFFFF9
+	subb	%r9b, %bl
+	andl	$1, %r8d
+	mulxq	%r11, %rdx, %rdx
+	shrxq	%rbx, %r11, %r9
+	xorl	%ebx, %ebx
+	movl	$808464432, (%rcx)              # imm = 0x30303030
+	addq	%r8, %r9
+	movb	$36, %r8b
+	bzhiq	%r8, %rdx, %r14
+	shrxq	%r10, %r9, %r8
+	leaq	(%r14,%r9), %r11
+	shrq	$36, %r11
+	cmpq	%r14, %r8
+	seta	%bl
 	shrq	$36, %rdx
-	addq	%r14, %rdx
+	xorl	%r15d, %r15d
+	addq	%r11, %rdx
 	vpbroadcastq	%rdx, %zmm0
 	vpmadd52luq	.LCPI1_1(%rip), %zmm0, %zmm1
+	cmpq	$1000000, %rdx                  # imm = 0xF4240
+	setb	%r15b
+	cmpq	$10000000, %rdx                 # imm = 0x989680
+	adcq	$0, %r15
 	vpmullq	.LCPI1_2(%rip){1to8}, %zmm1, %zmm0
 	vmovq	.LCPI1_5(%rip), %xmm1           # xmm1 = [7,15,23,31,39,47,55,63,0,0,0,0,0,0,0,0]
+	leal	(,%r15,8), %r9d
 	vpermb	%zmm0, %zmm1, %zmm0
-	vmovq	%xmm0, %r10
-	movq	%r10, %r13
-	shrq	$8, %r13
-	cmpq	$10000000, %rdx                 # imm = 0x989680
-	cmovaeq	%r10, %r13
-	movl	$7, %r10d
-	sbbq	$-1, %r10
-	lzcntq	%r13, %r11
-	orq	%r13, %rbx
-	shrl	$3, %r11d
-	xorq	$7, %r11
-	orq	%r14, %r12
-	leaq	(%r15,%r15,4), %r12
-	movabsq	$423878912376825, %r14          # imm = 0x18183FFFFFFF9
-	cmoveq	%r10, %r11
-	shrq	$32, %r15
+	vmovq	%xmm0, %r8
+	shrxq	%r9, %r8, %r10
+	movabsq	$3472328296227680304, %r9       # imm = 0x3030303030303030
+	lzcntq	%r10, %r8
+	orq	%r10, %r9
+	movl	$8, %r10d
+	subq	%r15, %r10
+	leaq	(%r14,%r14,4), %r15
+	shrq	$32, %r14
+	shrl	$3, %r8d
+	addq	%r14, %r12
+	xorq	$7, %r8
 	addq	%r10, %rsi
-	addq	%r15, %r14
-	addq	%r12, %r14
-	shrq	$35, %r14
-	testb	%r9b, %r9b
+	addq	%r15, %r12
+	shrq	$35, %r12
+	orq	%r11, %rbx
+	movl	$12336, %r11d                   # imm = 0x3030
+	cmoveq	%r10, %r8
+	cmoveq	%r12, %r11
+	testb	%dil, %dil
 	jne	.LBB1_11
 .LBB1_12:
-	leaq	3(%rsi), %r9
+	leaq	3(%rsi), %rdi
 	xorl	%eax, %eax
-	movl	$11, %r12d
-	cmpq	$11, %r9
-	cmovbq	%r9, %r12
+	movl	$11, %ebx
+	cmpq	$11, %rdi
+	cmovbq	%rdi, %rbx
 	setae	%al
-	shll	$2, %r12d
+	shll	$2, %ebx
 	shll	$2, %eax
-	movzbl	_ZL17e10_variable_data+9(%r12,%r12,2), %r15d
-	movzbl	_ZL17e10_variable_data+10(%r12,%r12,2), %r13d
-	leaq	(%r12,%r12,2), %r9
-	movzbl	_ZL17e10_variable_data+11(%r12,%r12,2), %r12d
-	movzbl	_ZL17e10_variable_data(%r11,%r9), %r11d
-	leaq	(%r8,%r15), %r9
-	movq	%rbx, (%r8,%r15)
-	movq	%r14, (%r10,%r9)
-	movq	(%r13,%r9), %r10
-	movq	%r10, (%r12,%r9)
-	movb	$46, (%r8,%r13)
-	cmpl	$999999, %edx                   # imm = 0xF423F
-	ja	.LBB1_16
-# %bb.13:
-	addq	%r15, %rcx
-	xorl	%edx, %edx
-	leaq	2(%rdi,%rcx), %r8
-	.p2align	4
-.LBB1_14:                               # =>This Inner Loop Header: Depth=1
-	movzbl	(%r8,%rdx), %r10d
-	incq	%rdx
-	cmpb	$48, %r10b
-	je	.LBB1_14
-# %bb.15:
-	addq	%rdi, %rcx
-	movb	%r10b, (%r9)
-	leaq	-2(%r11), %r8
-	subq	%rdx, %rsi
-	xorl	%edi, %edi
-	movq	2(%rdx,%rcx), %rcx
-	cmpq	%rdx, %r8
-	notq	%rdx
-	setne	%dil
-	addq	%r11, %rdx
-	addq	%rdi, %rdx
-	movq	%rdx, %r11
-	movq	%rcx, 2(%r9)
-.LBB1_16:
-	movl	_ZL16exp_result_float+180(,%rsi,4), %ecx
-	addq	%r9, %rax
-	addq	%r11, %rax
-	movq	%rcx, (%r9,%r11)
-.LBB1_17:
+	cmpl	$99999, %edx                    # imm = 0x1869F
+	movzbl	_ZL11float_table+961(%rbx,%rbx,2), %r14d
+	movzbl	_ZL11float_table+962(%rbx,%rbx,2), %r15d
+	leaq	(%rbx,%rbx,2), %rdi
+	movzbl	_ZL11float_table+963(%rbx,%rbx,2), %ebx
+	movzbl	_ZL11float_table+952(%r8,%rdi), %edi
+	leaq	(%rcx,%r14), %r8
+	movq	%r9, (%rcx,%r14)
+	movq	%r11, (%r10,%r8)
+	movq	(%r15,%r8), %r9
+	movq	%r9, (%rbx,%r8)
+	movb	$46, (%rcx,%r15)
 	popq	%rbx
-	.cfi_def_cfa_offset 48
-	popq	%r12
-	.cfi_def_cfa_offset 40
-	popq	%r13
 	.cfi_def_cfa_offset 32
-	popq	%r14
+	popq	%r12
 	.cfi_def_cfa_offset 24
-	popq	%r15
+	popq	%r14
 	.cfi_def_cfa_offset 16
-	popq	%rbp
+	popq	%r15
 	.cfi_def_cfa_offset 8
+	.cfi_restore %rbx
+	.cfi_restore %r12
+	.cfi_restore %r14
+	.cfi_restore %r15
+	ja	.LBB1_14
+# %bb.13:
+	movabsq	$1085102592571150095, %rcx      # imm = 0xF0F0F0F0F0F0F0F
+	andq	2(%r8), %rcx
+	tzcntq	%rcx, %rcx
+	shrl	$3, %ecx
+	movzbl	2(%r8,%rcx), %r9d
+	leaq	2(%rcx), %rdx
+	subq	%rdx, %rsi
+	subq	%rdx, %rdi
+	incq	%rsi
+	movb	%r9b, (%r8)
+	movq	3(%r8,%rcx), %rcx
+	movq	%rcx, 2(%r8)
+	xorl	%ecx, %ecx
+	cmpq	$1, %rdi
+	setne	%cl
+	addq	%rcx, %rdi
+.LBB1_14:
+	movl	_ZL11float_table+796(,%rsi,4), %ecx
+	addq	%r8, %rax
+	addq	%rdi, %rax
+	movq	%rcx, (%r8,%rdi)
 	vzeroupper
 	retq
 .LBB1_3:
-	.cfi_def_cfa_offset 56
-	testq	%r10, %r10
+	testq	%r8, %r8
 	je	.LBB1_5
 # %bb.4:
-	movzbl	_ZL3h37(%r9), %r11d
+	movzbl	_ZL11float_table+1096(%rdi), %r9d
 	movq	$-45, %rsi
 	movq	$-149, %rax
-	xorl	%ebx, %ebx
-	xorl	%r9d, %r9d
-	movq	%r10, %rdx
+	xorl	%r10d, %r10d
+	xorl	%edi, %edi
+	movq	%r8, %rdx
 	jmp	.LBB1_10
 .LBB1_2:
-	testq	%r10, %r10
-	movl	$6712905, %eax                  # imm = 0x666E49
-	movl	$5136718, %ecx                  # imm = 0x4E614E
-	cmovel	%eax, %ecx
-	movl	%ecx, (%r8)
-	jmp	.LBB1_6
+	testq	%r8, %r8
+	movl	$6712937, %eax                  # imm = 0x666E69
+	movl	$7233902, %edx                  # imm = 0x6E616E
+	cmovel	%eax, %edx
+	movl	%edx, (%rcx)
+	addq	$3, %rcx
+	movq	%rcx, %rax
+	retq
 .LBB1_11:
+	.cfi_def_cfa_offset 40
+	.cfi_offset %rbx, -40
+	.cfi_offset %r12, -32
+	.cfi_offset %r14, -24
+	.cfi_offset %r15, -16
 	cmpq	$-119, %rax
-	sete	%r9b
+	sete	%dil
 	cmpq	$64, %rax
-	sete	%bpl
-	orb	%r9b, %bpl
+	sete	%bl
+	orb	%dil, %bl
 	cmpq	$67, %rax
 	sete	%al
-	orb	%bpl, %al
+	orb	%bl, %al
 	movzbl	%al, %eax
-	addq	%rax, %r14
+	addq	%rax, %r11
 	jmp	.LBB1_12
 .LBB1_9:
+	.cfi_def_cfa_offset 8
+	.cfi_restore %rbx
+	.cfi_restore %r12
+	.cfi_restore %r14
+	.cfi_restore %r15
 	addq	$-512, %rsi                     # imm = 0xFE00
-	movl	$1, %ebx
+	movl	$1, %r10d
 	sarq	$12, %rsi
-	imull	$129371, %esi, %r11d            # imm = 0x1F95B
-	addl	$129371, %r11d                  # imm = 0x1F95B
-	shrl	$9, %r11d
-	addl	%r9d, %r11d
-	movb	$1, %r9b
-	addb	$-113, %r11b
+	imull	$129371, %esi, %r9d             # imm = 0x1F95B
+	addl	$129371, %r9d                   # imm = 0x1F95B
+	shrl	$9, %r9d
+	addl	%edi, %r9d
+	movb	$1, %dil
+	addb	$-113, %r9b
 	jmp	.LBB1_10
 .LBB1_5:
-	movl	$3157552, (%r8)                 # imm = 0x302E30
-.LBB1_6:
-	addq	$3, %r8
-	movq	%r8, %rax
-	jmp	.LBB1_17
+	movl	$3157552, (%rcx)                # imm = 0x302E30
+	addq	$3, %rcx
+	movq	%rcx, %rax
+	retq
 .Lfunc_end1:
-	.size	_Z5xjb32fPc, .Lfunc_end1-_Z5xjb32fPc
+	.size	_Z5xjb32fPcb, .Lfunc_end1-_Z5xjb32fPcb
 	.cfi_endproc
                                         # -- End function
 	.section	.text._ZNSt13random_deviceD2Ev,"axG",@progbits,_ZNSt13random_deviceD2Ev,comdat
@@ -1060,7 +1061,7 @@ _Z9init_datav:                          #
 	pushq	%rbx
 	.cfi_def_cfa_offset 16
 	.cfi_offset %rbx, -16
-	movl	$40000000, %edi                 # imm = 0x2625A00
+	movl	$400000000, %edi                # imm = 0x17D78400
 	callq	_Znam
 	vpbroadcastq	.LCPI10_0(%rip), %zmm0  # zmm0 = [1,1,1,1,1,1,1,1]
 	vpbroadcastq	.LCPI10_1(%rip), %zmm1  # zmm1 = [1073741823,1073741823,1073741823,1073741823,1073741823,1073741823,1073741823,1073741823]
@@ -1245,7 +1246,7 @@ _Z9init_datav:                          #
 	xorl	%r11d, %ebx
 	movl	%ebx, (%rax,%rcx,4)
 	incq	%rcx
-	cmpq	$10000000, %rcx                 # imm = 0x989680
+	cmpq	$100000000, %rcx                # imm = 0x5F5E100
 	jne	.LBB10_1
 # %bb.8:
 	movq	%r10, gen+2496(%rip)
@@ -1260,7 +1261,7 @@ _Z9init_datav:                          #
 	.section	.rodata.cst8,"aM",@progbits,8
 	.p2align	3, 0x0                          # -- Begin function main
 .LCPI11_0:
-	.quad	0x3e7ad7f29abcaf48              #  9.9999999999999995E-8
+	.quad	0x3e45798ee2308c3a              #  1.0E-8
 	.text
 	.globl	main
 	.p2align	4
@@ -1304,7 +1305,7 @@ main:                                   #
 	leal	(,%r12,8), %r13d
 	leal	(%r12,%r12,8), %ecx
 	leal	(%r12,%r12,2), %r14d
-	movl	$1250000, %ebp                  # imm = 0x1312D0
+	movl	$12500000, %ebp                 # imm = 0xBEBC20
 	movq	%rdx, 24(%rsp)                  # 8-byte Spill
 	xorl	%r15d, %r15d
 	movq	%rax, 64(%rsp)                  # 8-byte Spill
@@ -1325,40 +1326,40 @@ main:                                   #
 	movq	%r12, %rdi
 	addl	%r15d, %eax
 	vmovd	%eax, %xmm0
-	callq	_Z5xjb32fPc
+	callq	_Z5xjb32fPcb
 	leal	(%r14,%r15), %eax
 	movq	%r12, %rdi
 	vmovd	%eax, %xmm0
-	callq	_Z5xjb32fPc
+	callq	_Z5xjb32fPcb
 	movq	40(%rsp), %rax                  # 8-byte Reload
 	movq	%r12, %rdi
 	addl	%r15d, %eax
 	vmovd	%eax, %xmm0
-	callq	_Z5xjb32fPc
+	callq	_Z5xjb32fPcb
 	movq	48(%rsp), %rax                  # 8-byte Reload
 	movq	%r12, %rdi
 	addl	%r15d, %eax
 	vmovd	%eax, %xmm0
-	callq	_Z5xjb32fPc
+	callq	_Z5xjb32fPcb
 	movq	56(%rsp), %rax                  # 8-byte Reload
 	movq	%r12, %rdi
 	addl	%r15d, %eax
 	vmovd	%eax, %xmm0
-	callq	_Z5xjb32fPc
+	callq	_Z5xjb32fPcb
 	leal	(%r13,%r15), %eax
 	movq	%r12, %rdi
 	vmovd	%eax, %xmm0
-	callq	_Z5xjb32fPc
+	callq	_Z5xjb32fPcb
 	movq	72(%rsp), %rax                  # 8-byte Reload
 	movq	%r12, %rdi
 	leal	(%rax,%r15), %ebx
 	vmovd	%ebx, %xmm0
-	callq	_Z5xjb32fPc
+	callq	_Z5xjb32fPcb
 	addl	12(%rsp), %r15d                 # 4-byte Folded Reload
 	movq	%r12, %rdi
 	vmovd	%r15d, %xmm0
 	vmovd	%xmm0, 8(%rsp)                  # 4-byte Folded Spill
-	callq	_Z5xjb32fPc
+	callq	_Z5xjb32fPcb
 	decq	%rbp
 	movl	%ebx, %r15d
 	jne	.LBB11_1
@@ -1375,7 +1376,7 @@ main:                                   #
 	subq	%rcx, %r15
 	callq	_ZNSt6chrono3_V212system_clock3nowEv
 	subq	32(%rsp), %rax                  # 8-byte Folded Reload
-	vmovsd	.LCPI11_0(%rip), %xmm1          # xmm1 = [9.9999999999999995E-8,0.0E+0]
+	vmovsd	.LCPI11_0(%rip), %xmm1          # xmm1 = [1.0E-8,0.0E+0]
 	movl	$.L.str.10, %edi
 	vcvtsi2sd	%rax, %xmm15, %xmm0
 	movb	$2, %al
@@ -3519,17 +3520,9 @@ _ZL17exp_result_double:
 	.quad	360288211516468069              # 0x500003830332b65
 	.size	_ZL17exp_result_double, 5064
 
-	.type	_ZL3h37,@object                 # 
-	.section	.rodata.str1.16,"aMS",@progbits,1
-	.p2align	4, 0x0
-_ZL3h37:
-	.asciz	"\"\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\""
-	.size	_ZL3h37, 256
-
-	.type	_ZL19pow10_float_reverse,@object # 
-	.section	.rodata,"a",@progbits
-	.p2align	4, 0x0
-_ZL19pow10_float_reverse:
+	.type	_ZL11float_table,@object        # 
+	.p2align	3, 0x0
+_ZL11float_table:
 	.quad	-8106986416796705680            # 0x8f7e32ce7bea5c70
 	.quad	-1903131822648998118            # 0xe596b7b0c643c71a
 	.quad	-5211854272861108818            # 0xb7abc627050305ae
@@ -3607,28 +3600,6 @@ _ZL19pow10_float_reverse:
 	.quad	-6754730975062328270            # 0xa2425ff75e14fc32
 	.quad	-9093133594791772939            # 0x81ceb32c4b43fcf5
 	.quad	-3480967307441105733            # 0xcfb11ead453994bb
-	.size	_ZL19pow10_float_reverse, 616
-
-	.type	_ZL17e10_variable_data,@object  # 
-	.p2align	4, 0x0
-_ZL17e10_variable_data:
-	.ascii	"\001\002\003\004\005\006\007\b\t\004\001\001"
-	.ascii	"\001\002\003\004\005\006\007\b\t\003\001\001"
-	.ascii	"\001\002\003\004\005\006\007\b\t\002\001\001"
-	.ascii	"\003\003\004\005\006\007\b\t\n\000\001\002"
-	.ascii	"\004\004\004\005\006\007\b\t\n\000\002\003"
-	.ascii	"\005\005\005\005\006\007\b\t\n\000\003\004"
-	.ascii	"\006\006\006\006\006\007\b\t\n\000\004\005"
-	.ascii	"\007\007\007\007\007\007\b\t\n\000\005\006"
-	.ascii	"\b\b\b\b\b\b\b\t\n\000\006\007"
-	.ascii	"\t\t\t\t\t\t\t\t\n\000\007\b"
-	.ascii	"\n\n\n\n\n\n\n\n\n\000\b\t"
-	.ascii	"\001\003\004\005\006\007\b\t\n\000\001\002"
-	.size	_ZL17e10_variable_data, 144
-
-	.type	_ZL16exp_result_float,@object   # 
-	.p2align	4, 0x0
-_ZL16exp_result_float:
 	.long	892611941                       # 0x35342d65
 	.long	875834725                       # 0x34342d65
 	.long	859057509                       # 0x33342d65
@@ -3713,7 +3684,20 @@ _ZL16exp_result_float:
 	.long	909323109                       # 0x36332b65
 	.long	926100325                       # 0x37332b65
 	.long	942877541                       # 0x38332b65
-	.size	_ZL16exp_result_float, 336
+	.ascii	"\001\002\003\004\005\006\007\b\t\004\001\001"
+	.ascii	"\001\002\003\004\005\006\007\b\t\003\001\001"
+	.ascii	"\001\002\003\004\005\006\007\b\t\002\001\001"
+	.ascii	"\003\003\004\005\006\007\b\t\n\000\001\002"
+	.ascii	"\004\004\004\005\006\007\b\t\n\000\002\003"
+	.ascii	"\005\005\005\005\006\007\b\t\n\000\003\004"
+	.ascii	"\006\006\006\006\006\007\b\t\n\000\004\005"
+	.ascii	"\007\007\007\007\007\007\b\t\n\000\005\006"
+	.ascii	"\b\b\b\b\b\b\b\t\n\000\006\007"
+	.ascii	"\t\t\t\t\t\t\t\t\n\000\007\b"
+	.ascii	"\n\n\n\n\n\n\n\n\n\000\b\t"
+	.ascii	"\001\003\004\005\006\007\b\t\n\000\001\002"
+	.asciz	"\"\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\""
+	.size	_ZL11float_table, 1352
 
 	.type	rd,@object                      # 
 	.bss
