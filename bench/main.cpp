@@ -547,11 +547,7 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
     int e10, e10_xjb,e10_xjb_comp;
     schubfach_xjb_f32_to_dec(f, &dec, &e10);
     xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
-    // if ((dec == dec_xjb && e10 == e10_xjb))
     xjb_comp_f32_to_dec(f, &dec_xjb_comp, &e10_xjb_comp);
-    // if( dec < (u32)1e7 && u > (1<<23) ){
-    //     printf("f = %.8le, u = %x, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d, dec_xjb_comp=%u,e10_xjb_comp=%d,",f,u,dec,e10,dec_xjb,e10_xjb,dec_xjb_comp,e10_xjb_comp);
-    // }
     if ((dec == dec_xjb && e10 == e10_xjb && dec == dec_xjb_comp && e10 == e10_xjb_comp))
     {
         return 0;
@@ -589,6 +585,7 @@ unsigned check_xjb32_and_schubfach32_xjb_string(float f)
     }
     if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     {
+        // if three string equal return OK;
         return 0;
     }
     else

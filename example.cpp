@@ -42,10 +42,10 @@ int main()
     char buf_comp_double[33],buf_comp_float[24];
     for(int i = 0; i < sizeof(v) / sizeof(double); i++)
     {
-        xjb64(v[i],buf_full_double);
+        xjb::xjb64(v[i],buf_full_double);
         xjb64_32_comp::xjb64(v[i],buf_comp_double);
 
-        xjb32(v[i],buf_full_float);
+        xjb::xjb32(v[i],buf_full_float);
         xjb64_32_comp::xjb32(v[i],buf_comp_float);
 
         printf("i = %d, xjb64_full : %10s  xjb32_full : %10s\n",i,buf_full_double,buf_full_float);
@@ -58,9 +58,9 @@ int main()
         double num;
         scanf("%le",&num);
 
-        char* buf_end_full_double = xjb64(num,buf_full_double);
+        char* buf_end_full_double = xjb::xjb64(num,buf_full_double);
         char* buf_end_comp_double = xjb64_32_comp::xjb64(num,buf_comp_double);
-        char* buf_end_full_float = xjb32(num,buf_full_float);
+        char* buf_end_full_float = xjb::xjb32(num,buf_full_float);
         char* buf_end_comp_float = xjb64_32_comp::xjb32(num,buf_comp_float);
 
         int write_length_full_double = buf_end_full_double - buf_full_double;
