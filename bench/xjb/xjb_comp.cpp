@@ -51,12 +51,12 @@ char* xjb32_comp(float v,char* buf)
     // buf[0]='-';
     // buf+=vi>>31;
 
-    // u64 dec,m;
-    // int e10;
-    // u32 tz;// tail zero
-    // //u32 dec_sig_len;// decimal length
-    // u32 dec_sig_len_ofs;// = dec_sig_len + 2
-    // u32 D9;// 1:9 digits 0:8 digits
+    // // u64 dec,m;
+    // // int e10;
+    // // u32 tz;// tail zero
+    // // //u32 dec_sig_len;// decimal length
+    // // u32 dec_sig_len_ofs;// = dec_sig_len + 2
+    // // u32 D9;// 1:9 digits 0:8 digits
     // u32 sig = vi & ((1<<23) - 1);
     // //u32 sig = (vi << 9 ) >> 9;
     // u32 exp = (vi << 1 ) >> 24;
@@ -72,7 +72,8 @@ char* xjb32_comp(float v,char* buf)
     // //     return buf + 3;
     // // }
     // //memcpy(buf ,"0.000000",8);
-    // int exp_bin, k;
+    // //i64 exp_bin, k;
+    // i64 exp_bin;
     // u64 sig_bin, regular = sig > 0;
     // if (exp > 0) [[likely]] // branch
     // {
@@ -94,6 +95,17 @@ char* xjb32_comp(float v,char* buf)
     //     exp_bin = 1 - 150;
     //     sig_bin = sig;
     // }
+    static const struct const_value_float constants_float_comp = {
+	    .c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
+        .div10000 = 1844674407370956,
+	    .e7 = 10000000,
+        .e6 = 1000000,
+        .e5 = 100000,
+        .m = (1ull << 32) - 10000,
+	    .m32_0 = 0x147b000, 
+        .m32_1 = -100 + 0x10000,
+	};
+    const struct const_value_float *c = &constants_float_comp;
 
     u32 vi;
     memcpy(&vi, &v, 4);
@@ -114,10 +126,14 @@ char* xjb32_comp(float v,char* buf)
         return (char *)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
     i64 k;
     u64 irregular = sig_bin == 1<<23;
+    // if (!irregular) [[likely]] // branch
+    //     k = (exp_bin * 315653) >> 20;
+    // else
+    //     k = (exp_bin * 315653 - 131237) >> 20;
     if (!irregular) [[likely]] // branch
-        k = (exp_bin * 315653) >> 20;
+        k = (exp_bin * 1233) >> 12;
     else
-        k = (exp_bin * 315653 - 131237) >> 20;
+        k = (exp_bin * 1233 - 512) >> 12;
     int get_e10 = -1 - k;// [-32,44]
     int h = exp_bin + ((get_e10 * 217707) >> 16); // [-4,-1]
     u32 p10_base_index = (u32)(get_e10 + 32) / 16;// [0,4]
@@ -162,7 +178,7 @@ char* xjb32_comp(float v,char* buf)
     u64 m = (sig_hi >> BIT) + up;
     memcpy(buf ,"0000",4);
     u64 lz = (m < 1000000) + (m < 10000000);
-    shortest_ascii8 s = to_ascii8(m, up_down, lz, nullptr);
+    shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
     k += 8 - lz;
     i64 e10 = k;
     u64 offset_num  = ((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7) + (dot_one_36bit >> (BIT - 4));
@@ -170,9 +186,9 @@ char* xjb32_comp(float v,char* buf)
     if(irregular)[[unlikely]]
         if( (exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150) )
             one+=1;
-    one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
+    //one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
     const int e10_DN = -3;
-    const int e10_UP = 7;
+    const int e10_UP = 6;
 #if 0
     // size = 12*12 = 144 byte
     static const u8 e10_variable_data[e10_UP-(e10_DN) + 1 + 1][3+9]={
@@ -196,6 +212,7 @@ char* xjb32_comp(float v,char* buf)
     u64 move_pos = e10_variable_data[e10_data_ofs][2];
     u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs];
 #else
+    // how to generate branchless code?
     u64 first_sig_pos = ( e10_DN <= e10 && e10 <= -1 ) ? 1 - e10 : 0;
     u64 dot_pos = ( 0 <= e10 && e10<= e10_UP ) ? 1 + e10 : 1;
     u64 move_pos = dot_pos + (1 - ( e10_DN <= e10 && e10 <= -1 ) );
@@ -212,7 +229,11 @@ char* xjb32_comp(float v,char* buf)
     if(m < (u32)1e5 )[[unlikely]]
     {
         u64 lz = 0;
-        while(buf[2+lz] == '0')lz++;
+        //while(buf[2+lz] == '0')lz++;
+        u64 u;
+        memcpy(&u, &buf[2], 8);
+        u = is_little_endian() ? u : byteswap64(u);
+        lz = u64_tz_bits(u & 0x0f0f0f0f0f0f0f0f) / 8;
         lz += 2;
         e10 -= lz - 1;
         buf[0] = buf[lz];

@@ -2892,7 +2892,7 @@ static inline char *FormatDigits(char *buffer, uint32_t digits, int32_t decimal_
     // static constexpr int32_t MinFixedDecimalPoint = -4;
     // static constexpr int32_t MaxFixedDecimalPoint = 9;
     static constexpr int32_t MinFixedDecimalPoint = -3 + 1;//for check;
-    static constexpr int32_t MaxFixedDecimalPoint = 7 + 1;
+    static constexpr int32_t MaxFixedDecimalPoint = 6 + 1;
     static_assert(MinFixedDecimalPoint <= -1, "internal error");
     static_assert(MaxFixedDecimalPoint >= 1, "internal error");
 

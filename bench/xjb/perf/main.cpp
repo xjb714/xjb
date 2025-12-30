@@ -11,7 +11,8 @@
 #endif
 
 
-#include "../xjb.cpp"
+//#include "../xjb.cpp"
+#include "../xjb_comp.cpp"
 // #include "xjb64.cpp"
 //  char *xjb64(double value, char *buffer);
 //  char *xjb32(float value, char *buffer);
@@ -127,7 +128,8 @@ int main()
 #if PERF_DOUBLE_OR_FLOAT == FLOAT
             float num = *(float*)&random_num;
             //float num = data[i];
-            xjb32(num,buf);
+            //xjb::xjb32(num,buf);
+            xjb_comp::xjb32_comp(num, buf);
 #else
             double num = *(double *)&random_num;
             xjb64(num, buf);

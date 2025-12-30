@@ -1,6 +1,6 @@
 #------------------------------------------------------------------------------
 # Build the google test library
-
+cmake_minimum_required(VERSION 4.0)
 # Compile Google Test ourselves instead of using pre-compiled libraries.
 # See the Google Test FAQ "Why is it not recommended to install a
 # pre-compiled copy of Google Test (for example, into /usr/local)?"

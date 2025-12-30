@@ -579,7 +579,7 @@ unsigned check_xjb32_and_schubfach32_xjb_string(float f)
         // schubfach_xjb_f32_to_dec(f, &dec, &e10);
         // xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         // printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
-        //printf("f = %.8le, u = %x, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_xjb_comp,len_schubfach_xjb,buf_xjb,buf_xjb_comp,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
+        printf("f = %.8le, u = %x, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_xjb_comp,len_schubfach_xjb,buf_xjb,buf_xjb_comp,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
         //exit(0);
         return 1;
     }
@@ -597,7 +597,7 @@ unsigned check_xjb32_and_schubfach32_xjb_string(float f)
         // xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         // printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
 
-        //printf("f = %.8le, u = %x, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n",f,u,buf_xjb_comp,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
+        printf("f = %.8le, u = %x, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n",f,u,buf_xjb,buf_xjb_comp,buf_schubfach_xjb);
         //exit(0);
     }
     return 1;
@@ -657,6 +657,7 @@ void check_all_float_number_to_string()
         // if( (i & ((1u<<26) - 1)) == 0) {
         //     printf("check float number progress : %.3lf %% \r", (double)i * (100.0 / (double)0x7F7FFFFF)  );
         // }
+
     }
     auto t2 = getns();
     if (error_sum == 0)
@@ -876,9 +877,9 @@ int main()
     bench_float();
 
 #if BENCH_STR
-    check_all_float_number_to_string(); // check all float number , may cost long time
+    //check_all_float_number_to_string(); // check all float number , may cost long time
 #else
-    check_all_float_number_to_decimal(); // check all float number , may cost long time
+    //check_all_float_number_to_decimal(); // check all float number , may cost long time
 #endif
 
 #endif

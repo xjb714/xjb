@@ -301,18 +301,20 @@ char *xjb32(float v, char *buf, bool debug_mode = false)
     u64 up_down = up + down;
     u64 m = (sig_hi >> BIT) + up;
     memcpy(buf, "0000", 4);
-    // u64 lz = (m < (u32)1e6) + (m < (u32)1e7); // 0, 1, 2
+    //u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
     u64 lz = (m < c->e6) + (m < c->e7);
+    //u64 lz = (m < c->e6) ? 2 : (m < c->e7); //branch instruction
+    //u64 lz = (m < (u32)1e6) ? 2 : (m < (u32)1e7);
     shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
     i64 e10 = k + (8 - lz);
     // u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
     u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
     u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
-    one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
+    //one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
     if (irregular) [[unlikely]]
         if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
             ++one;
-    const i64 e10_DN = -3, e10_UP = 7;
+    const i64 e10_DN = -3, e10_UP = 6;
     u64 e10_3 = e10 + (-e10_DN);
     u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
     u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;

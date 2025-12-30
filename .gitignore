@@ -14,3 +14,4 @@ other_benchmark_project/bench_16digit_to_ascii/verify
 bench/xjb/perf/main_g
 bench/xjb/perf/main_c
 bench/xjb/perf/main_i
+test
