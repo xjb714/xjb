@@ -33,8 +33,7 @@ __ZN3xjb5xjb64EdPc:                     ; @_ZN3xjb5xjb64EdPc
 	cmp	x10, #0
 	csel	x17, x13, x12, ne
 	csel	x15, x14, x15, ne
-	mov	x13, #-165                      ; =0xffffffffffffff5b
-	movk	x13, #65533, lsl #16
+	mov	x13, #-131072                   ; =0xfffffffffffe0000
 	cmp	x12, #0
 	csel	x13, x13, xzr, eq
 	cset	w16, eq

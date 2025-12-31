@@ -298,13 +298,45 @@ for p5_off in range(0,28,1):
 
 log10_2 = math.log10(2)
 log2_10 = math.log2(10)
-for bit in range(8,15):
+#float
+# for bit in range(8,15):
+#     magic = int(2**bit * log10_2)
+#     for m in range(magic-10,magic+10):
+#         is_ok = 1
+#         for q in range(1-150,255-150+1,1):
+#             k1 = (q * 315653) >> 20
+#             k2 = (q * 315653 - 131237) >> 20
+
+#             k_re = (q * m) >> bit
+#             k_ir = (q * m - int(math.log10(4/3) * 2**bit) - 1) >> bit
+#             if(k_re != k1  or k_ir != k2):
+#                 is_ok = 0
+#                 #print("error: q =",q,"k_re =",k_re,"k1 =",k1,"k_ir =",k_ir,"k2 =",k2)
+#         if(is_ok):
+#             print("ok bit =",bit,"magic =",m,"s =",int(math.log10(4/3) * 2**bit)+1)
+
+# for bit in range(5,15):
+#     magic = int(2**bit * log2_10)
+#     for m in range(magic-10,magic+10):
+#         is_ok = 1
+#         for nk in range(-45,32,1):
+#             #k1 = (nk * 217707) >> 16
+#             k1 = math.floor(nk * log2_10)
+#             k2 = (nk * m)>>bit
+#             if(k1 != k2):
+#                 is_ok = 0
+#                 #print("error: q =",q,"k_re =",k_re,"k1 =",k1,"k_ir =",k_ir,"k2 =",k2)
+#         if(is_ok):
+#             print("ok bit =",bit,"magic =",m)
+
+#double
+for bit in range(8,21):
     magic = int(2**bit * log10_2)
     for m in range(magic-10,magic+10):
         is_ok = 1
-        for q in range(1-150,255-150+1,1):
+        for q in range(-1075,2046-1075+1,1):
             k1 = (q * 315653) >> 20
-            k2 = (q * 315653 - 131237) >> 20
+            k2 = (q * 315653 - 131072) >> 20
 
             k_re = (q * m) >> bit
             k_ir = (q * m - int(math.log10(4/3) * 2**bit) - 1) >> bit
@@ -314,17 +346,16 @@ for bit in range(8,15):
         if(is_ok):
             print("ok bit =",bit,"magic =",m,"s =",int(math.log10(4/3) * 2**bit)+1)
 
-for bit in range(5,15):
-    magic = int(2**bit * log2_10)
-    for m in range(magic-10,magic+10):
-        is_ok = 1
-        for nk in range(-45,32,1):
-            #k1 = (nk * 217707) >> 16
-            k1 = math.floor(nk * log2_10)
-            k2 = (nk * m)>>bit
-            if(k1 != k2):
-                is_ok = 0
-                #print("error: q =",q,"k_re =",k_re,"k1 =",k1,"k_ir =",k_ir,"k2 =",k2)
-        if(is_ok):
-            print("ok bit =",bit,"magic =",m)
-
+# for bit in range(5,15):
+#     magic = int(2**bit * log2_10)
+#     for m in range(magic-10,magic+10):
+#         is_ok = 1
+#         for nk in range(-45,32,1):
+#             #k1 = (nk * 217707) >> 16
+#             k1 = math.floor(nk * log2_10)
+#             k2 = (nk * m)>>bit
+#             if(k1 != k2):
+#                 is_ok = 0
+#                 #print("error: q =",q,"k_re =",k_re,"k1 =",k1,"k_ir =",k_ir,"k2 =",k2)
+#         if(is_ok):
+#             print("ok bit =",bit,"magic =",m)

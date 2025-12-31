@@ -159,7 +159,8 @@ char *xjb64(double v, char *buf)
     else
         k = (i64)((ieee_exponent - 1075) * 315653 - 131237) >> 20;
 #else
-    k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
+    //k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
+    k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131072 : 0)) >> 20;
 #endif
 
 #ifdef __amd64__

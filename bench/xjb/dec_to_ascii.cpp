@@ -143,7 +143,9 @@ static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint6
 {
     return cmov_branchless(up_down, 7 - tz, 8 - lz);
 }
-
+struct const_value_double {//size = 40 bytes
+    int64_t c1;
+};
 static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_down, const uint64_t D17)
 {
     // m range : [1, 1e16 - 1] ; m = abcdefgh * 10^8 + ijklmnop
