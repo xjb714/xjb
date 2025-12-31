@@ -7,6 +7,7 @@
 typedef __uint128_t u128;
 typedef uint64_t u64;
 typedef int64_t i64;
+typedef int32_t i32;
 typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
@@ -41,10 +42,8 @@ static inline void byte_move_8(void *dst, const void *src)
     memcpy(&src_value, src, 8);
     memcpy(dst, &src_value, 8);
 }
-char* xjb32_comp(float v,char* buf)
+static inline char* xjb32_comp(float v,char* buf)
 {
-    // all lut size = 56 byte
-    // recommend buf size >= 24byte;
     // u32 vi;
     // memcpy(&vi, &v, 4);
 
@@ -125,20 +124,16 @@ char* xjb32_comp(float v,char* buf)
     if (exp == 255) [[unlikely]]
         return (char *)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
     i64 k;
-    u64 irregular = sig_bin == 1<<23;
-    // if (!irregular) [[likely]] // branch
-    //     k = (exp_bin * 315653) >> 20;
-    // else
-    //     k = (exp_bin * 315653 - 131237) >> 20;
-    if (!irregular) [[likely]] // branch
-        k = (exp_bin * 1233) >> 12;
-    else
-        k = (exp_bin * 1233 - 512) >> 12;
-    int get_e10 = -1 - k;// [-32,44]
-    int h = exp_bin + ((get_e10 * 217707) >> 16); // [-4,-1]
-    u32 p10_base_index = (u32)(get_e10 + 32) / 16;// [0,4]
-    int p10_base = p10_base_index * 16 - 32;
-    u32 p5_off = get_e10 + 32 - p10_base_index * 16;//[0,15]
+    //u64 irregular = sig_bin == 1<<23;
+    u64 irregular = sig == 0;
+    k = (exp_bin * 1233) >> 12;
+    if(irregular)[[unlikely]]k = (exp_bin * 1233 - 512) >> 12;
+    //k = (exp_bin * 1233 - (irregular ? 512 : 0)) >> 12;
+    i64 get_e10 = -1 - k;// [-32,44]
+    i64 h = exp_bin + ((get_e10 * 1701) >> 9); // [-4,0]
+    i64 p10_base_index = (u64)(get_e10 + 32) / 16;// [0,4]
+    i64 p10_base = p10_base_index * 16 + (-32);
+    u64 p5_off = get_e10 + 32 - p10_base_index * 16;//[0,15]
     const u64 p5_4 = 5*5*5*5;
     static const u64 pow10_base_table_pow5[5 + 2 + 1] = { //40byte + 24byte = 64byte = cache line size
         //pow10_table
@@ -147,13 +142,13 @@ char* xjb32_comp(float v,char* buf)
         0x8000000000000000, // e10 =  0
         0x8e1bc9bf04000000, // e10 =  16
         0x9dc5ada82b70b59e, // e10 =  32
-        //pow5_table
+        //pow5_table , little_endian
         1 + (p5_4<<32),
         ( p5_4*p5_4 ) + ( (p5_4*p5_4*p5_4) << 32),
         (125<<24) + (25<<16) + (5<<8) + 1
     };
     u64 pow10_base = pow10_base_table_pow5[p10_base_index];
-    int shift = ((get_e10 * 217707) >> 16) - ((p10_base * 217707) >> 16) - p5_off;
+    u64 shift = ((get_e10 * 1701) >> 9) - ((p10_base * 1701) >> 9) - p5_off;
     u32 pow5_base;
     u8 pow5_offset;
     static const char* start_ptr = ((char*)pow10_base_table_pow5) + 5 * sizeof(u64);

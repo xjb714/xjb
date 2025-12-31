@@ -8,3 +8,6 @@ i:
 c:
 	clang++ main.cpp -o main_c -O3 -march=native 
 	sudo perf stat -d ./main_c
+
+x64_asm:
+	icpx main.cpp -o main_icpx.s -O3 -S -march=native
