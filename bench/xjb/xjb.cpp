@@ -95,9 +95,9 @@ char *xjb64(double v, char *buf)
         if (vi_abs == 1)
             memcpy(buf, "5e-324\0", 8);
         if (vi_abs == (2047ull << 52))
-            memcpy(buf, "Inf\0\0\0\0", 4);
+            memcpy(buf, "inf\0\0\0\0", 4);
         if (vi_abs > (2047ull << 52))
-            memcpy(buf, "NaN\0\0\0\0", 4);
+            memcpy(buf, "nan\0\0\0\0", 4);
         return buf + (vi_abs == 1 ? 6 : 3);
 
         // if (vi_abs == (2047ull << 52))
@@ -160,7 +160,7 @@ char *xjb64(double v, char *buf)
         k = (i64)((ieee_exponent - 1075) * 315653 - 131237) >> 20;
 #else
     //k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
-    k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131072 : 0)) >> 20;
+    k = (i64)(((i64)ieee_exponent - 1075) * 315653 + (irregular ? -131072 : 0)) >> 20;
 #endif
 
 #ifdef __amd64__
@@ -184,7 +184,7 @@ char *xjb64(double v, char *buf)
     u64 up_down = up + down;
     u64 D17 = (m >= (u64)1e15);
     u64 mr = D17 ? m : m * 10;
-    memcpy(buf, "0.000000", 8);
+    memcpy(buf, "00000000", 8);
     shortest_ascii16 s = to_ascii16(mr, up_down, D17);
     k += 15 + D17;
     i64 e10 = k;
@@ -253,6 +253,7 @@ char *xjb64(double v, char *buf)
     return buf + exp_len;
 }
 #if 1
+//static inline 
 char *xjb32(float v, char *buf, bool debug_mode = false)
 {
     const struct const_value_float *c = &constants_float;

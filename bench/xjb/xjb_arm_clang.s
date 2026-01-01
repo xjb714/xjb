@@ -127,7 +127,6 @@ Lloh1:
 	sub	w1, w4, w1, lsr #3
 	cmp	x17, x14
 	mov	x17, #3472328296227680304       ; =0x3030303030303030
-	movk	x17, #11824
 	str	x17, [x8]
 	sxtw	x17, w1
 	csinc	w15, w15, wzr, ls
@@ -330,9 +329,9 @@ LBB0_16:
 LBB0_17:
 	mov	x9, #9218868437227405312        ; =0x7ff0000000000000
 	cmp	x10, x9
-	mov	w9, #24910                      ; =0x614e
-	movk	w9, #78, lsl #16
-	mov	w10, #28233                     ; =0x6e49
+	mov	w9, #24942                      ; =0x616e
+	movk	w9, #110, lsl #16
+	mov	w10, #28265                     ; =0x6e69
 	movk	w10, #102, lsl #16
 	csel	w9, w10, w9, eq
 	str	w9, [x8]
@@ -410,39 +409,36 @@ Lloh11:
 	cset	w17, lo
 	cmp	x13, x1
 	cinc	x17, x17, lo
-	ldr	w1, [x15, #28]
-	ldp	x3, x2, [x15]
-	umulh	x2, x13, x2
-	umaddl	x1, w2, w1, x13
-	add	x2, x15, #32
-	ld1r.2s	{ v0 }, [x2]
-	fmov	d1, x1
-	sqdmulh.2s	v0, v1, v0
-	add	x15, x15, #36
-	ld1r.2s	{ v2 }, [x15]
-	mla.2s	v1, v2, v0
+	ldp	x2, x1, [x15]
+	umulh	x1, x13, x1
+	mov	w3, #-10000                     ; =0xffffd8f0
+	umaddl	x1, w1, w3, x13
+	fmov	d0, x1
+	ldr	d1, [x15, #32]
+	sqdmulh.2s	v2, v0, v1[0]
+	mla.2s	v0, v2, v1[1]
 	mov	w15, #3296                      ; =0xce0
-	dup.4h	v0, w15
-	sqdmulh.4h	v0, v1, v0
+	dup.4h	v1, w15
+	sqdmulh.4h	v1, v0, v1
 	movi.4h	v2, #246
-	mla.4h	v1, v0, v2
-	fmov	x15, d1
+	mla.4h	v0, v1, v2
+	fmov	x15, d0
 	rev	x15, x15
 	lsl	x1, x17, #3
 	lsr	x15, x15, x1
 	clz	x1, x15
 	orr	x15, x15, #0x3030303030303030
-	mov	w2, #7                          ; =0x7
-	sub	w1, w2, w1, lsr #3
+	mov	w3, #7                          ; =0x7
+	sub	w1, w3, w1, lsr #3
 	sxtw	x1, w1
-	mov	w2, #8                          ; =0x8
+	mov	w3, #8                          ; =0x8
 	cmp	w16, #0
-	sub	x16, x2, x17
+	sub	x16, x3, x17
 	add	x11, x16, x11
 	csel	x17, x1, x16, ne
 	add	x1, x14, x14, lsl #2
 	add	x14, x1, x14, lsr #32
-	add	x14, x14, x3
+	add	x14, x14, x2
 	lsr	x14, x14, #35
 	cbnz	w12, LBB1_10
 LBB1_5:
@@ -2487,7 +2483,7 @@ __ZL17exp_result_double:
 	.quad	360288207221500773              ; 0x500003730332b65
 	.quad	360288211516468069              ; 0x500003830332b65
 
-	.p2align	3, 0x0                          ; @_ZL15constants_float
+	.p2align	4, 0x0                          ; @_ZL15constants_float
 __ZL15constants_float:
 	.quad	423878912376825                 ; 0x18183fffffff9
 	.quad	1844674407370956                ; 0x68db8bac710cc
@@ -2497,6 +2493,8 @@ __ZL15constants_float:
 	.long	4294957296                      ; 0xffffd8f0
 	.long	21475328                        ; 0x147b000
 	.long	65436                           ; 0xff9c
+	.long	3296                            ; 0xce0
+	.long	246                             ; 0xf6
 
 	.p2align	3, 0x0                          ; @_ZL11float_table
 __ZL11float_table:

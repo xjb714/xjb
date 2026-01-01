@@ -9,18 +9,18 @@
 
 auto dtoa(double value) -> std::string {
   char buffer[64];
-  xjb::xjb32(value, buffer);
+  xjb::xjb64(value, buffer);
   return buffer;
 }
 
 
 TEST(zmij_test, normal) { EXPECT_EQ(dtoa(6.62607015e-34), "6.62607015e-34"); }
 
-TEST(zmij_test, small_int) { EXPECT_EQ(dtoa(1), "1.e+00"); }
+TEST(zmij_test, small_int) { EXPECT_EQ(dtoa(1), "1.0"); }
 
 TEST(zmij_test, zero) {
-  EXPECT_EQ(dtoa(0), "0");
-  EXPECT_EQ(dtoa(-0.0), "-0");
+  EXPECT_EQ(dtoa(0), "0.0");
+  EXPECT_EQ(dtoa(-0.0), "-0.0");
 }
 
 TEST(zmij_test, inf) {

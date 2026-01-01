@@ -1903,7 +1903,15 @@ static const unsigned char e10_variable_data2[15 - (-3) + 1 + 1][20]={
             18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18,18, 0,16,17,// e10=15
             1,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18, 0,1,2,// e10=other
         };
-// float : table size = 1352 bytes
+
+static const struct const_value_double constant_double={
+    //315653
+    //-217707
+    //1e15
+    //
+};        
+
+        // float : table size = 1352 bytes
 // static const uint64_t pow10_float_reverse[(44 - (-32) + 1)] = {
 //     0x8f7e32ce7bea5c70, // 44
 //     0xe596b7b0c643c71a, // 43
@@ -2107,8 +2115,9 @@ static const struct const_value_float constants_float = {
         .e6 = 1000000,
         .e5 = 100000,
         .m = (1ull << 32) - 10000,
-	    .m32_0 = 0x147b000, 
-        .m32_1 = -100 + 0x10000,
+	    // .m32_0 = 0x147b000, 
+        // .m32_1 = -100 + 0x10000,
+        .m32_4 = {0x147b000,-100 + 0x10000,0xce0,-10+0x100},
 	};
 static const struct float_table_t float_table = {
     // .c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),

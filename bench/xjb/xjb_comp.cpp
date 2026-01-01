@@ -44,56 +44,6 @@ static inline void byte_move_8(void *dst, const void *src)
 }
 static inline char* xjb32_comp(float v,char* buf)
 {
-    // u32 vi;
-    // memcpy(&vi, &v, 4);
-
-    // buf[0]='-';
-    // buf+=vi>>31;
-
-    // // u64 dec,m;
-    // // int e10;
-    // // u32 tz;// tail zero
-    // // //u32 dec_sig_len;// decimal length
-    // // u32 dec_sig_len_ofs;// = dec_sig_len + 2
-    // // u32 D9;// 1:9 digits 0:8 digits
-    // u32 sig = vi & ((1<<23) - 1);
-    // //u32 sig = (vi << 9 ) >> 9;
-    // u32 exp = (vi << 1 ) >> 24;
-
-    // // if( (vi << 1) == 0 )[[unlikely]]
-    // // {
-    // //     memcpy(buf, "0.0" , 4);//end with '\0'
-    // //     return buf + 3;
-    // // }
-    // // if(exp == 255)[[unlikely]]
-    // // {
-    // //     memcpy(buf, sig ? "NaN" : "Inf", 4);//end with '\0'
-    // //     return buf + 3;
-    // // }
-    // //memcpy(buf ,"0.000000",8);
-    // //i64 exp_bin, k;
-    // i64 exp_bin;
-    // u64 sig_bin, regular = sig > 0;
-    // if (exp > 0) [[likely]] // branch
-    // {
-    //     if(exp == 255)[[unlikely]]
-    //     {
-    //         memcpy(buf, sig ? "nan" : "inf", 4);//end with '\0'
-    //         return buf + 3;
-    //     }
-    //     exp_bin = exp - 150; //-127-23
-    //     sig_bin = sig | (1u << 23);
-    // }
-    // else
-    // {
-    //     if( (vi << 1) == 0 )[[unlikely]]
-    //     {
-    //         memcpy(buf, "0.0" , 4);//end with '\0'
-    //         return buf + 3;
-    //     }
-    //     exp_bin = 1 - 150;
-    //     sig_bin = sig;
-    // }
     static const struct const_value_float constants_float_comp = {
 	    .c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
         .div10000 = 1844674407370956,
@@ -101,8 +51,9 @@ static inline char* xjb32_comp(float v,char* buf)
         .e6 = 1000000,
         .e5 = 100000,
         .m = (1ull << 32) - 10000,
-	    .m32_0 = 0x147b000, 
-        .m32_1 = -100 + 0x10000,
+	    // .m32_0 = 0x147b000, 
+        // .m32_1 = -100 + 0x10000,
+        .m32_4 = {0x147b000,-100 + 0x10000,0xce0,-10+0x100},
 	};
     const struct const_value_float *c = &constants_float_comp;
 
@@ -221,7 +172,8 @@ static inline char* xjb32_comp(float v,char* buf)
     memcpy(&buf[8 - lz], &one, 8);
     byte_move_8(&buf[move_pos] , &buf[dot_pos]);
     buf_origin[dot_pos] = '.';
-    if(m < (u32)1e5 )[[unlikely]]
+    if(exp == 0)[[unlikely]]
+    if(m < (u32)1e5 )
     {
         u64 lz = 0;
         //while(buf[2+lz] == '0')lz++;

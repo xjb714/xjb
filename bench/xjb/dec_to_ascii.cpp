@@ -145,6 +145,11 @@ static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint6
 }
 struct const_value_double {//size = 40 bytes
     int64_t c1;
+    int64_t c2;
+    int64_t c3;
+    int64_t c4;
+    int64_t e7;
+    int64_t e10;
 };
 static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_down, const uint64_t D17)
 {
@@ -256,8 +261,13 @@ struct const_value_float {//size = 40 bytes
     uint32_t e6;
     uint32_t e5;
     uint32_t m;
-    int32_t m32_0;
-    int32_t m32_1;
+    // int32_t m32_0;
+    // int32_t m32_1;
+#if HAS_NEON
+    int32x4_t m32_4;
+#else
+    int32_t m32_4[4];
+#endif
 };
 struct float_table_t {
     uint64_t pow10_float_reverse[(44 - (-32) + 1)];// 77*8 = 616 byte
@@ -270,22 +280,13 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
     // m range : [0, 1e8 - 1] ; m = abcdefgh
     const uint64_t ZERO = 0x3030303030303030;
 #if HAS_NEON
-    u64 abcdefgh_BCD;
-    // if(c == nullptr)
-    // {
-    //     u64 abcd_efgh = m + ((1ull << 32) - 10000) * ((m * (u128)1844674407370956) >> 64);
-    //     int32x2_t tenthousands = vld1_u64((uint64_t const *)&abcd_efgh);
-    //     int32x2_t hundreds = vmla_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(0x147b000)), vdup_n_s32(-100 + 0x10000));
-    //     int16x4_t BCD_big_endian = vmla_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
-    //     abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0));// big_endian to little_endian , reverse 8 bytes
-    // }else
-    
-        u64 abcd_efgh = m + c->m * ((m * (u128)c->div10000) >> 64);
-        int32x2_t tenthousands = vld1_u64((uint64_t const *)&abcd_efgh);
-        int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->m32_0)), c->m32_1);
-        int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10+0x100);
-        abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0));// big_endian to little_endian , reverse 8 bytes
-    
+    //u64 abcd_efgh = m + c->m * ((m * (u128)c->div10000) >> 64);
+    //int32x2_t tenthousands = vcreate_u64(m + c->m * ((m * (u128)c->div10000) >> 64));
+    int32x2_t tenthousands = vcreate_u64(m + ((1ull << 32) - 10000) * ((m * (u128)c->div10000) >> 64));
+    int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->m32_4[0])), c->m32_4[1]);
+    int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10+0x100);
+    //int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])), c->m32_4[3]);//fewer instructions but slower,why? 
+    u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0));// big_endian to little_endian , reverse 8 bytes
 #endif
 
 #if HAS_SSE2
@@ -365,7 +366,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
     u64 abcdefgh_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
 #endif
 
-    abcdefgh_BCD = abcdefgh_BCD >> (lz * 8);
+    abcdefgh_BCD = abcdefgh_BCD >> (lz << 3);
     int tz = u64_lz_bits(abcdefgh_BCD) / 8;
     abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64(abcdefgh_BCD);
     return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, lz)};
