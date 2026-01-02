@@ -15,3 +15,5 @@ bench/xjb/perf/main_g
 bench/xjb/perf/main_c
 bench/xjb/perf/main_i
 test
+bench/xjb/*.s
+bench/xjb/perf/*.s

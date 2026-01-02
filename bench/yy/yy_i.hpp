@@ -1,9 +1,11 @@
 //compile time is too long, set 0 to reduce compile time
-#define use_yyjson 0
+#define use_yyjson 1
 
 #include "yy_double.c"
 #if use_yyjson
+namespace yyjson {
     #include "yyjson.c"
+}
 #endif
 
 void yy_double_f64_to_dec(double v, unsigned long long *dec, int *e10)
@@ -71,7 +73,7 @@ void yyjson_f64_to_dec(double v, unsigned long long *dec, int *e10)
         exp_bin = -1074;
     }
 #if use_yyjson
-    f64_bin_to_dec(sig, exp, sig_bin, exp_bin, (uint64_t *)dec, e10);
+    yyjson::f64_bin_to_dec(sig, exp, sig_bin, exp_bin, (uint64_t *)dec, e10);
 #endif
 }
 void yyjson_f32_to_dec(float v, unsigned int *dec, int *e10)
@@ -94,7 +96,7 @@ void yyjson_f32_to_dec(float v, unsigned int *dec, int *e10)
         exp_bin = 1 - 150;
     }
 #if use_yyjson
-    f32_bin_to_dec(sig, exp, sig_bin, exp_bin, (uint32_t *)dec, e10);
+    yyjson::f32_bin_to_dec(sig, exp, sig_bin, exp_bin, (uint32_t *)dec, e10);
 #endif
 }
 
@@ -110,7 +112,7 @@ char *yyjson_f64_to_str(double v, char *buffer)
 #if use_yyjson
     // src from yyjson.c
     //return (char *)write_f64_raw((u8 *)buffer, *(u64 *)&v, YYJSON_WRITE_INF_AND_NAN_AS_NULL);
-    char* buf_end = (char*)write_f64_raw((u8 *)buffer, *(u64 *)&v, YYJSON_WRITE_INF_AND_NAN_AS_NULL);
+    char* buf_end = (char*)yyjson::write_f64_raw((u8 *)buffer, *(u64 *)&v, yyjson::YYJSON_WRITE_INF_AND_NAN_AS_NULL);
     *buf_end = '\0';
     return buf_end;
 #else
@@ -122,7 +124,7 @@ char *yyjson_f32_to_str(float v, char *buffer)
 {
 #if use_yyjson
     // src from yyjson.c
-    return (char *)write_f32_raw((u8 *)buffer, *(u64 *)&v, YYJSON_WRITE_INF_AND_NAN_AS_NULL);
+    return (char *)yyjson::write_f32_raw((u8 *)buffer, *(u64 *)&v, yyjson::YYJSON_WRITE_INF_AND_NAN_AS_NULL);
 #else
     return buffer;
 #endif

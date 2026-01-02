@@ -862,7 +862,7 @@ static void dtoa_func_register_all(void) {
     dtoa_func_register(yy_double)
     dtoa_func_register(yyjson)
     dtoa_func_register(xjb64)
-    dtoa_func_register(xjb64_comp)
+    //dtoa_func_register(xjb64_comp)
     //dtoa_func_register(schubfach_vitaut)
     dtoa_func_register(zmij)
     dtoa_func_register(jnum)
@@ -922,6 +922,7 @@ static void ftoa_func_register_all(void) {
         ftoa_func_register(fmt_comp)
         ftoa_func_register(fmt_full)
         ftoa_func_register(zmij)
+        ftoa_func_register(jnum)
 
     }
 

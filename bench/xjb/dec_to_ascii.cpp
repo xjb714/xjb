@@ -152,6 +152,8 @@ struct const_value_double {
     uint64_t c6;//8
     uint64_t mul_const;       // 8
     uint64_t hundred_million; // 8
+    uint64_t div10000;
+    uint64_t div10000_m;
 #if HAS_NEON
     int32x4_t multipliers32;  // 16
     int16x8_t multipliers16;  // 16
@@ -414,7 +416,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
     return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, lz)};
 }
 
-static inline char *write_1_to_16_digit(u64 x, char *buf)
+static inline char *write_1_to_16_digit(u64 x, char *buf,const struct const_value_double *cv)
 {
     // require 1 <= x < 1e16
     const u64 ZERO = 0x3030303030303030;
@@ -425,9 +427,11 @@ static inline char *write_1_to_16_digit(u64 x, char *buf)
     {
         // write 1-8 digit
 #if HAS_NEON
-        u64 abcd_efgh_u64 = xi + (0x100000000 - 10000) * ((xi * (u128)1844674407370956) >> 64); // xi = abcdefgh
+        //u64 abcd_efgh_u64 = xi + (0x100000000 - 10000) * ((xi * (u128)1844674407370956) >> 64); // xi = abcdefgh
+        u64 abcd_efgh_u64 = xi + cv->div10000_m * ((xi * (u128)cv->div10000) >> 64); // xi = abcdefgh
         int32x2_t abcd_efgh = vld1_u64((uint64_t const *)&abcd_efgh_u64);                     // (abcd << 32) + efgh
-        int32x2_t ab_cd_ef_gh = vmla_s32(abcd_efgh, vqdmulh_s32(abcd_efgh, vdup_n_s32(0x147b000)), vdup_n_s32(-100 + 0x10000));
+        //int32x2_t ab_cd_ef_gh = vmla_s32(abcd_efgh, vqdmulh_s32(abcd_efgh, vdup_n_s32(0x147b000)), vdup_n_s32(-100 + 0x10000));
+        int32x2_t ab_cd_ef_gh = vmla_s32(abcd_efgh, vqdmulh_s32(abcd_efgh, vdup_n_s32(cv->multipliers32[2])), vdup_n_s32(cv->multipliers32[3]));
         int16x4_t a_b_c_d_e_f_g_h = vmla_s16(ab_cd_ef_gh, vqdmulh_s16(ab_cd_ef_gh, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
         u64 bcd_big_endian = vget_lane_u64(a_b_c_d_e_f_g_h, 0);
         u64 lz = u64_lz_bits(bcd_big_endian) / 8; // lz max is 7 , bcd_big_endian = 0 is impossible
@@ -459,14 +463,17 @@ static inline char *write_1_to_16_digit(u64 x, char *buf)
         // write 9-16 digit
 #if HAS_NEON
         // src from : https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
-        uint32_t abcdefgh = ((__uint128_t)xi * 0xabcc77118461cefd) >> 90;
-        uint32_t ijklmnop = xi - abcdefgh * 100000000;
+        uint32_t abcdefgh = ((__uint128_t)xi * cv->mul_const) >> 90;
+        uint32_t ijklmnop = xi - abcdefgh * cv->hundred_million;
         uint64x1_t hundredmillions = {abcdefgh | ((uint64_t)ijklmnop << 32)};
-        int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(0x68db8bb)), 9);
-        int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(-10000 + 0x10000));
+        int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
+        int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
         int32x4_t extended = vshll_n_u16(tenthousands, 0);
-        int32x4_t hundreds = vmlaq_s32(extended, vqdmulhq_s32(extended, vdupq_n_s32(0x147b000)), vdupq_n_s32(-100 + 0x10000));
-        int16x8_t BCD_big_endian = vmlaq_s16(hundreds, vqdmulhq_s16(hundreds, vdupq_n_s16(0xce0)), vdupq_n_s16(-10 + 0x100));
+#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
+    //asm ("" : "+w"(extended));
+#endif
+        int32x4_t hundreds = vmlaq_s32(extended, vqdmulhq_s32(extended, vdupq_n_s32(cv->multipliers32[2])), vdupq_n_s32(cv->multipliers32[3]));
+        int16x8_t BCD_big_endian = vmlaq_s16(hundreds, vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0])), vdupq_n_s16(cv->multipliers16[1]));
         // u64 abcdefgh_BCD_big_endian = vgetq_lane_u64(BCD_big_endian, 0);
         // u64 ijklmnop_BCD_big_endian = vgetq_lane_u64(BCD_big_endian, 1);
         // u64 abcdefgh_lz = u64_lz_bits(abcdefgh_BCD_big_endian) / 8;

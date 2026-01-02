@@ -78,7 +78,7 @@ namespace xjb
 #else
         if (nq <= u64_tz_bits(c)) //[[unlikely]]
 #endif
-            return write_1_to_16_digit(c >> nq, buf); // fast path for integer
+            return write_1_to_16_digit(c >> nq, buf,cv); // fast path for integer
 #endif
         if (ieee_exponent == 0) [[unlikely]]
         {

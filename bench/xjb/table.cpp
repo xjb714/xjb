@@ -1913,6 +1913,8 @@ static const struct const_value_double constants_double = {
     .c6 = (1<<9)-1,
     .mul_const = 0xabcc77118461cefd,
     .hundred_million = 100000000,
+    .div10000 = 1844674407370956,
+    .div10000_m = 0x100000000 - 10000,
     .multipliers32 = {0x68db8bb, -10000 + 0x10000, 0x147b000, -100 + 0x10000},
     .multipliers16 = {0xce0, -10 + 0x100,'0'+'0'*256},
 };
