@@ -148,6 +148,8 @@ struct const_value_double {
     uint64_t c2;//8
     uint64_t c3;//8
     uint64_t c4;//8
+    uint64_t c5;//8
+    uint64_t c6;//8
     uint64_t mul_const;       // 8
     uint64_t hundred_million; // 8
 #if HAS_NEON
@@ -173,7 +175,7 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     uint32_t abcdefgh = ((__uint128_t)m * cv->mul_const) >> 90;
     uint64_t hundred_million = cv->hundred_million;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
-    asm ("" : "+r"(hundred_million));
+   //asm ("" : "+r"(hundred_million));
 #endif
     uint32_t ijklmnop = m - abcdefgh * hundred_million;
 #if HAS_NEON
@@ -195,12 +197,15 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
     //int16x8_t ascii16 = vaddq_u64(BCD_little_endian, vdupq_n_s16(cv->multipliers16[2]));
-    u64 abcdefgh_BCD = vgetq_lane_u64(BCD_little_endian, 0);
-    u64 ijklmnop_BCD = vgetq_lane_u64(BCD_little_endian, 1);
-    int abcdefgh_tz = u64_lz_bits(abcdefgh_BCD);
-    int ijklmnop_tz = u64_lz_bits(ijklmnop_BCD);
-    int tz = ijklmnop ? ijklmnop_tz : 64 + abcdefgh_tz;
-    tz = tz / 8;
+    // u64 abcdefgh_BCD = vgetq_lane_u64(BCD_little_endian, 0);
+    // u64 ijklmnop_BCD = vgetq_lane_u64(BCD_little_endian, 1);
+    // int abcdefgh_tz = u64_lz_bits(abcdefgh_BCD);
+    // int ijklmnop_tz = u64_lz_bits(ijklmnop_BCD);
+    // int tz = ijklmnop ? ijklmnop_tz : 64 + abcdefgh_tz;
+    // tz = tz / 8;
+    uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
+    uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
+    int tz = u64_lz_bits(zeroes) >> 2;
     return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
 #endif
 
