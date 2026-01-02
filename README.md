@@ -4,10 +4,11 @@ xjb : a fast float to string algorithm.
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
 ### algorithm correctness proof:  
-xjb64:  
+xjb64:
+f64 to string/decimal : please run `bench/main.cpp/check_double_to_string();` to check the correctness of the algorithm.  
 The document explaining the working principle of the code is called `code_explain.ipynb`.The document is currently under preparation.  
 
-xjb32:  
+xjb32、xjb32_comp:  
 (1)f32 to string : please run `bench/main.cpp/check_all_float_number_to_string()` to check the correctness of the algorithm.  
 (2)f32 to decimal : please run `bench/main.cpp/check_all_float_number_to_decimal()` to check the correctness of the algorithm.  
 Test all positive single-precision floating-point numbers. The running time only takes about one minute.  
@@ -23,7 +24,7 @@ the code is still under development and may contain bugs. if you find any bugs, 
 
 (2)float/double to string algorithm  
 &emsp;&emsp;   full lookup table : `bench/xjb/xjb.cpp` 
-&emsp;&emsp;   compress lookup table : `bench/xjb/xjb_comp.cpp` 
+&emsp;&emsp;   compress lookup table : `bench/xjb/xjb_comp.cpp` (xjb64_comp is not implemented yet)
 
 lookup table size:
 <table border="1px">

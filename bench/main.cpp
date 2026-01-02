@@ -524,6 +524,52 @@ void bench_float_all_algorithm()
 
 unsigned check_xjb64_and_schubfach_xjb(double d)
 {
+#if BENCH_STR
+    unsigned long long u = *(u64 *)&d;
+    char buf_xjb[33];
+    char buf_xjb_comp[33];
+    char buf_schubfach_xjb[33];
+    char* end_buf_xjb = xjb64_f64_to_str(d, buf_xjb);
+    //char* end_buf_xjb_comp = xjb32_comp_f32_to_str(d, buf_xjb_comp);
+    char* end_buf_schubfach_xjb = schubfach_xjb_f64_to_str(d, buf_schubfach_xjb);
+    int len_xjb = end_buf_xjb - buf_xjb;
+    //int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
+    int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
+    //if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
+    if (len_xjb != len_schubfach_xjb)
+    {
+        //printf("f = %.8le, u = %x, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
+        // unsigned int dec, dec_xjb,dec_xjb_comp;
+        // int e10, e10_xjb,e10_xjb_comp;
+        // schubfach_xjb_f32_to_dec(f, &dec, &e10);
+        // xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
+        // printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
+        //printf("f = %.8le, u = %x, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n",d,u,len_xjb,len_xjb_comp,len_schubfach_xjb,buf_xjb,buf_xjb_comp,buf_schubfach_xjb , (u&(2047ull<<52)) ? "normal" : "subnormal");
+        printf("f = %.16le, u = %llx, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",d,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u&(2047ull<<52)) ? "normal" : "subnormal");
+        //exit(0);
+        return 1;
+    }
+    //if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    {
+        // if three string equal return OK;
+        return 0;
+    }
+    else
+    {
+        //printf("f = %.8le, u = %x, buf_xjb=%s, buf_schubfach_xjb=%s\n",f,u,buf_xjb,buf_schubfach_xjb);
+        // unsigned int dec, dec_xjb,dec_xjb_comp;
+        // int e10, e10_xjb,e10_xjb_comp;
+        // schubfach_xjb_f32_to_dec(f, &dec, &e10);
+        // xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
+        // printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
+
+        //printf("f = %.8le, u = %x, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n",d,u,buf_xjb,buf_xjb_comp,buf_schubfach_xjb);
+        printf("f = %.16le, u = %llx, buf_xjb=%s, buf_schubfach_xjb=%s \n",d,u,buf_xjb,buf_schubfach_xjb);
+        //exit(0);
+    }
+    return 1;
+#else
     // use schubfach_xjb as reference implementation
     unsigned long long dec, dec_xjb,dec_xjb_comp;
     int e10, e10_xjb,e10_xjb_comp;
@@ -539,6 +585,8 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
         //exit(0);
     }
     return 1;
+#endif
+
 }
 unsigned check_xjb32_and_schubfach32_xjb(float f)
 {
@@ -776,16 +824,40 @@ void check_rand_double()
         printf("check_random_double fail error sum = %llu\n", error_sum);
     }
 }
+void check_rand_integer()
+{
+    unsigned long long error_sum = 0;
+    const unsigned long NUM = 10000 * 10000; // 1e8
+    for (unsigned long i = 0; i < NUM; ++i)
+    {
+        u64 u = gen();
+        double d = *(double *)&u;
+        error_sum += check_xjb64_and_schubfach_xjb(d);
+    }
+    if (error_sum == 0)
+    {
+        printf("check_random_integer ok\n");
+    }
+    else
+    {
+        printf("check_random_integer fail error sum = %llu\n", error_sum);
+    }
+}
 
 void check_double()
 {
     printf("\ncheck start , may cost long time , please wait\n");
-    printf("<=== check xjb64 algorithm ; use schubfach_xjb for correct result ===>\n");
+#if BENCH_STR
+    printf("<=== check xjb64(double to string) algorithm ; use schubfach_xjb for correct result ===>\n");
+#else
+    printf("<=== check xjb64(double to decimal) algorithm ; use schubfach_xjb for correct result ===>\n");
+#endif
     check_special_value();
     check_irregular();
-    //check_subnormal();
-    //check_float(); // not contain subnormal float  , very slow
+    check_subnormal();
+    //check_float(); // not contain subnormal float  , time too long
     check_rand_double(); // random double
+    check_rand_integer(); // random integer
     printf("check finish\n");
 }
 #if USE_YYBENCH && BENCH_STR
@@ -877,7 +949,7 @@ int main()
     bench_float();
 
 #if BENCH_STR
-    //check_all_float_number_to_string(); // check all float number , may cost long time
+    check_all_float_number_to_string(); // check all float number , may cost long time
 #else
     //check_all_float_number_to_decimal(); // check all float number , may cost long time
 #endif
@@ -887,7 +959,7 @@ int main()
 #if BENCH_DOUBLE
     bench_double();
 
-    //check_double(); // check double correctness , may cost long time
+    check_double(); // check double correctness , may cost long time
 #endif
 
     return 0;

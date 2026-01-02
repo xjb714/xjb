@@ -222,16 +222,24 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
     const __m512i zmmTen = _mm512_set1_epi64(10);
     const __m512i zero = _mm512_set1_epi64(0);
-    const __m512i asciizero = _mm512_set1_epi64('0');
+    const __m512i asciizero = _mm512_set1_epi8('0');
     const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b, 0x0000000010c6f7a0c, 0x00000000a7c5ac472,
                                                  0x000000068db8bac72, 0x0000004189374bc6b, 0x0000028f5c28f5c29, 0x0000199999999999a);
     const __m512i permb_const = _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58, 0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
+    //const __m512i permb_const7 = _mm512_castsi128_si512(_mm_set_epi8(0x7f, 0x77, 0x6f, 0x67, 0x5f, 0x57, 0x4f, 0x47, 0x3f, 0x37, 0x2f, 0x27, 0x1f, 0x17, 0x0f, 0x07));
     __m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
     __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
-    __m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
-    __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
-    __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
-    __m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
+    __m512i highbits_h = _mm512_madd52hi_epu64(asciizero, zmmTen, lowbits_h);
+    __m512i highbits_l = _mm512_madd52hi_epu64(asciizero, zmmTen, lowbits_l);
+    //__m512i highbits_h7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_h, 5), _mm512_slli_epi64(lowbits_h, 7));
+    //__m512i highbits_l7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_l, 5), _mm512_slli_epi64(lowbits_l, 7));
+    //__m512i bcd = _mm512_permutex2var_epi8(highbits_h7, permb_const7, highbits_l7);//another way to permute , but slower.
+    __m512i ascii = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
+    //__m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
+    __m128i little_endian_ascii = _mm512_castsi512_si128(ascii);
+    int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_ascii, _mm512_castsi512_si128(asciizero)));
+    int tz = u64_lz_bits(mask);
+    return {little_endian_ascii, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
 #elif defined(__SSSE3__) //&& (false)
     __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
     __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
@@ -244,6 +252,10 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 #endif
     __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a))));
     __m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7)); // ssse3
+    int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
+    int tz = u64_lz_bits(mask);
+    __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+    return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
 #else // sse2
     __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
     __m128i x_div_10000 = _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi32(0xd1b71759)), 45);
@@ -258,11 +270,12 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 #endif
     __m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
     __m128i little_endian_bcd = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
-#endif
     int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
     int tz = u64_lz_bits(mask);
     __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
     return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+#endif
+    
 #endif // endif HAS_SSE2
 
 #if !HAS_NEON_OR_SSE2

@@ -1548,8 +1548,10 @@ namespace schubfach_xjb64
 
     static inline char *FormatDigits(char *buffer, uint64_t digits, int32_t decimal_exponent, bool force_trailing_dot_zero = false)
     {
-        static constexpr int32_t MinFixedDecimalPoint = -6;
-        static constexpr int32_t MaxFixedDecimalPoint = 17;
+        //static constexpr int32_t MinFixedDecimalPoint = -6;
+        //static constexpr int32_t MaxFixedDecimalPoint = 17;
+        static constexpr int32_t MinFixedDecimalPoint = -3+1;
+        static constexpr int32_t MaxFixedDecimalPoint = 15+1;
         static_assert(MinFixedDecimalPoint <= -1, "internal error");
         static_assert(MaxFixedDecimalPoint >= 1, "internal error");
 
@@ -1658,11 +1660,12 @@ namespace schubfach_xjb64
             buffer += 2;
 
             const uint32_t k = static_cast<uint32_t>(scientific_exponent < 0 ? -scientific_exponent : scientific_exponent);
-            if (k < 10)
-            {
-                *buffer++ = static_cast<char>('0' + k);
-            }
-            else if (k < 100)
+            // if (k < 10)
+            // {
+            //     *buffer++ = static_cast<char>('0' + k);
+            // }
+            // else 
+            if (k < 100)
             {
                 Utoa_2Digits(buffer, k);
                 buffer += 2;
@@ -1704,23 +1707,21 @@ namespace schubfach_xjb64
             }
             else
             {
-                std::memcpy(buffer, "0.0 ", 4);
+                std::memcpy(buffer, "0.0", 4);
                 buffer += force_trailing_dot_zero ? 3 : 1;
                 return buffer;
             }
         }
-
+        buffer[0] = '-';
+        buffer += v.SignBit();
         if (significand == 0)
         {
-            buffer[0] = '-';
-            buffer += v.SignBit();
-
-            std::memcpy(buffer, "inf ", 4);
+            std::memcpy(buffer, "inf", 4);
             return buffer + 3;
         }
         else
         {
-            std::memcpy(buffer, "nan ", 4);
+            std::memcpy(buffer, "nan", 4);
             return buffer + 3;
         }
     }

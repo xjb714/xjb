@@ -39,7 +39,7 @@ namespace xjb
         memcpy(&src_value, src, 8);
         memcpy(dst, &src_value, 8);
     }
-    //static inline
+    // static inline
     char *xjb64(double v, char *buf)
     {
         const struct const_value_double *cv = &constants_double;
@@ -54,89 +54,21 @@ namespace xjb
         u64 vi_abs = (vi << 1) >> 1;
         u64 ieee_significand = vi & ((1ull << 52) - 1);
         u64 ieee_exponent = (vi << 1) >> 53;
-        // if ((vi << 1) - 4 >= (2047ull << 53) - 3) [[unlikely]]
-        // {
-        //     if ((vi << 1) == 0)
-        //         memcpy(buf, "0.0\0\0\0\0", 4);
-        //     if ((vi << 1) == (1 << 1))
-        //         memcpy(buf, "5e-324\0", 8);
-        //     if ((vi << 1) == (2047ull << 53))
-        //         memcpy(buf, "Inf\0\0\0\0", 4);
-        //     if ((vi << 1) > (2047ull << 53))
-        //         memcpy(buf, "NaN\0\0\0\0", 4);
-        //     return buf + ((vi << 1) == 2 ? 6 : 3);
-        // }
-
-        // if(vi_abs >= (2047ull << 52))[[unlikely]]
-        // {
-        //     if(vi_abs == (2047ull << 52))[[likely]]
-        //     {
-        //         memcpy(buf, "Inf", 4);
-        //         return buf + 3;
-        //     }else{
-        //         memcpy(buf, "NaN", 4);
-        //         return buf + 3;
-        //     }
-        // }
-        // if(vi_abs < 2)[[unlikely]]
-        // {
-        //         if(vi_abs > 0)[[likely]]
-        //         {
-        //             memcpy(buf, "5e-324\0", 8);
-        //             return buf + 6;
-        //         }else{
-        //             memcpy(buf, "0.0", 4);
-        //             return buf + 3;
-        //         }
-        // }
-
-        if (0)
-            if ((u64)(vi_abs - 2) >= (u64)((2047ull << 52) - 2)) [[unlikely]]
-            {
-                // generate branch instruction
-                if (vi_abs == 0)
-                    memcpy(buf, "0.0\0\0\0\0", 4);
-                if (vi_abs == 1)
-                    memcpy(buf, "5e-324\0", 8);
-                if (vi_abs == (2047ull << 52))
-                    memcpy(buf, "inf\0\0\0\0", 4);
-                if (vi_abs > (2047ull << 52))
-                    memcpy(buf, "nan\0\0\0\0", 4);
-                return buf + (vi_abs == 1 ? 6 : 3);
-
-                // if (vi_abs == (2047ull << 52))
-                //     memcpy(buf, "Inf", 4);
-                // else if (vi_abs > (2047ull << 52))
-                //     memcpy(buf, "NaN", 4);
-                // else if (vi_abs == 0)
-                //     memcpy(buf, "0.0", 4);
-                // else
-                //     memcpy(buf, "5e-324\0", 8);
-                // return buf + (vi_abs == 1 ? 6 : 3);
-
-                // if(vi_abs == (2047ull << 52))[[likely]]
-                // {
-                //     memcpy(buf, "Inf", 4);
-                //     return buf + 3;
-                // }
-                // else if(vi_abs == 1)[[likely]]
-                // {
-                //     memcpy(buf, "5e-324\0", 8);
-                //     return buf + 6;
-                // }
-                // else
-                // {
-                //     if(vi_abs > 0)[[likely]]
-                //     {
-                //         memcpy(buf, "NaN", 4);
-                //         return buf + 3;
-                //     }else{
-                //         memcpy(buf, "0.0", 4);
-                //         return buf + 3;
-                //     }
-
-                // }
-            }
+#ifdef __amd64__ // for x86_64 processor , if not use this code , the performance will be very poor on icpx compiler. 9ns -> 12.5ns. that's why we use this code.
+        if ((u64)(vi_abs - 2) >= (u64)((2047ull << 52) - 2)) [[unlikely]]
+        {
+            // generate branch instruction
+            if (vi_abs == 0)
+                memcpy(buf, "0.0\0\0\0\0", 4);
+            if (vi_abs == 1)
+                memcpy(buf, "5e-324\0", 8);
+            if (vi_abs == (2047ull << 52))
+                memcpy(buf, "inf\0\0\0\0", 4);
+            if (vi_abs > (2047ull << 52))
+                memcpy(buf, "nan\0\0\0\0", 4);
+            return buf + (vi_abs == 1 ? 6 : 3);
+        }
+#endif
         i64 q = (i64)ieee_exponent - 1075;
         u64 nq = -q;
         u64 c = ((1ull << 52) | ieee_significand);
@@ -150,15 +82,19 @@ namespace xjb
 #endif
         if (ieee_exponent == 0) [[unlikely]]
         {
+#ifndef __amd64__
             if (ieee_significand <= 1)
             {
                 return (char *)memcpy(buf, ieee_significand ? "5e-324\0" : "0.0\0\0\0\0", 8) + (ieee_significand ? 6 : 3);
             }
+#endif
             c = ieee_significand;
             q = 1 - 1075; // -1074
         }
+#ifndef __amd64__ // for arm64 processor , better performance
         if (ieee_exponent == 2047) [[unlikely]]
             return (char *)memcpy(buf, ieee_significand ? "nan" : "inf", 4) + 3;
+#endif
         i64 k;
         const int offset = 6;
         u64 regular = ieee_significand > 0;
@@ -176,9 +112,9 @@ namespace xjb
 #ifdef __amd64__
         i64 get_e10 = -1 - k;
         i64 h = q + ((get_e10 * 217707) >> 16);
-        static const u64 *pow10_ptr = pow10_double + 293 * 2;
+        const u64 *pow10_ptr = pow10_double + 293 * 2;
         u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2]; // get 10**(-k-1)
-        // u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2]; // gcc use this method , may cause performance issue. why?
+                                                   // u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2]; // gcc use this method , may cause performance issue. why?
 #else
         // i64 h = q + ((k * -217707 - 217707) >> 16);
         i64 h = q + ((k * (i64)cv->c2 + (i64)cv->c2) >> 16);
@@ -199,8 +135,8 @@ namespace xjb
         // u64 D17 = (m >= (u64)1e15);
         u64 D17 = m >= (u64)cv->c3;
         u64 mr = D17 ? m : m * 10;
-        memcpy(buf, "00000000", 8);
-        // memcpy(buf, "0000", 4);
+        // memcpy(buf, "00000000", 8);
+        memcpy(buf, "0000", 4);
         shortest_ascii16 s = to_ascii16(mr, up_down, D17, cv);
         k += 15 + D17;
         i64 e10 = k;
@@ -283,7 +219,7 @@ namespace xjb
         return buf + exp_len;
     }
 #if 1
-    //static inline 
+    // static inline
     char *xjb32(float v, char *buf)
     {
         const struct const_value_float *c = &constants_float;

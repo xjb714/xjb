@@ -1,66 +1,66 @@
 	.file	"xjb.cpp"
 	.text
 	.p2align 4
-	.globl	_Z5xjb64dPc
-	.type	_Z5xjb64dPc, @function
-_Z5xjb64dPc:
-.LFB7343:
+	.globl	_ZN3xjb5xjb64EdPc
+	.type	_ZN3xjb5xjb64EdPc, @function
+_ZN3xjb5xjb64EdPc:
+.LFB7373:
 	.cfi_startproc
 	endbr64
 	vmovq	%xmm0, %rcx
-	movb	$45, (%rdi)
-	movabsq	$9218868437227405309, %rsi
-	movq	%rcx, %rax
-	shrq	$63, %rax
-	addq	%rax, %rdi
-	movq	%rcx, %rax
-	btrq	$63, %rax
-	leaq	-2(%rax), %rdx
-	cmpq	%rdx, %rsi
-	jb	.L32
-	movabsq	$4503599627370495, %r10
-	movl	$1075, %eax
-	andq	%rcx, %r10
-	addq	%rcx, %rcx
-	shrq	$53, %rcx
-	movq	%r10, %r9
-	subq	%rcx, %rax
-	btsq	$52, %r9
-	tzcntq	%r9, %rdx
-	cmpq	%rax, %rdx
-	jnb	.L33
 	pushq	%rbp
 	.cfi_def_cfa_offset 16
 	.cfi_offset 6, -16
+	movabsq	$9218868437227405309, %rsi
+	movq	%rcx, %rax
 	movq	%rsp, %rbp
 	.cfi_def_cfa_register 6
 	pushq	%r15
 	pushq	%r14
+	shrq	$63, %rax
+	leaq	(%rdi,%rax), %r9
+	movq	%rcx, %rax
 	pushq	%r13
 	pushq	%r12
+	btrq	$63, %rax
 	pushq	%rbx
-	andq	$-64, %rsp
-	subq	$8, %rsp
 	.cfi_offset 15, -24
 	.cfi_offset 14, -32
 	.cfi_offset 13, -40
 	.cfi_offset 12, -48
 	.cfi_offset 3, -56
+	leaq	_ZL16constants_double(%rip), %r14
+	leaq	-2(%rax), %rdx
+	andq	$-64, %rsp
+	movb	$45, (%rdi)
+	cmpq	%rdx, %rsi
+	jb	.L37
+	movabsq	$4503599627370495, %r12
+	movl	$1075, %eax
+	andq	%rcx, %r12
+	addq	%rcx, %rcx
+	shrq	$53, %rcx
+	movq	%r12, %r10
+	subq	%rcx, %rax
+	btsq	$52, %r10
+	tzcntq	%r10, %rdx
+	cmpq	%rax, %rdx
+	jnb	.L38
 	testq	%rcx, %rcx
-	je	.L23
+	je	.L25
 	leaq	-1075(%rcx), %rsi
 .L12:
-	testq	%r10, %r10
-	sete	%r8b
+	testq	%r12, %r12
+	sete	%r11b
 	je	.L13
-	leaq	-1075(%rcx), %r11
-	imulq	$315653, %r11, %r11
-	sarq	$20, %r11
+	leaq	-1075(%rcx), %rbx
+	imulq	$315653, %rbx, %rbx
+	sarq	$20, %rbx
 .L14:
-	vpxor	%xmm4, %xmm4, %xmm4
-	movq	%r11, %rax
-	leaq	4688+_ZL12pow10_double(%rip), %rbx
-	vmovdqa64	.LC2(%rip), %zmm3
+	vpxor	%xmm3, %xmm3, %xmm3
+	movq	%rbx, %rax
+	leaq	4688+_ZL12pow10_double(%rip), %rdi
+	vmovdqa64	.LC2(%rip), %zmm2
 	vmovdqa	.LC0(%rip), %xmm1
 	notq	%rax
 	movq	%rax, %rdx
@@ -68,130 +68,134 @@ _Z5xjb64dPc:
 	salq	$4, %rdx
 	sarq	$16, %rax
 	vmovdqa64	%zmm1, %zmm5
-	addq	%rbx, %rdx
-	leal	7(%rax,%rsi), %ebx
-	leaq	(%rax,%rsi), %r13
-	movq	(%rdx), %r12
-	shlx	%rbx, %r9, %rbx
-	movq	%rbx, %rax
+	addq	%rdi, %rdx
+	leaq	(%rax,%rsi), %r8
+	leal	7(%rax,%rsi), %esi
+	movq	(%rdx), %r15
+	shlx	%rsi, %r10, %rsi
+	movq	%rsi, %rax
 	mulq	8(%rdx)
-	movq	%rdx, %r14
-	movq	%r12, %rdx
-	mulx	%rbx, %rbx, %rsi
-	addq	%r14, %rbx
-	adcq	$0, %rsi
-	movq	%rbx, %rax
-	shrdq	$6, %rsi, %rax
-	movq	%rsi, %rdx
-	vmovq	%rax, %xmm2
-	movl	%r13d, %eax
+	movq	%rdx, %r13
+	movq	%r15, %rdx
+	mulx	%rsi, %rsi, %rdi
+	addq	%r13, %rsi
+	adcq	$0, %rdi
+	movq	%rsi, %rax
+	negl	%r8d
+	shrdq	$6, %rdi, %rax
+	shrx	%r8, %r15, %r8
+	movq	%rdi, %rdx
+	vmovq	%rax, %xmm4
 	shrq	$6, %rdx
-	vpinsrq	$1, %rdx, %xmm2, %xmm2
-	leaq	1(%r9), %rdx
-	negl	%eax
+	vpinsrq	$1, %rdx, %xmm4, %xmm4
+	leaq	1(%r10), %rdx
+	movq	%rdi, %r10
 	andl	$1, %edx
-	shrx	%rax, %r12, %r12
-	vmovq	%xmm2, %rax
-	vmovq	%xmm2, %rbx
-	leaq	(%r12,%rdx), %r9
-	vmovq	%xmm2, -64(%rsp)
-	addq	%r9, %rax
-	shrx	%r8, %r9, %r8
+	vmovq	%xmm4, %r13
+	addq	%rdx, %r8
+	movq	%r13, %rax
+	addq	%r8, %rax
+	shrx	%r11, %r8, %r11
 	setc	%al
-	shrq	$6, %rsi
+	shrq	$6, %r10
 	movzbl	%al, %eax
-	addq	%rax, %rsi
-	cmpq	%r8, %rbx
+	addq	%rax, %r10
+	cmpq	%r11, %r13
 	adcq	$0, %rax
-	xorl	%r12d, %r12d
-	movq	%rax, %r8
-	movabsq	$999999999999999, %rax
-	cmpq	%rsi, %rax
-	leaq	(%rsi,%rsi,4), %rax
-	leaq	(%rax,%rax), %rax
-	setb	%r12b
-	cmovnb	%rax, %rsi
-	movabsq	$3472328296227679792, %rax
-	leaq	15(%r12), %r13
-	movq	%rax, (%rdi)
-	movabsq	$-6067343680855748867, %rax
-	mulq	%rsi
-	shrq	$26, %rdx
-	vpbroadcastq	%rdx, %zmm0
-	imulq	$100000000, %rdx, %rax
-	subq	%rax, %rsi
+	leaq	(%r10,%r10,4), %rsi
+	xorl	%r11d, %r11d
+	movq	%rax, %rdi
+	movq	16(%r14), %rax
+	cmpq	%rax, %r10
+	setnb	%r11b
+	addq	%rsi, %rsi
+	cmpq	%rax, %r10
+	movabsq	$3472328296227680304, %rax
+	cmovnb	%r10, %rsi
+	movq	%rax, (%r9)
+	movq	%rsi, %rax
+	mulq	48(%r14)
 	movl	$10, %eax
-	vpmadd52luq	%zmm3, %zmm0, %zmm5
-	vpbroadcastq	%rsi, %zmm0
 	vpbroadcastq	%rax, %zmm6
-	leaq	(%r11,%r12), %rsi
-	vpmadd52luq	%zmm3, %zmm0, %zmm1
+	vmovdqa64	%zmm6, -64(%rsp)
+	shrq	$26, %rdx
+	vmovd	%edx, %xmm0
+	imull	56(%r14), %edx
+	leaq	15(%r11), %r14
+	addq	%rbx, %r11
+	vpbroadcastq	%xmm0, %zmm0
+	vpmadd52luq	%zmm2, %zmm0, %zmm5
+	subl	%edx, %esi
+	movl	$808464432, %edx
+	vpbroadcastq	%rsi, %zmm0
+	vpmadd52huq	%zmm5, %zmm6, %zmm3
+	vpmadd52luq	%zmm2, %zmm0, %zmm1
 	vmovdqa	.LC1(%rip), %xmm0
-	vpxor	%xmm3, %xmm3, %xmm3
-	vpmadd52huq	%zmm5, %zmm6, %zmm4
-	vmovdqa64	%zmm6, -56(%rsp)
-	vpmadd52huq	%zmm1, %zmm6, %zmm3
+	vpxor	%xmm2, %xmm2, %xmm2
+	vpmadd52huq	%zmm1, %zmm6, %zmm2
 	vpxor	%xmm1, %xmm1, %xmm1
-	vpermi2b	%zmm3, %zmm4, %zmm0
+	vpermi2b	%zmm2, %zmm3, %zmm0
 	vpcmpgtb	%xmm1, %xmm0, %xmm1
 	vpmovmskb	%xmm1, %eax
-	lzcntq	%rax, %rdx
-	movl	$808464432, %eax
-	vpbroadcastd	%eax, %xmm1
-	movl	$63, %eax
-	subl	%edx, %eax
-	movq	%r8, %rdx
-	decq	%r8
+	vpbroadcastd	%edx, %xmm1
+	movl	$63, %edx
+	lzcntq	%rax, %rax
+	subl	%eax, %edx
+	movq	%rdi, %rax
+	decq	%rdi
+	negq	%rax
+	movslq	%edx, %rdx
+	andq	%r14, %rdi
 	vpaddb	%xmm1, %xmm0, %xmm0
-	negq	%rdx
-	cltq
-	andq	%r13, %r8
-	andq	%rdx, %rax
-	movabsq	$4611686018427387904, %rdx
-	orq	%r8, %rax
-	leaq	15(%r11,%r12), %r8
-	cmpq	%rdx, %rbx
-	je	.L24
-	vmovdqa	.LC6(%rip), %xmm4
+	andq	%rax, %rdx
+	movabsq	$4611686018427387904, %rax
+	orq	%rdx, %rdi
+	cmpq	%rax, %r13
+	je	.L27
+	movabsq	$-9223372036854775802, %rbx
+	xorl	%esi, %esi
 .L18:
-	movl	$10, %edx
-	vmovq	%xmm2, %rbx
-	vmovq	%xmm4, %r14
-	mulx	%rbx, %r11, %r12
-	vpextrq	$1, %xmm4, %r15
-	addq	%r14, %r11
-	adcq	%r15, %r12
-	leaq	12336(%r12), %r11
-	testq	%r10, %r10
-	je	.L34
+	movl	$10, %eax
+	vmovq	%xmm4, %rdx
+	mulq	%rdx
+	addq	%rbx, %rax
+	adcq	%rsi, %rdx
+	addq	$12336, %rdx
+	testq	%r12, %r12
+	je	.L39
 .L19:
-	movl	$19, %r9d
-	leaq	18(%rsi), %rdx
-	cmpq	%r9, %rdx
-	cmova	%r9, %rdx
-	leaq	(%rdx,%rdx,4), %r9
-	leaq	_ZL18e10_variable_data2(%rip), %rdx
-	leaq	(%rdx,%r9,4), %rdx
-	movzbl	(%rdx,%rax), %r10d
-	movzbl	17(%rdx), %eax
-	movzbl	18(%rdx), %r9d
-	movzbl	19(%rdx), %ebx
-	addq	%rdi, %rax
+	movl	$19, %esi
+	leaq	18(%r11), %rax
+	cmpq	%rsi, %rax
+	cmova	%rsi, %rax
+	leaq	_ZL12double_table(%rip), %rsi
+	leaq	(%rax,%rax,4), %rax
+	leaq	(%rsi,%rax,4), %rax
+	movzbl	15210(%rax), %r8d
+	movzbl	15211(%rax), %ebx
+	movzbl	15192(%rdi,%rax), %edi
+	movzbl	15209(%rax), %eax
+	addq	%r9, %rax
 	vmovdqu8	%xmm0, (%rax)
-	movq	%r11, (%rax,%r13)
-	vmovdqu	(%rax,%r9), %xmm0
+	movq	%rdx, (%rax,%r14)
+	vmovdqu	(%rax,%r8), %xmm0
 	vmovdqu	%xmm0, (%rax,%rbx)
-	movb	$46, (%rdi,%r9)
+	movb	$46, (%r9,%r8)
 	testq	%rcx, %rcx
-	je	.L35
-.L20:
-	leaq	2592+_ZL17exp_result_double(%rip), %rdx
-	addq	%r10, %rax
-	movq	(%rdx,%r8,8), %rdx
+	jne	.L29
+	movabsq	$99999999999999, %rdx
+	cmpq	%r10, %rdx
+	jnb	.L20
+.L29:
+	addq	$15, %r11
+.L22:
+	movq	12464(%rsi,%r11,8), %rdx
+	addq	%rdi, %rax
 	movq	%rdx, (%rax)
 	shrq	$56, %rdx
 	addq	%rdx, %rax
 	vzeroupper
+.L1:
 	leaq	-40(%rbp), %rsp
 	popq	%rbx
 	popq	%r12
@@ -199,18 +203,42 @@ _Z5xjb64dPc:
 	popq	%r14
 	popq	%r15
 	popq	%rbp
+	.cfi_remember_state
 	.cfi_def_cfa 7, 8
 	ret
 	.p2align 4
 	.p2align 3
-.L33:
-	.cfi_restore 3
-	.cfi_restore 6
-	.cfi_restore 12
-	.cfi_restore 13
-	.cfi_restore 14
-	.cfi_restore 15
-	shrx	%rax, %r9, %rcx
+.L37:
+	.cfi_restore_state
+	testq	%rax, %rax
+	je	.L40
+	cmpq	$1, %rax
+	je	.L5
+	movabsq	$9218868437227405312, %rdx
+	cmpq	%rdx, %rax
+	movl	$6712937, %eax
+	movl	$7233902, %edx
+	cmovne	%edx, %eax
+	movl	%eax, (%r9)
+.L7:
+	movl	$3, %eax
+.L8:
+	leaq	-40(%rbp), %rsp
+	addq	%r9, %rax
+	popq	%rbx
+	popq	%r12
+	popq	%r13
+	popq	%r14
+	popq	%r15
+	popq	%rbp
+	.cfi_remember_state
+	.cfi_def_cfa 7, 8
+	ret
+	.p2align 4
+	.p2align 3
+.L38:
+	.cfi_restore_state
+	shrx	%rax, %r10, %rcx
 	cmpq	$99999999, %rcx
 	ja	.L11
 	imulq	$109951163, %rcx, %rax
@@ -238,17 +266,50 @@ _Z5xjb64dPc:
 	shrq	$3, %rcx
 	orq	%rsi, %rax
 	shrx	%rdx, %rax, %rax
-	movq	%rax, (%rdi)
-	subq	%rcx, %rdi
-	movl	$12334, 8(%rdi)
-	leaq	10(%rdi), %rax
-	ret
+	movq	%rax, (%r9)
+	subq	%rcx, %r9
+	movl	$12334, 8(%r9)
+	leaq	10(%r9), %rax
+	jmp	.L1
+	.p2align 4
+	.p2align 3
+.L25:
+	movq	%r12, %r10
+	movq	$-1074, %rsi
+	jmp	.L12
+	.p2align 4
+	.p2align 3
+.L13:
+	imulq	$315653, %rcx, %rbx
+	subq	$339458212, %rbx
+	sarq	$20, %rbx
+	jmp	.L14
+	.p2align 4
+	.p2align 3
+.L27:
+	xorl	%ebx, %ebx
+	xorl	%esi, %esi
+	jmp	.L18
+	.p2align 4
+	.p2align 3
+.L39:
+	shrq	$54, %r13
+	shrq	$55, %r8
+	leaq	0(%r13,%r13,4), %rax
+	leaq	(%r8,%r8,4), %r8
+	movq	%rax, %rsi
+	shrq	$9, %rax
+	andl	$511, %esi
+	addq	$12337, %rax
+	cmpq	%rsi, %r8
+	cmovb	%rax, %rdx
+	jmp	.L19
 	.p2align 4
 	.p2align 3
 .L11:
 	movabsq	$-6067343680855748867, %rax
-	movl	$4294957296, %r8d
-	movabsq	$4222189076152335, %r9
+	movl	$4294957296, %edi
+	movabsq	$4222189076152335, %r8
 	mulq	%rcx
 	shrq	$26, %rdx
 	imulq	$-100000000, %rdx, %rsi
@@ -256,10 +317,10 @@ _Z5xjb64dPc:
 	imulq	$109951163, %rdx, %rcx
 	imulq	$109951163, %rsi, %rax
 	shrq	$40, %rcx
-	imulq	%r8, %rcx
+	imulq	%rdi, %rcx
 	shrq	$40, %rax
 	addq	%rdx, %rcx
-	imulq	%r8, %rax
+	imulq	%rdi, %rax
 	imulq	$5243, %rcx, %rdx
 	addq	%rsi, %rax
 	movabsq	$545460846719, %rsi
@@ -274,16 +335,16 @@ _Z5xjb64dPc:
 	addq	%rax, %rcx
 	imulq	$103, %rdx, %rax
 	shrq	$10, %rax
-	andq	%r9, %rax
+	andq	%r8, %rax
 	imulq	$246, %rax, %rax
 	addq	%rdx, %rax
 	imulq	$103, %rcx, %rdx
 	lzcntq	%rax, %rsi
-	movq	%rsi, %r8
+	movq	%rsi, %rdi
 	bswap	%rax
-	shrq	$3, %r8
+	shrq	$3, %rdi
 	shrq	$10, %rdx
-	andq	%r9, %rdx
+	andq	%r8, %rdx
 	imulq	$246, %rdx, %rdx
 	andl	$120, %esi
 	addq	%rcx, %rdx
@@ -292,140 +353,2391 @@ _Z5xjb64dPc:
 	bswap	%rdx
 	orq	%rcx, %rdx
 	shrx	%rsi, %rax, %rax
-	movq	%rax, (%rdi)
-	subq	%r8, %rdi
-	movq	%rdx, 8(%rdi)
-	movl	$12334, 16(%rdi)
-	leaq	18(%rdi), %rax
-	ret
+	movq	%rax, (%r9)
+	subq	%rdi, %r9
+	movq	%rdx, 8(%r9)
+	movl	$12334, 16(%r9)
+	leaq	18(%r9), %rax
+	jmp	.L1
 	.p2align 4
 	.p2align 3
-.L32:
-	testq	%rax, %rax
-	je	.L36
-	cmpq	$1, %rax
-	je	.L5
-	movabsq	$9218868437227405312, %rdx
-	cmpq	%rdx, %rax
-	movl	$6712905, %eax
-	movl	$5136718, %edx
-	cmovne	%edx, %eax
-	movl	%eax, (%rdi)
-.L7:
-	movl	$3, %eax
-.L8:
-	addq	%rdi, %rax
-	ret
-	.p2align 4
-	.p2align 3
-.L35:
-	.cfi_def_cfa 6, 16
-	.cfi_offset 3, -56
-	.cfi_offset 6, -16
-	.cfi_offset 12, -48
-	.cfi_offset 13, -40
-	.cfi_offset 14, -32
-	.cfi_offset 15, -24
-	cmpb	$48, (%rax)
-	jne	.L20
-	movzbl	2(%rax), %edx
-	cmpb	$48, %dl
-	jne	.L25
-	.p2align 4
-	.p2align 4
-	.p2align 3
-.L22:
-	movq	%rcx, %rdi
-	incq	%rcx
-	movzbl	2(%rax,%rcx), %edx
-	cmpb	$48, %dl
-	je	.L22
-	leaq	3(%rdi), %rcx
-	addq	$4, %rdi
-.L21:
-	movb	%dl, (%rax)
-	vmovdqu	(%rax,%rdi), %xmm0
-	addq	$16, %rsi
-	subq	%rcx, %r10
-	subq	%rcx, %rsi
+.L20:
+	movzbl	2(%rax), %ecx
+	cmpb	$48, %cl
+	jne	.L28
 	xorl	%edx, %edx
-	cmpq	$1, %r10
-	setne	%dl
-	movq	%rsi, %r8
-	addq	%rdx, %r10
-	vmovdqu	%xmm0, 2(%rax)
-	jmp	.L20
 	.p2align 4
-	.p2align 3
-.L23:
-	movq	%r10, %r9
-	movq	$-1074, %rsi
-	jmp	.L12
-	.p2align 4
-	.p2align 3
-.L13:
-	imulq	$315653, %rcx, %r11
-	subq	$339458212, %r11
-	sarq	$20, %r11
-	jmp	.L14
 	.p2align 4
 	.p2align 3
 .L24:
-	vpxor	%xmm4, %xmm4, %xmm4
-	jmp	.L18
-	.p2align 4
-	.p2align 3
-.L34:
-	movq	-64(%rsp), %rbx
-	shrq	$55, %r9
-	leaq	(%r9,%r9,4), %r9
-	shrq	$54, %rbx
-	leaq	(%rbx,%rbx,4), %rdx
-	movq	%rdx, %r10
-	shrq	$9, %rdx
-	andl	$511, %r10d
-	addq	$12337, %rdx
-	cmpq	%r10, %r9
-	cmovb	%rdx, %r11
-	jmp	.L19
+	movq	%rdx, %r8
+	incq	%rdx
+	movzbl	2(%rax,%rdx), %ecx
+	cmpb	$48, %cl
+	je	.L24
+	leaq	3(%r8), %rdx
+	addq	$4, %r8
+.L23:
+	movb	%cl, (%rax)
+	vmovdqu	(%rax,%r8), %xmm0
+	subq	%rdx, %rdi
+	addq	$16, %r11
+	subq	%rdx, %r11
+	xorl	%edx, %edx
+	cmpq	$1, %rdi
+	setne	%dl
+	addq	%rdx, %rdi
+	vmovdqu	%xmm0, 2(%rax)
+	jmp	.L22
 	.p2align 4
 	.p2align 3
 .L5:
-	.cfi_def_cfa 7, 8
-	.cfi_restore 3
-	.cfi_restore 6
-	.cfi_restore 12
-	.cfi_restore 13
-	.cfi_restore 14
-	.cfi_restore 15
 	movabsq	$57390211622197, %rax
-	movq	%rax, (%rdi)
+	movq	%rax, (%r9)
 	movl	$6, %eax
 	jmp	.L8
 	.p2align 4
 	.p2align 3
-.L36:
-	movl	$3157552, (%rdi)
+.L40:
+	movl	$3157552, (%r9)
 	jmp	.L7
-.L25:
-	.cfi_def_cfa 6, 16
-	.cfi_offset 3, -56
-	.cfi_offset 6, -16
-	.cfi_offset 12, -48
-	.cfi_offset 13, -40
-	.cfi_offset 14, -32
-	.cfi_offset 15, -24
-	movl	$3, %edi
-	movl	$2, %ecx
-	jmp	.L21
+.L28:
+	movl	$3, %r8d
+	movl	$2, %edx
+	jmp	.L23
 	.cfi_endproc
-.LFE7343:
-	.size	_Z5xjb64dPc, .-_Z5xjb64dPc
+.LFE7373:
+	.size	_ZN3xjb5xjb64EdPc, .-_ZN3xjb5xjb64EdPc
+	.p2align 4
+	.globl	_ZN3xjb5xjb32EfPc
+	.type	_ZN3xjb5xjb32EfPc, @function
+_ZN3xjb5xjb32EfPc:
+.LFB7374:
+	.cfi_startproc
+	endbr64
+	vmovd	%xmm0, %eax
+	pushq	%rbp
+	.cfi_def_cfa_offset 16
+	.cfi_offset 6, -16
+	movl	%eax, %edx
+	movl	%eax, %r8d
+	movl	%eax, %ecx
+	leal	(%rax,%rax), %esi
+	shrl	$31, %edx
+	movq	%rsp, %rbp
+	.cfi_def_cfa_register 6
+	andl	$8388607, %r8d
+	pushq	%r15
+	andl	$8388607, %ecx
+	pushq	%r14
+	pushq	%r13
+	pushq	%r12
+	pushq	%rbx
+	.cfi_offset 15, -24
+	.cfi_offset 14, -32
+	.cfi_offset 13, -40
+	.cfi_offset 12, -48
+	.cfi_offset 3, -56
+	movb	$45, (%rdi)
+	addq	%rdx, %rdi
+	shrl	$24, %esi
+	je	.L59
+	cmpl	$255, %esi
+	je	.L60
+	movl	%esi, %eax
+	leaq	-150(%rax), %r10
+	imulq	$1233, %r10, %r9
+	testl	%r8d, %r8d
+	je	.L47
+	leaq	_ZL11float_table(%rip), %r13
+	movl	$65, %ebx
+	movl	%r8d, %edx
+	sarq	$12, %r9
+	movzbl	1084(%r13,%rax), %eax
+	movq	360(%r13,%r9,8), %r11
+	orl	$8388608, %edx
+	subl	%eax, %ebx
+	movq	%r11, %r14
+	shrx	%rbx, %r11, %r11
+	xorl	%ebx, %ebx
+.L43:
+	incq	%rcx
+	shlx	%rax, %rdx, %rax
+	mulq	%r14
+	vmovdqa	.LC0(%rip), %xmm0
+	andl	$1, %ecx
+	movl	$8, %r12d
+	movl	$808464432, (%rdi)
+	addq	%r11, %rcx
+	movabsq	$68719476735, %r11
+	andq	%rdx, %r11
+	leaq	(%rcx,%r11), %rax
+	shrx	%rbx, %rcx, %rcx
+	shrq	$36, %rax
+	cmpq	%rcx, %r11
+	movq	%rax, %rbx
+	adcq	$0, %rbx
+	shrq	$36, %rdx
+	addq	%rax, %rdx
+	xorl	%eax, %eax
+	vpbroadcastq	%rdx, %zmm1
+	vpmadd52luq	.LC2(%rip), %zmm1, %zmm0
+	cmpq	$999999, %rdx
+	setbe	%al
+	xorl	%ecx, %ecx
+	cmpq	$9999999, %rdx
+	setbe	%cl
+	addl	%ecx, %eax
+	movslq	%eax, %r15
+	sall	$3, %eax
+	subq	%r15, %r12
+	subq	%r15, %r9
+	vpsllq	$7, %zmm0, %zmm1
+	vpsllq	$5, %zmm0, %zmm0
+	vpaddq	%zmm1, %zmm0, %zmm0
+	vmovdqa64	.LC6(%rip), %zmm1
+	vpermb	%zmm0, %zmm1, %zmm0
+	vmovq	%xmm0, %rcx
+	shrx	%rax, %rcx, %rcx
+	movabsq	$3472328296227680304, %rax
+	lzcntq	%rcx, %r14
+	sarl	$3, %r14d
+	orq	%rax, %rcx
+	movl	$7, %eax
+	subl	%r14d, %eax
+	movq	%rbx, %r14
+	decq	%rbx
+	cltq
+	negq	%r14
+	andq	%r12, %rbx
+	andq	%r14, %rax
+	orq	%rbx, %rax
+	movq	%r11, %rbx
+	leaq	(%r11,%r11,4), %r11
+	shrq	$32, %rbx
+	addq	%rbx, %r11
+	movabsq	$423878912376825, %rbx
+	addq	%rbx, %r11
+	shrq	$35, %r11
+	testl	%r8d, %r8d
+	je	.L61
+.L48:
+	leaq	11(%r9), %r10
+	movl	$10, %r8d
+	cmpq	%r8, %r10
+	cmovbe	%r10, %r8
+	xorl	%r14d, %r14d
+	cmpq	$9, %r10
+	leaq	(%r8,%r8,2), %r8
+	seta	%r14b
+	leaq	0(%r13,%r8,4), %r8
+	movzbl	952(%rax,%r8), %r10d
+	movzbl	961(%r8), %eax
+	movzbl	962(%r8), %ebx
+	movzbl	963(%r8), %r15d
+	addq	%rdi, %rax
+	movq	%rcx, (%rax)
+	movq	%r11, (%rax,%r12)
+	movq	(%rax,%rbx), %rcx
+	movq	%rcx, (%rax,%r15)
+	movb	$46, (%rdi,%rbx)
+	testl	%esi, %esi
+	jne	.L54
+	cmpq	$99999, %rdx
+	jbe	.L49
+.L54:
+	addq	$8, %r9
+.L51:
+	movl	796(%r13,%r9,4), %esi
+	leaq	(%rax,%r10), %rdx
+	movq	%rsi, (%rax,%r10)
+	leaq	(%rdx,%r14,4), %rax
+	vzeroupper
+.L41:
+	popq	%rbx
+	popq	%r12
+	popq	%r13
+	popq	%r14
+	popq	%r15
+	popq	%rbp
+	.cfi_remember_state
+	.cfi_def_cfa 7, 8
+	ret
+	.p2align 4
+	.p2align 3
+.L59:
+	.cfi_restore_state
+	testl	%r8d, %r8d
+	je	.L62
+	xorl	%ebx, %ebx
+	movq	%rcx, %rdx
+	movabsq	$4814824860, %r11
+	movabsq	$-8106986416796705680, %r14
+	movl	$34, %eax
+	movq	$-45, %r9
+	movq	$-149, %r10
+	leaq	_ZL11float_table(%rip), %r13
+	jmp	.L43
+	.p2align 4
+	.p2align 3
+.L60:
+	cmpl	$1, %r8d
+	sbbl	%eax, %eax
+	andl	$-520965, %eax
+	addl	$7233902, %eax
+	movl	%eax, (%rdi)
+	leaq	3(%rdi), %rax
+	jmp	.L41
+	.p2align 4
+	.p2align 3
+.L47:
+	subq	$512, %r9
+	leaq	_ZL11float_table(%rip), %r13
+	movl	$65, %edx
+	movl	$1, %ebx
+	sarq	$12, %r9
+	leaq	1(%r9), %rax
+	movq	360(%r13,%r9,8), %r11
+	imulq	$-1701, %rax, %rax
+	sarq	$9, %rax
+	leal	37(%r10,%rax), %eax
+	movq	%r11, %r14
+	movzbl	%al, %eax
+	subl	%eax, %edx
+	shrx	%rdx, %r11, %r11
+	movl	$8388608, %edx
+	jmp	.L43
+	.p2align 4
+	.p2align 3
+.L61:
+	cmpq	$-119, %r10
+	sete	%r8b
+	cmpq	$64, %r10
+	sete	%bl
+	orl	%ebx, %r8d
+	cmpq	$67, %r10
+	sete	%r10b
+	orl	%r10d, %r8d
+	movzbl	%r8b, %r8d
+	addq	%r8, %r11
+	jmp	.L48
+	.p2align 4
+	.p2align 3
+.L49:
+	movabsq	$1085102592571150095, %rdx
+	andq	2(%rax), %rdx
+	addq	$9, %r9
+	tzcntq	%rdx, %rdx
+	shrq	$3, %rdx
+	movzbl	2(%rax,%rdx), %esi
+	leaq	2(%rdx), %rcx
+	subq	%rcx, %r10
+	subq	%rcx, %r9
+	movb	%sil, (%rax)
+	movq	3(%rax,%rdx), %rdx
+	movq	%rdx, 2(%rax)
+	xorl	%edx, %edx
+	cmpq	$1, %r10
+	setne	%dl
+	addq	%rdx, %r10
+	jmp	.L51
+	.p2align 4
+	.p2align 3
+.L62:
+	movl	$3157552, (%rdi)
+	leaq	3(%rdi), %rax
+	jmp	.L41
+	.cfi_endproc
+.LFE7374:
+	.size	_ZN3xjb5xjb32EfPc, .-_ZN3xjb5xjb32EfPc
 	.section	.rodata
 	.align 32
-	.type	_ZL18e10_variable_data2, @object
-	.size	_ZL18e10_variable_data2, 400
-_ZL18e10_variable_data2:
+	.type	_ZL11float_table, @object
+	.size	_ZL11float_table, 1344
+_ZL11float_table:
+	.quad	-8106986416796705680
+	.quad	-1903131822648998118
+	.quad	-5211854272861108818
+	.quad	-7858832233030797377
+	.quad	-1506085128623544834
+	.quad	-4894216917640746190
+	.quad	-7604722348854507275
+	.quad	-1099509313941480671
+	.quad	-4568956265895094860
+	.quad	-7344513827457986211
+	.quad	-683175679707046969
+	.quad	-4235889358507547898
+	.quad	-7078060301547948642
+	.quad	-256850038250986857
+	.quad	-3894828845342699809
+	.quad	-6805211891016070170
+	.quad	-9133518327554766459
+	.quad	-3545582879861895366
+	.quad	-6525815118631426616
+	.quad	-8910000909647051616
+	.quad	-3187955011209551616
+	.quad	-6239712823709551616
+	.quad	-8681119073709551616
+	.quad	-2821744073709551616
+	.quad	-5946744073709551616
+	.quad	-8446744073709551616
+	.quad	-2446744073709551616
+	.quad	-5646744073709551616
+	.quad	-8206744073709551616
+	.quad	-2062744073709551616
+	.quad	-5339544073709551616
+	.quad	-7960984073709551616
+	.quad	-1669528073709551616
+	.quad	-5024971273709551616
+	.quad	-7709325833709551616
+	.quad	-1266874889709551616
+	.quad	-4702848726509551616
+	.quad	-7451627795949551616
+	.quad	-854558029293551616
+	.quad	-4372995238176751616
+	.quad	-7187745005283311616
+	.quad	-432345564227567616
+	.quad	-4035225266123964416
+	.quad	-6917529027641081856
+	.quad	-9223372036854775808
+	.quad	-3689348814741910323
+	.quad	-6640827866535438581
+	.quad	-9002011107970261188
+	.quad	-3335171328526686932
+	.quad	-6357485877563259868
+	.quad	-8775337516792518218
+	.quad	-2972493582642298179
+	.quad	-6067343680855748867
+	.quad	-8543223759426509416
+	.quad	-2601111570856684097
+	.quad	-5770238071427257601
+	.quad	-8305539271883716404
+	.quad	-2220816390788215276
+	.quad	-5466001927372482544
+	.quad	-8062150356639896358
+	.quad	-1831394126398103204
+	.quad	-5154464115860392886
+	.quad	-7812920107430224632
+	.quad	-1432625727662628442
+	.quad	-4835449396872013077
+	.quad	-7557708332239520785
+	.quad	-1024286887357502286
+	.quad	-4508778324627912152
+	.quad	-7296371474444240045
+	.quad	-606147914885053102
+	.quad	-4174267146649952805
+	.quad	-7028762532061872567
+	.quad	-177973607073265138
+	.quad	-3831727700400522433
+	.quad	-6754730975062328270
+	.quad	-9093133594791772939
+	.quad	-3480967307441105733
+	.long	892611941
+	.long	875834725
+	.long	859057509
+	.long	842280293
+	.long	825503077
+	.long	808725861
+	.long	959655269
+	.long	942878053
+	.long	926100837
+	.long	909323621
+	.long	892546405
+	.long	875769189
+	.long	858991973
+	.long	842214757
+	.long	825437541
+	.long	808660325
+	.long	959589733
+	.long	942812517
+	.long	926035301
+	.long	909258085
+	.long	892480869
+	.long	875703653
+	.long	858926437
+	.long	842149221
+	.long	825372005
+	.long	808594789
+	.long	959524197
+	.long	942746981
+	.long	925969765
+	.long	909192549
+	.long	892415333
+	.long	875638117
+	.long	858860901
+	.long	842083685
+	.long	825306469
+	.long	808529253
+	.long	959458661
+	.long	942681445
+	.long	925904229
+	.long	909127013
+	.long	892349797
+	.long	875572581
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	0
+	.long	925903717
+	.long	942680933
+	.long	959458149
+	.long	808528741
+	.long	825305957
+	.long	842083173
+	.long	858860389
+	.long	875637605
+	.long	892414821
+	.long	909192037
+	.long	925969253
+	.long	942746469
+	.long	959523685
+	.long	808594277
+	.long	825371493
+	.long	842148709
+	.long	858925925
+	.long	875703141
+	.long	892480357
+	.long	909257573
+	.long	926034789
+	.long	942812005
+	.long	959589221
+	.long	808659813
+	.long	825437029
+	.long	842214245
+	.long	858991461
+	.long	875768677
+	.long	892545893
+	.long	909323109
+	.long	926100325
+	.long	942877541
+	.base64	"AQIDBAUGBwgJBAEB"
+	.base64	"AQIDBAUGBwgJAwEB"
+	.base64	"AQIDBAUGBwgJAgEB"
+	.base64	"AwMEBQYHCAkKAAEC"
+	.base64	"BAQEBQYHCAkKAAID"
+	.base64	"BQUFBQYHCAkKAAME"
+	.base64	"BgYGBgYHCAkKAAQF"
+	.base64	"BwcHBwcHCAkKAAUG"
+	.base64	"CAgICAgICAkKAAYH"
+	.base64	"CQkJCQkJCQkKAAcI"
+	.base64	"AQMEBQYHCAkKAAEC"
+	.ascii	"\"\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\""
+	.ascii	"#$\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\""
+	.ascii	"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\""
+	.ascii	"#$\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\""
+	.ascii	"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\""
+	.ascii	"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\""
+	.zero	1
+	.zero	4
+	.align 32
+	.type	_ZL12double_table, @object
+	.size	_ZL12double_table, 15592
+_ZL12double_table:
+	.quad	-3720041912917459700
+	.quad	2185351144835019465
+	.quad	-38366372719436721
+	.quad	2731688931043774331
+	.quad	-6941508010590729807
+	.quad	8624834609543440813
+	.quad	-4065198994811024355
+	.quad	-3054014793352862696
+	.quad	-469812725086392539
+	.quad	5405853545163697438
+	.quad	-7211161980820077193
+	.quad	5684501474941004851
+	.quad	-4402266457597708587
+	.quad	2493940825248868160
+	.quad	-891147053569747830
+	.quad	7729112049988473104
+	.quad	-7474495936122174250
+	.quad	-9004363024039368022
+	.quad	-4731433901725329908
+	.quad	2579604275232953684
+	.quad	-1302606358729274481
+	.quad	3224505344041192105
+	.quad	-7731658001846878407
+	.quad	8932844867666826922
+	.quad	-5052886483881210105
+	.quad	-2669001970698630060
+	.quad	-1704422086424124727
+	.quad	-3336252463373287575
+	.quad	-7982792831656159810
+	.quad	2526528228819083170
+	.quad	-5366805021142811859
+	.quad	-6065211750830921845
+	.quad	-2096820258001126919
+	.quad	1641857348316123501
+	.quad	-8228041688891786181
+	.quad	-5891368184943504668
+	.quad	-5673366092687344822
+	.quad	-7364210231179380835
+	.quad	-2480021597431793123
+	.quad	4629795266307937668
+	.quad	-8467542526035952558
+	.quad	5199465050656154995
+	.quad	-5972742139117552794
+	.quad	-2724040723534582064
+	.quad	-2854241655469553088
+	.quad	-8016736922845615485
+	.quad	-8701430062309552536
+	.quad	6518754469289960082
+	.quad	-6265101559459552766
+	.quad	8148443086612450103
+	.quad	-3219690930897053053
+	.quad	962181821410786820
+	.quad	-8929835859451740015
+	.quad	-1704479370831952189
+	.quad	-6550608805887287114
+	.quad	7092772823314835571
+	.quad	-3576574988931720989
+	.quad	-357406007711231344
+	.quad	-9152888395723407474
+	.quad	8999993282035256218
+	.quad	-6829424476226871438
+	.quad	2026619565689294465
+	.quad	-3925094576856201394
+	.quad	-6690097579743157727
+	.quad	-294682202642863838
+	.quad	5472436080603216553
+	.quad	-7101705404292871755
+	.quad	8031958568804398250
+	.quad	-4265445736938701790
+	.quad	-3795109844276665900
+	.quad	-720121152745989333
+	.quad	9091170749936331337
+	.quad	-7367604748107325189
+	.quad	3376138709496513134
+	.quad	-4597819916706768583
+	.quad	-391512631556746487
+	.quad	-1135588877456072824
+	.quad	8733981247408842699
+	.quad	-7627272076051127371
+	.quad	5458738279630526687
+	.quad	-4922404076636521310
+	.quad	-7011635205744005353
+	.quad	-1541319077368263733
+	.quad	5070514048102157021
+	.quad	-7880853450996246689
+	.quad	863228270850154186
+	.quad	-5239380795317920458
+	.quad	-3532650679864695172
+	.quad	-1937539975720012668
+	.quad	-9027499368258256869
+	.quad	-8128491512466089774
+	.quad	-3336344095947716591
+	.quad	-5548928372155224313
+	.quad	-8782116138362033642
+	.quad	-2324474446766642487
+	.quad	7469098900757009563
+	.quad	-8370325556870233411
+	.quad	-2249342214667950879
+	.quad	-5851220927660403859
+	.quad	6411694268519837209
+	.quad	-2702340141148116920
+	.quad	-5820440219632367201
+	.quad	-8606491615858654931
+	.quad	7891439908798240260
+	.quad	-6146428501395930760
+	.quad	-3970758169284363388
+	.quad	-3071349608317525546
+	.quad	-351761693178066331
+	.quad	-8837122532839535322
+	.quad	6697677969404790400
+	.quad	-6434717147622031249
+	.quad	-851274575098787809
+	.quad	-3431710416100151157
+	.quad	-1064093218873484761
+	.quad	-9062348037703676329
+	.quad	8558313775058847833
+	.quad	-6716249028702207507
+	.quad	6086206200396171887
+	.quad	-3783625267450371480
+	.quad	-6227300304786948854
+	.quad	-117845565885576446
+	.quad	-3172439362556298163
+	.quad	-6991182506319567135
+	.quad	-4288617610811380304
+	.quad	-4127292114472071014
+	.quad	3862600023340550428
+	.quad	-547429124662700864
+	.quad	-4395122007679087773
+	.quad	-7259672230555269896
+	.quad	8782263791269039902
+	.quad	-4462904269766699466
+	.quad	-7468914334623251739
+	.quad	-966944318780986428
+	.quad	4498915137003099038
+	.quad	-7521869226879198374
+	.quad	-6411550076227838909
+	.quad	-4790650515171610063
+	.quad	5820620459997365076
+	.quad	-1376627125537124675
+	.quad	-6559282480285457367
+	.quad	-7777920981101784778
+	.quad	-8711237568605798758
+	.quad	-5110715207949843068
+	.quad	2946011094524915264
+	.quad	-1776707991509915931
+	.quad	3682513868156144080
+	.quad	-8027971522334779313
+	.quad	4607414176811284002
+	.quad	-5423278384491086237
+	.quad	1147581702586717098
+	.quad	-2167411962186469893
+	.quad	-3177208890193991531
+	.quad	-8272161504007625539
+	.quad	7237616480483531101
+	.quad	-5728515861582144020
+	.quad	-4788037454677749836
+	.quad	-2548958808550292121
+	.quad	-1373360799919799391
+	.quad	-8510628282985014432
+	.quad	-858350499949874619
+	.quad	-6026599335303880135
+	.quad	3538747893490044630
+	.quad	-2921563150702462265
+	.quad	9035120885289943692
+	.quad	-8743505996830120772
+	.quad	-5882264492762254952
+	.quad	-6317696477610263061
+	.quad	-2741144597525430787
+	.quad	-3285434578585440922
+	.quad	-3426430746906788484
+	.quad	-8970925639256982432
+	.quad	4776009810824339054
+	.quad	-6601971030643840136
+	.quad	5970012263530423817
+	.quad	-3640777769877412266
+	.quad	7462515329413029772
+	.quad	-9193015133814464522
+	.quad	52386062455755703
+	.quad	-6879582898840692749
+	.quad	-9157889458785081179
+	.quad	-3987792605123478032
+	.quad	6999382250228200142
+	.quad	-373054737976959636
+	.quad	8749227812785250178
+	.quad	-7150688238876681629
+	.quad	-3755104653863994447
+	.quad	-4326674280168464132
+	.quad	-4693880817329993059
+	.quad	-796656831783192261
+	.quad	-1255665003235103419
+	.quad	-7415439547505577019
+	.quad	8438581409832836171
+	.quad	-4657613415954583370
+	.quad	-3286831292991118498
+	.quad	-1210330751515841308
+	.quad	-8720225134666286027
+	.quad	-7673985747338482674
+	.quad	-3144297699952734815
+	.quad	-4980796165745715438
+	.quad	-8542058143368306422
+	.quad	-1614309188754756393
+	.quad	3157485376071780684
+	.quad	-7926472270612804602
+	.quad	8890957387685944784
+	.quad	-5296404319838617848
+	.quad	1890324697752655171
+	.quad	-2008819381370884406
+	.quad	2362905872190818964
+	.quad	-8173041140997884610
+	.quad	6088502188546649757
+	.quad	-5604615407819967859
+	.quad	-1612744301171463612
+	.quad	-2394083241347571919
+	.quad	7207441660390446293
+	.quad	-8413831053483314306
+	.quad	-2412877989897052923
+	.quad	-5905602798426754978
+	.quad	-7627783505798704058
+	.quad	-2770317479606055818
+	.quad	4300328673033783640
+	.quad	-8648977452394866743
+	.quad	-1923980597781273129
+	.quad	-6199535797066195524
+	.quad	6818396289628184397
+	.quad	-3137733727905356501
+	.quad	8522995362035230496
+	.quad	-8878612607581929669
+	.quad	3021029092058325108
+	.quad	-6486579741050024183
+	.quad	-835399653354481519
+	.quad	-3496538657885142324
+	.quad	8179122470161673909
+	.quad	-9102865688819295809
+	.quad	-4111420493003729615
+	.quad	-6766896092596731857
+	.quad	-5139275616254662019
+	.quad	-3846934097318526917
+	.quad	-6424094520318327523
+	.quad	-196981603220770742
+	.quad	-8030118150397909404
+	.quad	-7040642529654063570
+	.quad	-7324666853212387329
+	.quad	-4189117143640191558
+	.quad	4679224488766679550
+	.quad	-624710411122851544
+	.quad	-3374341425896426371
+	.quad	-7307973034592864071
+	.quad	-9026492418826348337
+	.quad	-4523280274813692185
+	.quad	-2059743486678159614
+	.quad	-1042414325089727327
+	.quad	-2574679358347699518
+	.quad	-7569037980822161435
+	.quad	3002511419460075706
+	.quad	-4849611457600313890
+	.quad	8364825292752482536
+	.quad	-1450328303573004458
+	.quad	1232659579085827362
+	.quad	-7823984217374209643
+	.quad	-3841273781498745803
+	.quad	-5168294253290374149
+	.quad	4421779809981343555
+	.quad	-1848681798185579782
+	.quad	915538744049291539
+	.quad	-8072955151507069220
+	.quad	5183897733458195116
+	.quad	-5479507920956448621
+	.quad	6479872166822743895
+	.quad	-2237698882768172872
+	.quad	3488154190101041965
+	.quad	-8316090829371189901
+	.quad	2180096368813151228
+	.quad	-5783427518286599473
+	.quad	-1886565557410948869
+	.quad	-2617598379430861437
+	.quad	-2358206946763686086
+	.quad	-8553528014785370254
+	.quad	7749492695127472004
+	.quad	-6080224000054324913
+	.quad	463493832054564197
+	.quad	-2988593981640518238
+	.quad	-4032318728359182658
+	.quad	-8785400266166405755
+	.quad	-4826042214438183113
+	.quad	-6370064314280619289
+	.quad	3190819268807046917
+	.quad	-3350894374423386208
+	.quad	-623161932418579258
+	.quad	-9011838011655698236
+	.quad	-7307005235402693892
+	.quad	-6653111496142234891
+	.quad	-4522070525825979461
+	.quad	-3704703351750405709
+	.quad	3570783879572301481
+	.quad	-19193171260619233
+	.quad	-148206168962011053
+	.quad	-6929524759678968877
+	.quad	-92628855601256908
+	.quad	-4050219931171323192
+	.quad	-115786069501571135
+	.quad	-451088895536766085
+	.quad	4466953431550423985
+	.quad	-7199459587351560659
+	.quad	486002885505321039
+	.quad	-4387638465762062920
+	.quad	5219189625309039203
+	.quad	-872862063775190746
+	.quad	6523987031636299003
+	.quad	-7463067817500576073
+	.quad	-534194123654701027
+	.quad	-4717148753448332187
+	.quad	-667742654568376284
+	.quad	-1284749923383027329
+	.quad	8388693718644305453
+	.quad	-7720497729755473937
+	.quad	-6286281471915778851
+	.quad	-5038936143766954517
+	.quad	-7857851839894723564
+	.quad	-1686984161281305242
+	.quad	8624429273841147160
+	.quad	-7971894128441897632
+	.quad	778582277723329071
+	.quad	-5353181642124984136
+	.quad	973227847154161339
+	.quad	-2079791034228842266
+	.quad	1216534808942701674
+	.quad	-8217398424034108273
+	.quad	-3851351762838199358
+	.quad	-5660062011615247437
+	.quad	-4814189703547749197
+	.quad	-2463391496091671392
+	.quad	-6017737129434686497
+	.quad	-8457148712698376476
+	.quad	7768129340171790700
+	.quad	-5959749872445582691
+	.quad	-8736582398494813241
+	.quad	-2838001322129590460
+	.quad	-1697355961263740744
+	.quad	-8691279853972075893
+	.quad	1244995533423855987
+	.quad	-6252413799037706963
+	.quad	-3055441601647567920
+	.quad	-3203831230369745799
+	.quad	5404070034795315908
+	.quad	-8919923546622172981
+	.quad	-3539985255894009413
+	.quad	-6538218414850328322
+	.quad	-4424981569867511767
+	.quad	-3561087000135522498
+	.quad	8303831092947774003
+	.quad	-9143208402725783417
+	.quad	578208414664970848
+	.quad	-6817324484979841368
+	.quad	-3888925500096174344
+	.quad	-3909969587797413806
+	.quad	-249470856692830026
+	.quad	-275775966319379353
+	.quad	-4923524589293425437
+	.quad	-7089889006590693952
+	.quad	-3077202868308390898
+	.quad	-4250675239810979535
+	.quad	765182433041899282
+	.quad	-701658031336336515
+	.quad	5568164059729762006
+	.quad	-7356065297226292178
+	.quad	5785945546544795206
+	.quad	-4583395603105477319
+	.quad	-1990940103673781801
+	.quad	-1117558485454458744
+	.quad	6734696907262548557
+	.quad	-7616003081050118571
+	.quad	4209185567039092848
+	.quad	-4908317832885260310
+	.quad	-8573576096483297652
+	.quad	-1523711272679187483
+	.quad	3118087934678041647
+	.quad	-7869848573065574033
+	.quad	4254647968387469982
+	.quad	-5225624697904579637
+	.quad	706623942056949573
+	.quad	-1920344853953336643
+	.quad	-3728406090856200938
+	.quad	-8117744561361917258
+	.quad	-6941939825212513490
+	.quad	-5535494683275008668
+	.quad	5157633273766521850
+	.quad	-2307682335666372931
+	.quad	6447041592208152312
+	.quad	-8359830487432564938
+	.quad	6335244004343789147
+	.quad	-5838102090863318269
+	.quad	-1304317031425039374
+	.quad	-2685941595151759932
+	.quad	-1630396289281299218
+	.quad	-8596242524610931813
+	.quad	1286845328412881941
+	.quad	-6133617137336276863
+	.quad	-3003129357911285478
+	.quad	-3055335403242958174
+	.quad	5469460339465668960
+	.quad	-8827113654667930715
+	.quad	8030098730593431004
+	.quad	-6422206049907525490
+	.quad	-3797434642040374957
+	.quad	-3416071543957018958
+	.quad	9088264752731695016
+	.quad	-9052573742614218705
+	.quad	-8154892584824854327
+	.quad	-6704031159840385477
+	.quad	8253128342678483707
+	.quad	-3768352931373093942
+	.quad	5704724409920716730
+	.quad	-98755145788979524
+	.quad	-2092466524453879895
+	.quad	-6979250993759194058
+	.quad	998051431430019018
+	.quad	-4112377723771604669
+	.quad	-7975807747567252036
+	.quad	-528786136287117932
+	.quad	8476984389250486571
+	.quad	-7248020362820530564
+	.quad	-3925256793573221701
+	.quad	-4448339435098275301
+	.quad	-294884973539139223
+	.quad	-948738275445456222
+	.quad	-368606216923924028
+	.quad	-7510490449794491995
+	.quad	-2536221894791146469
+	.quad	-4776427043815727089
+	.quad	6053094668365842721
+	.quad	-1358847786342270957
+	.quad	2954682317029915497
+	.quad	-7766808894105001205
+	.quad	-459166561069996766
+	.quad	-5096825099203863602
+	.quad	-573958201337495958
+	.quad	-1759345355577441598
+	.quad	-5329133770099257851
+	.quad	-8017119874876982855
+	.quad	-5636551615525730109
+	.quad	-5409713825168840664
+	.quad	2177682517447613172
+	.quad	-2150456263033662926
+	.quad	2722103146809516465
+	.quad	-8261564192037121185
+	.quad	6313000485183335695
+	.quad	-5715269221619013577
+	.quad	3279564588051781714
+	.quad	-2532400508596379068
+	.quad	-512230283362660762
+	.quad	-8500279345513818773
+	.quad	1985699082112030976
+	.quad	-6013663163464885563
+	.quad	-2129562165787349184
+	.quad	-2905392935903719049
+	.quad	6561419329620589328
+	.quad	-8733399612580906262
+	.quad	-7428327965055601430
+	.quad	-6305063497298744923
+	.quad	4549648098962661925
+	.quad	-3269643353196043250
+	.quad	-8147997931578836306
+	.quad	-8961056123388608887
+	.quad	1825030320404309165
+	.quad	-6589634135808373205
+	.quad	6892973918932774360
+	.quad	-3625356651333078602
+	.quad	4004531380238580046
+	.quad	-9183376934724255983
+	.quad	-2108853905778275375
+	.quad	-6867535149977932074
+	.quad	6587304654631931589
+	.quad	-3972732919045027189
+	.quad	-989241218564861322
+	.quad	-354230130378896082
+	.quad	-1236551523206076653
+	.quad	-7138922859127891907
+	.quad	6144684325637283948
+	.quad	-4311967555482476980
+	.quad	-6154202648235558777
+	.quad	-778273425925708321
+	.quad	-3081067291867060567
+	.quad	-7403949918844649557
+	.quad	-1925667057416912854
+	.quad	-4643251380128424042
+	.quad	-2407083821771141068
+	.quad	-1192378206733142148
+	.quad	-7620540795641314239
+	.quad	-7662765406849295699
+	.quad	-2456994988062127447
+	.quad	-4966770740134231719
+	.quad	6152128301777116499
+	.quad	-1596777406740401745
+	.quad	-6144897678060768089
+	.quad	-7915514906853832947
+	.quad	-3840561048787980055
+	.quad	-5282707615139903279
+	.quad	4422670725869800739
+	.quad	-1991698500497491195
+	.quad	-8306719647944912789
+	.quad	-8162340590452013853
+	.quad	8643358275316593219
+	.quad	-5591239719637629412
+	.quad	6192511825718353620
+	.quad	-2377363631119648861
+	.quad	7740639782147942025
+	.quad	-8403381297090862394
+	.quad	2532056854628769814
+	.quad	-5892540602936190089
+	.quad	-6058300968568813541
+	.quad	-2753989735242849707
+	.quad	-7572876210711016926
+	.quad	-8638772612167862923
+	.quad	9102010423587778133
+	.quad	-6186779746782440750
+	.quad	-2457545025797441046
+	.quad	-3121788665050663033
+	.quad	-7683617300674189211
+	.quad	-8868646943297746252
+	.quad	-4802260812921368257
+	.quad	-6474122660694794911
+	.quad	-1391139997724322417
+	.quad	-3480967307441105734
+	.quad	7484447039699372787
+	.quad	-9093133594791772940
+	.quad	-9157278655470055720
+	.quad	-6754730975062328271
+	.quad	-6834912300910181746
+	.quad	-3831727700400522434
+	.quad	679731660717048625
+	.quad	-177973607073265139
+	.quad	-8373707460958465027
+	.quad	-7028762532061872568
+	.quad	8601490892183123070
+	.quad	-4174267146649952806
+	.quad	-7694880458480647778
+	.quad	-606147914885053103
+	.quad	4216457482181353989
+	.quad	-7296371474444240046
+	.quad	-4282243101277735613
+	.quad	-4508778324627912153
+	.quad	8482254178684994196
+	.quad	-1024286887357502287
+	.quad	5991131704928854841
+	.quad	-7557708332239520786
+	.quad	-3173071712060547580
+	.quad	-4835449396872013078
+	.quad	-8578025658503072379
+	.quad	-1432625727662628443
+	.quad	3112525982153323238
+	.quad	-7812920107430224633
+	.quad	4251171748059520976
+	.quad	-5154464115860392887
+	.quad	702278666647013315
+	.quad	-1831394126398103205
+	.quad	5489534351736154548
+	.quad	-8062150356639896359
+	.quad	1125115960621402641
+	.quad	-5466001927372482545
+	.quad	6018080969204141205
+	.quad	-2220816390788215277
+	.quad	2910915193077788602
+	.quad	-8305539271883716405
+	.quad	-486521013540076076
+	.quad	-5770238071427257602
+	.quad	-608151266925095095
+	.quad	-2601111570856684098
+	.quad	-5371875102083756772
+	.quad	-8543223759426509417
+	.quad	3560107088838733873
+	.quad	-6067343680855748868
+	.quad	-161552157378970562
+	.quad	-2972493582642298180
+	.quad	4409745821703674701
+	.quad	-8775337516792518219
+	.quad	-6467280898289979120
+	.quad	-6357485877563259869
+	.quad	1139270913992301908
+	.quad	-3335171328526686933
+	.quad	-3187597375937010519
+	.quad	-9002011107970261189
+	.quad	7231123676894144234
+	.quad	-6640827866535438582
+	.quad	4427218577690292388
+	.quad	-3689348814741910324
+	.quad	-3689348814741910323
+	.quad	-9223372036854775808
+	.quad	0
+	.quad	-6917529027641081856
+	.quad	0
+	.quad	-4035225266123964416
+	.quad	0
+	.quad	-432345564227567616
+	.quad	0
+	.quad	-7187745005283311616
+	.quad	0
+	.quad	-4372995238176751616
+	.quad	0
+	.quad	-854558029293551616
+	.quad	0
+	.quad	-7451627795949551616
+	.quad	0
+	.quad	-4702848726509551616
+	.quad	0
+	.quad	-1266874889709551616
+	.quad	0
+	.quad	-7709325833709551616
+	.quad	0
+	.quad	-5024971273709551616
+	.quad	0
+	.quad	-1669528073709551616
+	.quad	0
+	.quad	-7960984073709551616
+	.quad	0
+	.quad	-5339544073709551616
+	.quad	0
+	.quad	-2062744073709551616
+	.quad	0
+	.quad	-8206744073709551616
+	.quad	0
+	.quad	-5646744073709551616
+	.quad	0
+	.quad	-2446744073709551616
+	.quad	0
+	.quad	-8446744073709551616
+	.quad	0
+	.quad	-5946744073709551616
+	.quad	0
+	.quad	-2821744073709551616
+	.quad	0
+	.quad	-8681119073709551616
+	.quad	0
+	.quad	-6239712823709551616
+	.quad	0
+	.quad	-3187955011209551616
+	.quad	0
+	.quad	-8910000909647051616
+	.quad	0
+	.quad	-6525815118631426616
+	.quad	0
+	.quad	-3545582879861895366
+	.quad	0
+	.quad	-9133518327554766460
+	.quad	4611686018427387904
+	.quad	-6805211891016070171
+	.quad	5764607523034234880
+	.quad	-3894828845342699810
+	.quad	-6629298651489370112
+	.quad	-256850038250986858
+	.quad	5548434740920451072
+	.quad	-7078060301547948643
+	.quad	-1143914305352105984
+	.quad	-4235889358507547899
+	.quad	7793479155164643328
+	.quad	-683175679707046970
+	.quad	-4093209111326359552
+	.quad	-7344513827457986212
+	.quad	4359273333062107136
+	.quad	-4568956265895094861
+	.quad	5449091666327633920
+	.quad	-1099509313941480672
+	.quad	2199678564482154496
+	.quad	-7604722348854507276
+	.quad	1374799102801346560
+	.quad	-4894216917640746191
+	.quad	1718498878501683200
+	.quad	-1506085128623544835
+	.quad	6759809616554491904
+	.quad	-7858832233030797378
+	.quad	6530724019560251392
+	.quad	-5211854272861108819
+	.quad	-1059967012404461568
+	.quad	-1903131822648998119
+	.quad	7898413271349198848
+	.quad	-8106986416796705681
+	.quad	-1981020733047832576
+	.quad	-5522047002568494197
+	.quad	-2476275916309790720
+	.quad	-2290872734783229842
+	.quad	-3095344895387238400
+	.quad	-8349324486880600507
+	.quad	4982938468024057856
+	.quad	-5824969590173362730
+	.quad	-7606384970252091392
+	.quad	-2669525969289315508
+	.quad	4327076842467049472
+	.quad	-8585982758446904049
+	.quad	-6518949010312869888
+	.quad	-6120792429631242157
+	.quad	-8148686262891087360
+	.quad	-3039304518611664792
+	.quad	8260886245095692416
+	.quad	-8817094351773372351
+	.quad	5163053903184807760
+	.quad	-6409681921289327535
+	.quad	-7381240676301154012
+	.quad	-3400416383184271515
+	.quad	-3178808521666707
+	.quad	-9042789267131251553
+	.quad	-4613672773753429595
+	.quad	-6691800565486676537
+	.quad	-5767090967191786994
+	.quad	-3753064688430957767
+	.quad	-7208863708989733743
+	.quad	-79644842111309304
+	.quad	212292400617608629
+	.quad	-6967307053960650171
+	.quad	132682750386005393
+	.quad	-4097447799023424810
+	.quad	4777539456409894646
+	.quad	-510123730351893109
+	.quad	-3251447716342407501
+	.quad	-7236356359111015049
+	.quad	7191217214140771120
+	.quad	-4433759430461380907
+	.quad	4377335499248575996
+	.quad	-930513269649338230
+	.quad	-8363388681221443717
+	.quad	-7499099821171918250
+	.quad	-7532960934977096275
+	.quad	-4762188758037509908
+	.quad	4418856886560793368
+	.quad	-1341049929119499481
+	.quad	5523571108200991710
+	.quad	-7755685233340769032
+	.quad	-8076983103442849941
+	.quad	-5082920523248573386
+	.quad	-5484542860876174523
+	.quad	-1741964635633328828
+	.quad	6979379479186945559
+	.quad	-8006256924911912374
+	.quad	-4861259862362934834
+	.quad	-5396135137712502563
+	.quad	7758483227328495170
+	.quad	-2133482903713240300
+	.quad	-4136954021121544750
+	.quad	-8250955842461857044
+	.quad	-279753253987271517
+	.quad	-5702008784649933400
+	.quad	4261994450943298508
+	.quad	-2515824962385028846
+	.quad	5327493063679123135
+	.quad	-8489919629131724885
+	.quad	7941369183226839864
+	.quad	-6000713517987268202
+	.quad	5315025460606161925
+	.quad	-2889205879056697349
+	.quad	-2579590211097073401
+	.quad	-8723282702051517699
+	.quad	7611128154919104932
+	.quad	-6292417359137009220
+	.quad	-4321147861633282547
+	.quad	-3253835680493873621
+	.quad	-789748808614215279
+	.quad	-8951176327949752869
+	.quad	8729779031470891259
+	.quad	-6577284391509803182
+	.quad	6300537770911226169
+	.quad	-3609919470959866074
+	.quad	-1347699823215743097
+	.quad	-9173728696990998152
+	.quad	6075216638131242421
+	.quad	-6855474852811359786
+	.quad	7594020797664053026
+	.quad	-3957657547586811828
+	.quad	269153960225290474
+	.quad	-335385916056126881
+	.quad	336442450281613092
+	.quad	-7127145225176161157
+	.quad	7127805559067090039
+	.quad	-4297245513042813542
+	.quad	4298070930406474645
+	.quad	-759870872876129024
+	.quad	-3850783373846682502
+	.quad	-7392448323188662496
+	.quad	9122475437414293196
+	.quad	-4628874385558440216
+	.quad	-7043649776941685121
+	.quad	-1174406963520662366
+	.quad	-4192876202749718497
+	.quad	-7651533379841495835
+	.quad	-4926390635932268013
+	.quad	-4952730706374481889
+	.quad	3065383741939440792
+	.quad	-1579227364540714458
+	.quad	-779956341003086914
+	.quad	-7904546130479028392
+	.quad	6430056314514152535
+	.quad	-5268996644671397586
+	.quad	8037570393142690669
+	.quad	-1974559787411859078
+	.quad	823590954573587528
+	.quad	-8151628894773493780
+	.quad	5126430365035880109
+	.quad	-5577850100039479321
+	.quad	6408037956294850136
+	.quad	-2360626606621961247
+	.quad	3398361426941174766
+	.quad	-8392920656779807636
+	.quad	-4793553135802847627
+	.quad	-5879464802547371641
+	.quad	-1380255401326171630
+	.quad	-2737644984756826647
+	.quad	-1725319251657714538
+	.quad	-8628557143114098510
+	.quad	3533361486141316318
+	.quad	-6174010410465235234
+	.quad	-4806670179178130410
+	.quad	-3105826994654156138
+	.quad	7826720331309500699
+	.quad	-8858670899299929442
+	.quad	280014188641050033
+	.quad	-6461652605697523899
+	.quad	-8873354301053463267
+	.quad	-3465379738694516970
+	.quad	-1868320839462053276
+	.quad	-9083391364325154962
+	.quad	5749828502977298559
+	.quad	-6742553186979055799
+	.quad	-2036086408133152610
+	.quad	-3816505465296431844
+	.quad	6678264026688335046
+	.quad	-158945813193151901
+	.quad	8347830033360418807
+	.quad	-7016870160886801794
+	.quad	2911550761636567803
+	.quad	-4159401682681114339
+	.quad	-5583933584809066055
+	.quad	-587566084924005019
+	.quad	2243455055843443239
+	.quad	-7284757830718584993
+	.quad	3708002419115845977
+	.quad	-4494261269970843337
+	.quad	23317005467419567
+	.quad	-1006140569036166268
+	.quad	-4582539761593113445
+	.quad	-7546366883288685774
+	.quad	-558244341782001951
+	.quad	-4821272585683469313
+	.quad	-5309491445654890343
+	.quad	-1414904713676948737
+	.quad	-6636864307068612929
+	.quad	-7801844473689174817
+	.quad	-4148040191917883080
+	.quad	-5140619573684080617
+	.quad	-5185050239897353851
+	.quad	-1814088448677712867
+	.quad	-6481312799871692314
+	.quad	-8051334308064652398
+	.quad	-8662506518347195600
+	.quad	-5452481866653427593
+	.quad	3006924907348169212
+	.quad	-2203916314889396588
+	.quad	-853029884242176389
+	.quad	-8294976724446954723
+	.quad	1772699331562333709
+	.quad	-5757034887131305500
+	.quad	6827560182880305040
+	.quad	-2584607590486743971
+	.quad	8534450228600381300
+	.quad	-8532908771695296838
+	.quad	7639874402088932265
+	.quad	-6054449946191733143
+	.quad	326470965756389523
+	.quad	-2956376414312278525
+	.quad	5019774725622874807
+	.quad	-8765264286586255934
+	.quad	831516194300602803
+	.quad	-6344894339805432014
+	.quad	-8183976793979022305
+	.quad	-3319431906329402113
+	.quad	3605087062808385831
+	.quad	-8992173969096958177
+	.quad	9170708441896323001
+	.quad	-6628531442943809817
+	.quad	6851699533943015847
+	.quad	-3673978285252374367
+	.quad	3952938399001381904
+	.quad	-9213765455923815836
+	.quad	-4446942528265218166
+	.quad	-6905520801477381891
+	.quad	-946992141904134803
+	.quad	-4020214983419339459
+	.quad	8039631859474607304
+	.quad	-413582710846786420
+	.quad	-3785518230938904582
+	.quad	-7176018221920323369
+	.quad	-60105885123121412
+	.quad	-4358336758973016307
+	.quad	-75132356403901765
+	.quad	-836234930288882479
+	.quad	9129456591349898602
+	.quad	-7440175859071633406
+	.quad	-1211618658047395230
+	.quad	-4688533805412153853
+	.quad	-6126209340986631941
+	.quad	-1248981238337804412
+	.quad	-7657761676233289927
+	.quad	-7698142301602209614
+	.quad	-2480258038432112252
+	.quad	-5010991858575374113
+	.quad	-7712008566467528219
+	.quad	-1652053804791829737
+	.quad	8806733365625141342
+	.quad	-7950062655635975442
+	.quad	-6025006692552756421
+	.quad	-5325892301117581398
+	.quad	6303799689591218186
+	.quad	-2045679357969588844
+	.quad	-1343622424865753076
+	.quad	-8196078626372074883
+	.quad	1466078993672598280
+	.quad	-5633412264537705700
+	.quad	6444284760518135753
+	.quad	-2430079312244744221
+	.quad	8055355950647669692
+	.quad	-8436328597794046994
+	.quad	2728754459941099605
+	.quad	-5933724728815170839
+	.quad	-5812428961928401301
+	.quad	-2805469892591575644
+	.quad	1957835834444274181
+	.quad	-8670947710510816634
+	.quad	-7999724640327104445
+	.quad	-6226998619711132888
+	.quad	3835402254873283156
+	.quad	-3172062256211528206
+	.quad	4794252818591603945
+	.quad	-8900067937773286985
+	.quad	7608094030047140370
+	.quad	-6513398903789220827
+	.quad	4898431519131537558
+	.quad	-3530062611309138130
+	.quad	-7712018656367741764
+	.quad	-9123818159709293187
+	.quad	2097517367411243254
+	.quad	-6793086681209228580
+	.quad	7233582727691441971
+	.quad	-3879672333084147821
+	.quad	9041978409614302463
+	.quad	-237904397927796872
+	.quad	6690786993590490175
+	.quad	-7066219276345954901
+	.quad	4181741870994056360
+	.quad	-4221088077005055722
+	.quad	615491320315182545
+	.quad	-664674077828931749
+	.quad	-8454007886460797626
+	.quad	-7332950326284164199
+	.quad	3939617107816777292
+	.quad	-4554501889427817345
+	.quad	-8910536670511192098
+	.quad	-1081441343357383777
+	.quad	7308573235570561494
+	.quad	-7593429867239446717
+	.quad	-6961356773836868826
+	.quad	-4880101315621920492
+	.quad	-8701695967296086033
+	.quad	-1488440626100012711
+	.quad	-6265433940692719637
+	.quad	-7847804418953589800
+	.quad	695789805494438131
+	.quad	-5198069505264599346
+	.quad	869737256868047664
+	.quad	-1885900863153361279
+	.quad	-8136200465769716229
+	.quad	-8096217067111932656
+	.quad	-473439272678684739
+	.quad	-5508585315462527915
+	.quad	4019886927579031981
+	.quad	-2274045625900771990
+	.quad	-8810199395808373736
+	.quad	-8338807543829064350
+	.quad	-7812217631593927537
+	.quad	-5811823411358942533
+	.quad	4069786015789754291
+	.quad	-2653093245771290262
+	.quad	475546501309804959
+	.quad	-8575712306248138270
+	.quad	4908902581746016004
+	.quad	-6107954364382784934
+	.quad	-3087243809672255804
+	.quad	-3023256937051093263
+	.quad	-8470740780517707659
+	.quad	-8807064613298015146
+	.quad	-682526969396179382
+	.quad	-6397144748195131028
+	.quad	-5464844730172612132
+	.quad	-3384744916816525881
+	.quad	-2219369894288377261
+	.quad	-9032994600651410532
+	.quad	-1387106183930235788
+	.quad	-6679557232386875260
+	.quad	2877803288514593169
+	.quad	-3737760522056206171
+	.quad	3597254110643241461
+	.quad	-60514634142869810
+	.quad	9108253656731439730
+	.quad	-6955350673980375487
+	.quad	1080972517029761927
+	.quad	-4082502324048081455
+	.quad	5962901664714590313
+	.quad	-491441886632713915
+	.quad	-6381430974388925821
+	.quad	-7224680206786528053
+	.quad	-8600080377420466542
+	.quad	-4419164240055772162
+	.quad	7696643601933968438
+	.quad	-912269281642327298
+	.quad	397432465562684740
+	.quad	-7487697328667536418
+	.quad	-4363290727450709941
+	.quad	-4747935642407032618
+	.quad	8380944645968776285
+	.quad	-1323233534581402868
+	.quad	1252808770606194548
+	.quad	-7744549986754458649
+	.quad	-8440366555225904215
+	.quad	-5069001465015685407
+	.quad	7896285879677171347
+	.quad	-1724565812842218855
+	.quad	-3964700705685699528
+	.quad	-7995382660667468640
+	.quad	2133748077373825699
+	.quad	-5382542307406947896
+	.quad	2667185096717282124
+	.quad	-2116491865831296966
+	.quad	3333981370896602654
+	.quad	-8240336443785642460
+	.quad	6695424375237764563
+	.quad	-5688734536304665171
+	.quad	8369280469047205704
+	.quad	-2499232151953443560
+	.quad	-3373457468973156582
+	.quad	-8479549122611984081
+	.quad	-9025939945749304720
+	.quad	-5987750384837592197
+	.quad	7164319141522920716
+	.quad	-2873001962619602342
+	.quad	4343712908476262991
+	.quad	-8713155254278333320
+	.quad	7326506586225052274
+	.quad	-6279758049420528746
+	.quad	9158133232781315342
+	.quad	-3238011543348273028
+	.quad	2224294504121868369
+	.quad	-8941286242233752499
+	.quad	-7833187971778608077
+	.quad	-6564921784364802720
+	.quad	-568112927868484288
+	.quad	-3594466212028615495
+	.quad	3901544858591782543
+	.quad	-9164070410158966541
+	.quad	-4479063491021217766
+	.quad	-6843401994271320272
+	.quad	-5598829363776522208
+	.quad	-3942566474411762436
+	.quad	-2386850686293264856
+	.quad	-316522074587315140
+	.quad	1628122660560806834
+	.quad	-7115355324258153819
+	.quad	-8205795374004271537
+	.quad	-4282508136895304370
+	.quad	-1033872180650563613
+	.quad	-741449152691742558
+	.quad	-5904026244240592420
+	.quad	-7380934748073420955
+	.quad	-5995859411864064214
+	.quad	-4614482416664388289
+	.quad	1728547772024695540
+	.quad	-1156417002403097458
+	.quad	-2451001303396518479
+	.quad	-7640289654143017767
+	.quad	5385653213018257807
+	.quad	-4938676049251384305
+	.quad	-7102991539009341454
+	.quad	-1561659043136842477
+	.quad	-8878739423761676818
+	.quad	-7893565929601608404
+	.quad	3674159897003727797
+	.quad	-5255271393574622601
+	.quad	4592699871254659746
+	.quad	-1957403223540890347
+	.quad	1129188820640936779
+	.quad	-8140906042354138323
+	.quad	3011586022114279439
+	.quad	-5564446534515285000
+	.quad	8376168546070237203
+	.quad	-2343872149716718346
+	.quad	-7976533391121755113
+	.quad	-8382449121214030822
+	.quad	1932195658189984911
+	.quad	-5866375383090150624
+	.quad	-6808127464117294670
+	.quad	-2721283210435300376
+	.quad	-3898473311719230433
+	.quad	-8618331034163144591
+	.quad	9092669226243950739
+	.quad	-6161227774276542835
+	.quad	-2469221522477225288
+	.quad	-3089848699418290639
+	.quad	6136845133758244198
+	.quad	-8848684464777513506
+	.quad	-3082000819042179232
+	.quad	-6449169562544503978
+	.quad	-8464187042230111944
+	.quad	-3449775934753242068
+	.quad	3254824252494523782
+	.quad	-9073638986861858149
+	.quad	-7189106879045698444
+	.quad	-6730362715149934782
+	.quad	-8986383598807123056
+	.quad	-3801267375510030573
+	.quad	2602078556773259892
+	.quad	-139898200960150313
+	.quad	-1359087822460813039
+	.quad	-7004965403241175802
+	.quad	-849429889038008149
+	.quad	-4144520735624081848
+	.quad	-5673473379724898090
+	.quad	-568964901102714406
+	.quad	-2480155706228734709
+	.quad	-7273132090830278360
+	.quad	-3855940325606653145
+	.quad	-4479729095110460046
+	.quad	-208239388580928527
+	.quad	-987975350460687153
+	.quad	-4871985254153548563
+	.quad	-7535013621679011327
+	.quad	-3044990783845967852
+	.quad	-4807081008671376254
+	.quad	5417133557047315993
+	.quad	-1397165242411832414
+	.quad	-2451955090545630817
+	.quad	-7790757304148477115
+	.quad	-3838314940804713212
+	.quad	-5126760611758208489
+	.quad	4425478360848884292
+	.quad	-1796764746270372707
+	.quad	920161932633717461
+	.quad	-8040506994060064798
+	.quad	2880944217109767366
+	.quad	-5438947724147693094
+	.quad	-5622191765467566601
+	.quad	-2186998636757228463
+	.quad	6807318348447705460
+	.quad	-8284403175614349646
+	.quad	-2662955059861265943
+	.quad	-5743817951090549153
+	.quad	-7940379843253970333
+	.quad	-2568086420435798537
+	.quad	8521269269642088700
+	.quad	-8522583040413455942
+	.quad	-6203421752542164322
+	.quad	-6041542782089432023
+	.quad	6080780864604458309
+	.quad	-2940242459184402125
+	.quad	-6234081974526590826
+	.quad	-8755180564631333184
+	.quad	5327070802775656542
+	.quad	-6332289687361778576
+	.quad	6658838503469570677
+	.quad	-3303676090774835316
+	.quad	8323548129336963346
+	.quad	-8982326584375353929
+	.quad	-4021154456019173716
+	.quad	-6616222212041804507
+	.quad	-5026443070023967146
+	.quad	-3658591746624867729
+	.quad	2940318199324816876
+	.quad	-9204148869281624187
+	.quad	8755227902219092404
+	.quad	-6893500068174642330
+	.quad	-2891023177508298208
+	.quad	-4005189066790915008
+	.quad	-8225464990312760664
+	.quad	-394800315061255856
+	.quad	-5670145219463562926
+	.quad	-7164279224554366766
+	.quad	7985374283903742932
+	.quad	-4343663012265570553
+	.quad	758345818024902857
+	.quad	-817892746904575288
+	.quad	-3663753745896259333
+	.quad	-7428711994456441411
+	.quad	-9207375118826243939
+	.quad	-4674203974643163860
+	.quad	-2285846861678029116
+	.quad	-1231068949876566920
+	.quad	1754377441329851509
+	.quad	-7686947121313936181
+	.quad	1096485900831157193
+	.quad	-4996997883215032323
+	.quad	-3241078642388441413
+	.quad	-1634561335591402499
+	.quad	5172023733869224042
+	.quad	-7939129862385708418
+	.quad	5538357842881958978
+	.quad	-5312226309554747619
+	.quad	-2300424733252327085
+	.quad	-2028596868516046619
+	.quad	6347841120289366951
+	.quad	-8185402070463610993
+	.quad	6273243709394548297
+	.quad	-5620066569652125837
+	.quad	3229868618315797467
+	.quad	-2413397193637769393
+	.quad	-574350245532641070
+	.quad	-8425902273664687727
+	.quad	-358968903457900669
+	.quad	-5920691823653471754
+	.quad	8774660907532399972
+	.quad	-2789178761139451788
+	.quad	1744954097560724157
+	.quad	-8660765753353239224
+	.quad	-8132775725879323210
+	.quad	-6214271173264161126
+	.quad	-5554283638921766109
+	.quad	-3156152948152813503
+	.quad	6892203506629956076
+	.quad	-8890124620236590296
+	.quad	-2609901835997359308
+	.quad	-6500969756868349965
+	.quad	1349308723430688769
+	.quad	-3514526177658049553
+	.quad	-2925050114139026943
+	.quad	-9114107888677362827
+	.quad	-1828156321336891839
+	.quad	-6780948842419315629
+	.quad	6938176635183661009
+	.quad	-3864500034596756632
+	.quad	4061034775552188357
+	.quad	-218939024818557886
+	.quad	5076293469440235446
+	.quad	360288194370153829
+	.quad	360288190075186533
+	.quad	360288185780219237
+	.quad	360288181485251941
+	.quad	360288177190284645
+	.quad	360288215828213093
+	.quad	360288211533245797
+	.quad	360288207238278501
+	.quad	360288202943311205
+	.quad	360288198648343909
+	.quad	360288194353376613
+	.quad	360288190058409317
+	.quad	360288185763442021
+	.quad	360288181468474725
+	.quad	360288177173507429
+	.quad	360288215811435877
+	.quad	360288211516468581
+	.quad	360288207221501285
+	.quad	360288202926533989
+	.quad	360288198631566693
+	.quad	360288194336599397
+	.quad	360288190041632101
+	.quad	360288185746664805
+	.quad	360288181451697509
+	.quad	360288177156730213
+	.quad	360288215962365285
+	.quad	360288211667397989
+	.quad	360288207372430693
+	.quad	360288203077463397
+	.quad	360288198782496101
+	.quad	360288194487528805
+	.quad	360288190192561509
+	.quad	360288185897594213
+	.quad	360288181602626917
+	.quad	360288177307659621
+	.quad	360288215945588069
+	.quad	360288211650620773
+	.quad	360288207355653477
+	.quad	360288203060686181
+	.quad	360288198765718885
+	.quad	360288194470751589
+	.quad	360288190175784293
+	.quad	360288185880816997
+	.quad	360288181585849701
+	.quad	360288177290882405
+	.quad	360288215928810853
+	.quad	360288211633843557
+	.quad	360288207338876261
+	.quad	360288203043908965
+	.quad	360288198748941669
+	.quad	360288194453974373
+	.quad	360288190159007077
+	.quad	360288185864039781
+	.quad	360288181569072485
+	.quad	360288177274105189
+	.quad	360288215912033637
+	.quad	360288211617066341
+	.quad	360288207322099045
+	.quad	360288203027131749
+	.quad	360288198732164453
+	.quad	360288194437197157
+	.quad	360288190142229861
+	.quad	360288185847262565
+	.quad	360288181552295269
+	.quad	360288177257327973
+	.quad	360288215895256421
+	.quad	360288211600289125
+	.quad	360288207305321829
+	.quad	360288203010354533
+	.quad	360288198715387237
+	.quad	360288194420419941
+	.quad	360288190125452645
+	.quad	360288185830485349
+	.quad	360288181535518053
+	.quad	360288177240550757
+	.quad	360288215878479205
+	.quad	360288211583511909
+	.quad	360288207288544613
+	.quad	360288202993577317
+	.quad	360288198698610021
+	.quad	360288194403642725
+	.quad	360288190108675429
+	.quad	360288185813708133
+	.quad	360288181518740837
+	.quad	360288177223773541
+	.quad	360288215861701989
+	.quad	360288211566734693
+	.quad	360288207271767397
+	.quad	360288202976800101
+	.quad	360288198681832805
+	.quad	360288194386865509
+	.quad	360288190091898213
+	.quad	360288185796930917
+	.quad	360288181501963621
+	.quad	360288177206996325
+	.quad	360288215844924773
+	.quad	360288211549957477
+	.quad	360288207254990181
+	.quad	360288202960022885
+	.quad	360288198665055589
+	.quad	360288194370088293
+	.quad	360288190075120997
+	.quad	360288185780153701
+	.quad	360288181485186405
+	.quad	360288177190219109
+	.quad	360288215828147557
+	.quad	360288211533180261
+	.quad	360288207238212965
+	.quad	360288202943245669
+	.quad	360288198648278373
+	.quad	360288194353311077
+	.quad	360288190058343781
+	.quad	360288185763376485
+	.quad	360288181468409189
+	.quad	360288177173441893
+	.quad	360288215811370341
+	.quad	360288211516403045
+	.quad	360288207221435749
+	.quad	360288202926468453
+	.quad	360288198631501157
+	.quad	360288194336533861
+	.quad	360288190041566565
+	.quad	360288185746599269
+	.quad	360288181451631973
+	.quad	360288177156664677
+	.quad	360288215962299749
+	.quad	360288211667332453
+	.quad	360288207372365157
+	.quad	360288203077397861
+	.quad	360288198782430565
+	.quad	360288194487463269
+	.quad	360288190192495973
+	.quad	360288185897528677
+	.quad	360288181602561381
+	.quad	360288177307594085
+	.quad	360288215945522533
+	.quad	360288211650555237
+	.quad	360288207355587941
+	.quad	360288203060620645
+	.quad	360288198765653349
+	.quad	360288194470686053
+	.quad	360288190175718757
+	.quad	360288185880751461
+	.quad	360288181585784165
+	.quad	360288177290816869
+	.quad	360288215928745317
+	.quad	360288211633778021
+	.quad	360288207338810725
+	.quad	360288203043843429
+	.quad	360288198748876133
+	.quad	360288194453908837
+	.quad	360288190158941541
+	.quad	360288185863974245
+	.quad	360288181569006949
+	.quad	360288177274039653
+	.quad	360288215911968101
+	.quad	360288211617000805
+	.quad	360288207322033509
+	.quad	360288203027066213
+	.quad	360288198732098917
+	.quad	360288194437131621
+	.quad	360288190142164325
+	.quad	360288185847197029
+	.quad	360288181552229733
+	.quad	360288177257262437
+	.quad	360288215895190885
+	.quad	360288211600223589
+	.quad	360288207305256293
+	.quad	360288203010288997
+	.quad	360288198715321701
+	.quad	360288194420354405
+	.quad	360288190125387109
+	.quad	360288185830419813
+	.quad	360288181535452517
+	.quad	360288177240485221
+	.quad	360288215878413669
+	.quad	360288211583446373
+	.quad	360288207288479077
+	.quad	360288202993511781
+	.quad	360288198698544485
+	.quad	360288194403577189
+	.quad	360288190108609893
+	.quad	360288185813642597
+	.quad	360288181518675301
+	.quad	360288177223708005
+	.quad	360288215861636453
+	.quad	360288211566669157
+	.quad	360288207271701861
+	.quad	360288202976734565
+	.quad	360288198681767269
+	.quad	360288194386799973
+	.quad	360288190091832677
+	.quad	360288185796865381
+	.quad	360288181501898085
+	.quad	360288177206930789
+	.quad	360288215844859237
+	.quad	360288211549891941
+	.quad	360288207254924645
+	.quad	360288202959957349
+	.quad	360288198664990053
+	.quad	360288194370022757
+	.quad	360288190075055461
+	.quad	360288185780088165
+	.quad	360288181485120869
+	.quad	360288177190153573
+	.quad	360288215828082021
+	.quad	360288211533114725
+	.quad	360288207238147429
+	.quad	360288202943180133
+	.quad	360288198648212837
+	.quad	360288194353245541
+	.quad	360288190058278245
+	.quad	360288185763310949
+	.quad	360288181468343653
+	.quad	360288177173376357
+	.quad	360288215811304805
+	.quad	360288211516337509
+	.quad	360288207221370213
+	.quad	360288202926402917
+	.quad	360288198631435621
+	.quad	360288194336468325
+	.quad	360288190041501029
+	.quad	360288185746533733
+	.quad	360288181451566437
+	.quad	360288177156599141
+	.quad	289356277018602853
+	.quad	289356277001825637
+	.quad	289356276985048421
+	.quad	289356276968271205
+	.quad	289356276951493989
+	.quad	289356276934716773
+	.quad	289356276917939557
+	.quad	289356276901162341
+	.quad	289356276884385125
+	.quad	289356276867607909
+	.quad	289356277018537317
+	.quad	289356277001760101
+	.quad	289356276984982885
+	.quad	289356276968205669
+	.quad	289356276951428453
+	.quad	289356276934651237
+	.quad	289356276917874021
+	.quad	289356276901096805
+	.quad	289356276884319589
+	.quad	289356276867542373
+	.quad	289356277018471781
+	.quad	289356277001694565
+	.quad	289356276984917349
+	.quad	289356276968140133
+	.quad	289356276951362917
+	.quad	289356276934585701
+	.quad	289356276917808485
+	.quad	289356276901031269
+	.quad	289356276884254053
+	.quad	289356276867476837
+	.quad	289356277018406245
+	.quad	289356277001629029
+	.quad	289356276984851813
+	.quad	289356276968074597
+	.quad	289356276951297381
+	.quad	289356276934520165
+	.quad	289356276917742949
+	.quad	289356276900965733
+	.quad	289356276884188517
+	.quad	289356276867411301
+	.quad	289356277018340709
+	.quad	289356277001563493
+	.quad	289356276984786277
+	.quad	289356276968009061
+	.quad	289356276951231845
+	.quad	289356276934454629
+	.quad	289356276917677413
+	.quad	289356276900900197
+	.quad	289356276884122981
+	.quad	289356276867345765
+	.quad	289356277018275173
+	.quad	289356277001497957
+	.quad	289356276984720741
+	.quad	289356276967943525
+	.quad	289356276951166309
+	.quad	289356276934389093
+	.quad	289356276917611877
+	.quad	289356276900834661
+	.quad	289356276884057445
+	.quad	289356276867280229
+	.quad	289356277018209637
+	.quad	289356277001432421
+	.quad	289356276984655205
+	.quad	289356276967877989
+	.quad	289356276951100773
+	.quad	289356276934323557
+	.quad	289356276917546341
+	.quad	289356276900769125
+	.quad	289356276883991909
+	.quad	289356276867214693
+	.quad	289356277018144101
+	.quad	289356277001366885
+	.quad	289356276984589669
+	.quad	289356276967812453
+	.quad	289356276951035237
+	.quad	289356276934258021
+	.quad	289356276917480805
+	.quad	289356276900703589
+	.quad	289356276883926373
+	.quad	289356276867149157
+	.quad	289356277018078565
+	.quad	289356277001301349
+	.quad	289356276984524133
+	.quad	289356276967746917
+	.quad	289356276950969701
+	.quad	289356276934192485
+	.quad	289356276917415269
+	.quad	289356276900638053
+	.quad	289356276883860837
+	.quad	289356276867083621
+	.quad	289356277018013029
+	.quad	289356277001235813
+	.quad	289356276984458597
+	.quad	289356276967681381
+	.quad	289356276950904165
+	.quad	289356276934126949
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	289356276967746405
+	.quad	289356276984523621
+	.quad	289356277001300837
+	.quad	289356277018078053
+	.quad	289356276867148645
+	.quad	289356276883925861
+	.quad	289356276900703077
+	.quad	289356276917480293
+	.quad	289356276934257509
+	.quad	289356276951034725
+	.quad	289356276967811941
+	.quad	289356276984589157
+	.quad	289356277001366373
+	.quad	289356277018143589
+	.quad	289356276867214181
+	.quad	289356276883991397
+	.quad	289356276900768613
+	.quad	289356276917545829
+	.quad	289356276934323045
+	.quad	289356276951100261
+	.quad	289356276967877477
+	.quad	289356276984654693
+	.quad	289356277001431909
+	.quad	289356277018209125
+	.quad	289356276867279717
+	.quad	289356276884056933
+	.quad	289356276900834149
+	.quad	289356276917611365
+	.quad	289356276934388581
+	.quad	289356276951165797
+	.quad	289356276967943013
+	.quad	289356276984720229
+	.quad	289356277001497445
+	.quad	289356277018274661
+	.quad	289356276867345253
+	.quad	289356276884122469
+	.quad	289356276900899685
+	.quad	289356276917676901
+	.quad	289356276934454117
+	.quad	289356276951231333
+	.quad	289356276968008549
+	.quad	289356276984785765
+	.quad	289356277001562981
+	.quad	289356277018340197
+	.quad	289356276867410789
+	.quad	289356276884188005
+	.quad	289356276900965221
+	.quad	289356276917742437
+	.quad	289356276934519653
+	.quad	289356276951296869
+	.quad	289356276968074085
+	.quad	289356276984851301
+	.quad	289356277001628517
+	.quad	289356277018405733
+	.quad	289356276867476325
+	.quad	289356276884253541
+	.quad	289356276901030757
+	.quad	289356276917807973
+	.quad	289356276934585189
+	.quad	289356276951362405
+	.quad	289356276968139621
+	.quad	289356276984916837
+	.quad	289356277001694053
+	.quad	289356277018471269
+	.quad	289356276867541861
+	.quad	289356276884319077
+	.quad	289356276901096293
+	.quad	289356276917873509
+	.quad	289356276934650725
+	.quad	289356276951427941
+	.quad	289356276968205157
+	.quad	289356276984982373
+	.quad	289356277001759589
+	.quad	289356277018536805
+	.quad	289356276867607397
+	.quad	289356276884384613
+	.quad	289356276901161829
+	.quad	289356276917939045
+	.quad	289356276934716261
+	.quad	289356276951493477
+	.quad	289356276968270693
+	.quad	289356276985047909
+	.quad	289356277001825125
+	.quad	289356277018602341
+	.quad	360288177156598629
+	.quad	360288181451565925
+	.quad	360288185746533221
+	.quad	360288190041500517
+	.quad	360288194336467813
+	.quad	360288198631435109
+	.quad	360288202926402405
+	.quad	360288207221369701
+	.quad	360288211516336997
+	.quad	360288215811304293
+	.quad	360288177173375845
+	.quad	360288181468343141
+	.quad	360288185763310437
+	.quad	360288190058277733
+	.quad	360288194353245029
+	.quad	360288198648212325
+	.quad	360288202943179621
+	.quad	360288207238146917
+	.quad	360288211533114213
+	.quad	360288215828081509
+	.quad	360288177190153061
+	.quad	360288181485120357
+	.quad	360288185780087653
+	.quad	360288190075054949
+	.quad	360288194370022245
+	.quad	360288198664989541
+	.quad	360288202959956837
+	.quad	360288207254924133
+	.quad	360288211549891429
+	.quad	360288215844858725
+	.quad	360288177206930277
+	.quad	360288181501897573
+	.quad	360288185796864869
+	.quad	360288190091832165
+	.quad	360288194386799461
+	.quad	360288198681766757
+	.quad	360288202976734053
+	.quad	360288207271701349
+	.quad	360288211566668645
+	.quad	360288215861635941
+	.quad	360288177223707493
+	.quad	360288181518674789
+	.quad	360288185813642085
+	.quad	360288190108609381
+	.quad	360288194403576677
+	.quad	360288198698543973
+	.quad	360288202993511269
+	.quad	360288207288478565
+	.quad	360288211583445861
+	.quad	360288215878413157
+	.quad	360288177240484709
+	.quad	360288181535452005
+	.quad	360288185830419301
+	.quad	360288190125386597
+	.quad	360288194420353893
+	.quad	360288198715321189
+	.quad	360288203010288485
+	.quad	360288207305255781
+	.quad	360288211600223077
+	.quad	360288215895190373
+	.quad	360288177257261925
+	.quad	360288181552229221
+	.quad	360288185847196517
+	.quad	360288190142163813
+	.quad	360288194437131109
+	.quad	360288198732098405
+	.quad	360288203027065701
+	.quad	360288207322032997
+	.quad	360288211617000293
+	.quad	360288215911967589
+	.quad	360288177274039141
+	.quad	360288181569006437
+	.quad	360288185863973733
+	.quad	360288190158941029
+	.quad	360288194453908325
+	.quad	360288198748875621
+	.quad	360288203043842917
+	.quad	360288207338810213
+	.quad	360288211633777509
+	.quad	360288215928744805
+	.quad	360288177290816357
+	.quad	360288181585783653
+	.quad	360288185880750949
+	.quad	360288190175718245
+	.quad	360288194470685541
+	.quad	360288198765652837
+	.quad	360288203060620133
+	.quad	360288207355587429
+	.quad	360288211650554725
+	.quad	360288215945522021
+	.quad	360288177307593573
+	.quad	360288181602560869
+	.quad	360288185897528165
+	.quad	360288190192495461
+	.quad	360288194487462757
+	.quad	360288198782430053
+	.quad	360288203077397349
+	.quad	360288207372364645
+	.quad	360288211667331941
+	.quad	360288215962299237
+	.quad	360288177156664165
+	.quad	360288181451631461
+	.quad	360288185746598757
+	.quad	360288190041566053
+	.quad	360288194336533349
+	.quad	360288198631500645
+	.quad	360288202926467941
+	.quad	360288207221435237
+	.quad	360288211516402533
+	.quad	360288215811369829
+	.quad	360288177173441381
+	.quad	360288181468408677
+	.quad	360288185763375973
+	.quad	360288190058343269
+	.quad	360288194353310565
+	.quad	360288198648277861
+	.quad	360288202943245157
+	.quad	360288207238212453
+	.quad	360288211533179749
+	.quad	360288215828147045
+	.quad	360288177190218597
+	.quad	360288181485185893
+	.quad	360288185780153189
+	.quad	360288190075120485
+	.quad	360288194370087781
+	.quad	360288198665055077
+	.quad	360288202960022373
+	.quad	360288207254989669
+	.quad	360288211549956965
+	.quad	360288215844924261
+	.quad	360288177206995813
+	.quad	360288181501963109
+	.quad	360288185796930405
+	.quad	360288190091897701
+	.quad	360288194386864997
+	.quad	360288198681832293
+	.quad	360288202976799589
+	.quad	360288207271766885
+	.quad	360288211566734181
+	.quad	360288215861701477
+	.quad	360288177223773029
+	.quad	360288181518740325
+	.quad	360288185813707621
+	.quad	360288190108674917
+	.quad	360288194403642213
+	.quad	360288198698609509
+	.quad	360288202993576805
+	.quad	360288207288544101
+	.quad	360288211583511397
+	.quad	360288215878478693
+	.quad	360288177240550245
+	.quad	360288181535517541
+	.quad	360288185830484837
+	.quad	360288190125452133
+	.quad	360288194420419429
+	.quad	360288198715386725
+	.quad	360288203010354021
+	.quad	360288207305321317
+	.quad	360288211600288613
+	.quad	360288215895255909
+	.quad	360288177257327461
+	.quad	360288181552294757
+	.quad	360288185847262053
+	.quad	360288190142229349
+	.quad	360288194437196645
+	.quad	360288198732163941
+	.quad	360288203027131237
+	.quad	360288207322098533
+	.quad	360288211617065829
+	.quad	360288215912033125
+	.quad	360288177274104677
+	.quad	360288181569071973
+	.quad	360288185864039269
+	.quad	360288190159006565
+	.quad	360288194453973861
+	.quad	360288198748941157
+	.quad	360288203043908453
+	.quad	360288207338875749
+	.quad	360288211633843045
+	.quad	360288215928810341
+	.quad	360288177290881893
+	.quad	360288181585849189
+	.quad	360288185880816485
+	.quad	360288190175783781
+	.quad	360288194470751077
+	.quad	360288198765718373
+	.quad	360288203060685669
+	.quad	360288207355652965
+	.quad	360288211650620261
+	.quad	360288215945587557
+	.quad	360288177307659109
+	.quad	360288181602626405
+	.quad	360288185897593701
+	.quad	360288190192560997
+	.quad	360288194487528293
+	.quad	360288198782495589
+	.quad	360288203077462885
+	.quad	360288207372430181
+	.quad	360288211667397477
+	.quad	360288215962364773
+	.quad	360288177156729701
+	.quad	360288181451696997
+	.quad	360288185746664293
+	.quad	360288190041631589
+	.quad	360288194336598885
+	.quad	360288198631566181
+	.quad	360288202926533477
+	.quad	360288207221500773
+	.quad	360288211516468069
+	.quad	65600
+	.quad	4
+	.quad	0
+	.quad	9017094859390976
+	.quad	0
+	.quad	256
+	.quad	0
+	.quad	0
+	.quad	4194304
+	.quad	0
+	.quad	131072
+	.quad	8388608
+	.quad	0
+	.quad	2251799813685248
+	.quad	1125900980584448
+	.quad	0
+	.quad	0
+	.quad	16777216
+	.quad	9007199254740992
+	.quad	0
+	.quad	281474976972800
+	.quad	144115188092633088
+	.quad	1056768
+	.quad	4294967296
+	.quad	2305843009213693952
+	.quad	131072
+	.quad	0
+	.quad	0
+	.quad	0
+	.quad	1073741824
+	.quad	0
+	.quad	32768
 	.base64	"AQIDBAUGBwgJCgsMDQ4PEBEEAQE="
 	.base64	"AQIDBAUGBwgJCgsMDQ4PEBEDAQE="
 	.base64	"AQIDBAUGBwgJCgsMDQ4PEBECAQE="
@@ -446,6 +2758,26 @@ _ZL18e10_variable_data2:
 	.base64	"ERERERERERERERERERERERIADxA="
 	.base64	"EhISEhISEhISEhISEhISEhIAEBE="
 	.base64	"AQMEBQYHCAkKCwwNDg8QERIAAQI="
+	.align 32
+	.type	_ZL16constants_double, @object
+	.size	_ZL16constants_double, 96
+_ZL16constants_double:
+	.quad	315653
+	.quad	-217707
+	.quad	1000000000000000
+	.quad	9223372036854775801
+	.quad	-131072
+	.quad	511
+	.quad	-6067343680855748867
+	.quad	100000000
+	.long	109951163
+	.long	55536
+	.long	21475328
+	.long	65436
+	.value	3296
+	.value	246
+	.value	12336
+	.zero	10
 	.align 32
 	.type	_ZL12pow10_double, @object
 	.size	_ZL12pow10_double, 9872
@@ -1684,643 +4016,6 @@ _ZL12pow10_double:
 	.quad	4061034775552188357
 	.quad	-218939024818557886
 	.quad	5076293469440235446
-	.align 32
-	.type	_ZL17exp_result_double, @object
-	.size	_ZL17exp_result_double, 5064
-_ZL17exp_result_double:
-	.quad	360288194370153829
-	.quad	360288190075186533
-	.quad	360288185780219237
-	.quad	360288181485251941
-	.quad	360288177190284645
-	.quad	360288215828213093
-	.quad	360288211533245797
-	.quad	360288207238278501
-	.quad	360288202943311205
-	.quad	360288198648343909
-	.quad	360288194353376613
-	.quad	360288190058409317
-	.quad	360288185763442021
-	.quad	360288181468474725
-	.quad	360288177173507429
-	.quad	360288215811435877
-	.quad	360288211516468581
-	.quad	360288207221501285
-	.quad	360288202926533989
-	.quad	360288198631566693
-	.quad	360288194336599397
-	.quad	360288190041632101
-	.quad	360288185746664805
-	.quad	360288181451697509
-	.quad	360288177156730213
-	.quad	360288215962365285
-	.quad	360288211667397989
-	.quad	360288207372430693
-	.quad	360288203077463397
-	.quad	360288198782496101
-	.quad	360288194487528805
-	.quad	360288190192561509
-	.quad	360288185897594213
-	.quad	360288181602626917
-	.quad	360288177307659621
-	.quad	360288215945588069
-	.quad	360288211650620773
-	.quad	360288207355653477
-	.quad	360288203060686181
-	.quad	360288198765718885
-	.quad	360288194470751589
-	.quad	360288190175784293
-	.quad	360288185880816997
-	.quad	360288181585849701
-	.quad	360288177290882405
-	.quad	360288215928810853
-	.quad	360288211633843557
-	.quad	360288207338876261
-	.quad	360288203043908965
-	.quad	360288198748941669
-	.quad	360288194453974373
-	.quad	360288190159007077
-	.quad	360288185864039781
-	.quad	360288181569072485
-	.quad	360288177274105189
-	.quad	360288215912033637
-	.quad	360288211617066341
-	.quad	360288207322099045
-	.quad	360288203027131749
-	.quad	360288198732164453
-	.quad	360288194437197157
-	.quad	360288190142229861
-	.quad	360288185847262565
-	.quad	360288181552295269
-	.quad	360288177257327973
-	.quad	360288215895256421
-	.quad	360288211600289125
-	.quad	360288207305321829
-	.quad	360288203010354533
-	.quad	360288198715387237
-	.quad	360288194420419941
-	.quad	360288190125452645
-	.quad	360288185830485349
-	.quad	360288181535518053
-	.quad	360288177240550757
-	.quad	360288215878479205
-	.quad	360288211583511909
-	.quad	360288207288544613
-	.quad	360288202993577317
-	.quad	360288198698610021
-	.quad	360288194403642725
-	.quad	360288190108675429
-	.quad	360288185813708133
-	.quad	360288181518740837
-	.quad	360288177223773541
-	.quad	360288215861701989
-	.quad	360288211566734693
-	.quad	360288207271767397
-	.quad	360288202976800101
-	.quad	360288198681832805
-	.quad	360288194386865509
-	.quad	360288190091898213
-	.quad	360288185796930917
-	.quad	360288181501963621
-	.quad	360288177206996325
-	.quad	360288215844924773
-	.quad	360288211549957477
-	.quad	360288207254990181
-	.quad	360288202960022885
-	.quad	360288198665055589
-	.quad	360288194370088293
-	.quad	360288190075120997
-	.quad	360288185780153701
-	.quad	360288181485186405
-	.quad	360288177190219109
-	.quad	360288215828147557
-	.quad	360288211533180261
-	.quad	360288207238212965
-	.quad	360288202943245669
-	.quad	360288198648278373
-	.quad	360288194353311077
-	.quad	360288190058343781
-	.quad	360288185763376485
-	.quad	360288181468409189
-	.quad	360288177173441893
-	.quad	360288215811370341
-	.quad	360288211516403045
-	.quad	360288207221435749
-	.quad	360288202926468453
-	.quad	360288198631501157
-	.quad	360288194336533861
-	.quad	360288190041566565
-	.quad	360288185746599269
-	.quad	360288181451631973
-	.quad	360288177156664677
-	.quad	360288215962299749
-	.quad	360288211667332453
-	.quad	360288207372365157
-	.quad	360288203077397861
-	.quad	360288198782430565
-	.quad	360288194487463269
-	.quad	360288190192495973
-	.quad	360288185897528677
-	.quad	360288181602561381
-	.quad	360288177307594085
-	.quad	360288215945522533
-	.quad	360288211650555237
-	.quad	360288207355587941
-	.quad	360288203060620645
-	.quad	360288198765653349
-	.quad	360288194470686053
-	.quad	360288190175718757
-	.quad	360288185880751461
-	.quad	360288181585784165
-	.quad	360288177290816869
-	.quad	360288215928745317
-	.quad	360288211633778021
-	.quad	360288207338810725
-	.quad	360288203043843429
-	.quad	360288198748876133
-	.quad	360288194453908837
-	.quad	360288190158941541
-	.quad	360288185863974245
-	.quad	360288181569006949
-	.quad	360288177274039653
-	.quad	360288215911968101
-	.quad	360288211617000805
-	.quad	360288207322033509
-	.quad	360288203027066213
-	.quad	360288198732098917
-	.quad	360288194437131621
-	.quad	360288190142164325
-	.quad	360288185847197029
-	.quad	360288181552229733
-	.quad	360288177257262437
-	.quad	360288215895190885
-	.quad	360288211600223589
-	.quad	360288207305256293
-	.quad	360288203010288997
-	.quad	360288198715321701
-	.quad	360288194420354405
-	.quad	360288190125387109
-	.quad	360288185830419813
-	.quad	360288181535452517
-	.quad	360288177240485221
-	.quad	360288215878413669
-	.quad	360288211583446373
-	.quad	360288207288479077
-	.quad	360288202993511781
-	.quad	360288198698544485
-	.quad	360288194403577189
-	.quad	360288190108609893
-	.quad	360288185813642597
-	.quad	360288181518675301
-	.quad	360288177223708005
-	.quad	360288215861636453
-	.quad	360288211566669157
-	.quad	360288207271701861
-	.quad	360288202976734565
-	.quad	360288198681767269
-	.quad	360288194386799973
-	.quad	360288190091832677
-	.quad	360288185796865381
-	.quad	360288181501898085
-	.quad	360288177206930789
-	.quad	360288215844859237
-	.quad	360288211549891941
-	.quad	360288207254924645
-	.quad	360288202959957349
-	.quad	360288198664990053
-	.quad	360288194370022757
-	.quad	360288190075055461
-	.quad	360288185780088165
-	.quad	360288181485120869
-	.quad	360288177190153573
-	.quad	360288215828082021
-	.quad	360288211533114725
-	.quad	360288207238147429
-	.quad	360288202943180133
-	.quad	360288198648212837
-	.quad	360288194353245541
-	.quad	360288190058278245
-	.quad	360288185763310949
-	.quad	360288181468343653
-	.quad	360288177173376357
-	.quad	360288215811304805
-	.quad	360288211516337509
-	.quad	360288207221370213
-	.quad	360288202926402917
-	.quad	360288198631435621
-	.quad	360288194336468325
-	.quad	360288190041501029
-	.quad	360288185746533733
-	.quad	360288181451566437
-	.quad	360288177156599141
-	.quad	289356277018602853
-	.quad	289356277001825637
-	.quad	289356276985048421
-	.quad	289356276968271205
-	.quad	289356276951493989
-	.quad	289356276934716773
-	.quad	289356276917939557
-	.quad	289356276901162341
-	.quad	289356276884385125
-	.quad	289356276867607909
-	.quad	289356277018537317
-	.quad	289356277001760101
-	.quad	289356276984982885
-	.quad	289356276968205669
-	.quad	289356276951428453
-	.quad	289356276934651237
-	.quad	289356276917874021
-	.quad	289356276901096805
-	.quad	289356276884319589
-	.quad	289356276867542373
-	.quad	289356277018471781
-	.quad	289356277001694565
-	.quad	289356276984917349
-	.quad	289356276968140133
-	.quad	289356276951362917
-	.quad	289356276934585701
-	.quad	289356276917808485
-	.quad	289356276901031269
-	.quad	289356276884254053
-	.quad	289356276867476837
-	.quad	289356277018406245
-	.quad	289356277001629029
-	.quad	289356276984851813
-	.quad	289356276968074597
-	.quad	289356276951297381
-	.quad	289356276934520165
-	.quad	289356276917742949
-	.quad	289356276900965733
-	.quad	289356276884188517
-	.quad	289356276867411301
-	.quad	289356277018340709
-	.quad	289356277001563493
-	.quad	289356276984786277
-	.quad	289356276968009061
-	.quad	289356276951231845
-	.quad	289356276934454629
-	.quad	289356276917677413
-	.quad	289356276900900197
-	.quad	289356276884122981
-	.quad	289356276867345765
-	.quad	289356277018275173
-	.quad	289356277001497957
-	.quad	289356276984720741
-	.quad	289356276967943525
-	.quad	289356276951166309
-	.quad	289356276934389093
-	.quad	289356276917611877
-	.quad	289356276900834661
-	.quad	289356276884057445
-	.quad	289356276867280229
-	.quad	289356277018209637
-	.quad	289356277001432421
-	.quad	289356276984655205
-	.quad	289356276967877989
-	.quad	289356276951100773
-	.quad	289356276934323557
-	.quad	289356276917546341
-	.quad	289356276900769125
-	.quad	289356276883991909
-	.quad	289356276867214693
-	.quad	289356277018144101
-	.quad	289356277001366885
-	.quad	289356276984589669
-	.quad	289356276967812453
-	.quad	289356276951035237
-	.quad	289356276934258021
-	.quad	289356276917480805
-	.quad	289356276900703589
-	.quad	289356276883926373
-	.quad	289356276867149157
-	.quad	289356277018078565
-	.quad	289356277001301349
-	.quad	289356276984524133
-	.quad	289356276967746917
-	.quad	289356276950969701
-	.quad	289356276934192485
-	.quad	289356276917415269
-	.quad	289356276900638053
-	.quad	289356276883860837
-	.quad	289356276867083621
-	.quad	289356277018013029
-	.quad	289356277001235813
-	.quad	289356276984458597
-	.quad	289356276967681381
-	.quad	289356276950904165
-	.quad	289356276934126949
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	0
-	.quad	289356276967746405
-	.quad	289356276984523621
-	.quad	289356277001300837
-	.quad	289356277018078053
-	.quad	289356276867148645
-	.quad	289356276883925861
-	.quad	289356276900703077
-	.quad	289356276917480293
-	.quad	289356276934257509
-	.quad	289356276951034725
-	.quad	289356276967811941
-	.quad	289356276984589157
-	.quad	289356277001366373
-	.quad	289356277018143589
-	.quad	289356276867214181
-	.quad	289356276883991397
-	.quad	289356276900768613
-	.quad	289356276917545829
-	.quad	289356276934323045
-	.quad	289356276951100261
-	.quad	289356276967877477
-	.quad	289356276984654693
-	.quad	289356277001431909
-	.quad	289356277018209125
-	.quad	289356276867279717
-	.quad	289356276884056933
-	.quad	289356276900834149
-	.quad	289356276917611365
-	.quad	289356276934388581
-	.quad	289356276951165797
-	.quad	289356276967943013
-	.quad	289356276984720229
-	.quad	289356277001497445
-	.quad	289356277018274661
-	.quad	289356276867345253
-	.quad	289356276884122469
-	.quad	289356276900899685
-	.quad	289356276917676901
-	.quad	289356276934454117
-	.quad	289356276951231333
-	.quad	289356276968008549
-	.quad	289356276984785765
-	.quad	289356277001562981
-	.quad	289356277018340197
-	.quad	289356276867410789
-	.quad	289356276884188005
-	.quad	289356276900965221
-	.quad	289356276917742437
-	.quad	289356276934519653
-	.quad	289356276951296869
-	.quad	289356276968074085
-	.quad	289356276984851301
-	.quad	289356277001628517
-	.quad	289356277018405733
-	.quad	289356276867476325
-	.quad	289356276884253541
-	.quad	289356276901030757
-	.quad	289356276917807973
-	.quad	289356276934585189
-	.quad	289356276951362405
-	.quad	289356276968139621
-	.quad	289356276984916837
-	.quad	289356277001694053
-	.quad	289356277018471269
-	.quad	289356276867541861
-	.quad	289356276884319077
-	.quad	289356276901096293
-	.quad	289356276917873509
-	.quad	289356276934650725
-	.quad	289356276951427941
-	.quad	289356276968205157
-	.quad	289356276984982373
-	.quad	289356277001759589
-	.quad	289356277018536805
-	.quad	289356276867607397
-	.quad	289356276884384613
-	.quad	289356276901161829
-	.quad	289356276917939045
-	.quad	289356276934716261
-	.quad	289356276951493477
-	.quad	289356276968270693
-	.quad	289356276985047909
-	.quad	289356277001825125
-	.quad	289356277018602341
-	.quad	360288177156598629
-	.quad	360288181451565925
-	.quad	360288185746533221
-	.quad	360288190041500517
-	.quad	360288194336467813
-	.quad	360288198631435109
-	.quad	360288202926402405
-	.quad	360288207221369701
-	.quad	360288211516336997
-	.quad	360288215811304293
-	.quad	360288177173375845
-	.quad	360288181468343141
-	.quad	360288185763310437
-	.quad	360288190058277733
-	.quad	360288194353245029
-	.quad	360288198648212325
-	.quad	360288202943179621
-	.quad	360288207238146917
-	.quad	360288211533114213
-	.quad	360288215828081509
-	.quad	360288177190153061
-	.quad	360288181485120357
-	.quad	360288185780087653
-	.quad	360288190075054949
-	.quad	360288194370022245
-	.quad	360288198664989541
-	.quad	360288202959956837
-	.quad	360288207254924133
-	.quad	360288211549891429
-	.quad	360288215844858725
-	.quad	360288177206930277
-	.quad	360288181501897573
-	.quad	360288185796864869
-	.quad	360288190091832165
-	.quad	360288194386799461
-	.quad	360288198681766757
-	.quad	360288202976734053
-	.quad	360288207271701349
-	.quad	360288211566668645
-	.quad	360288215861635941
-	.quad	360288177223707493
-	.quad	360288181518674789
-	.quad	360288185813642085
-	.quad	360288190108609381
-	.quad	360288194403576677
-	.quad	360288198698543973
-	.quad	360288202993511269
-	.quad	360288207288478565
-	.quad	360288211583445861
-	.quad	360288215878413157
-	.quad	360288177240484709
-	.quad	360288181535452005
-	.quad	360288185830419301
-	.quad	360288190125386597
-	.quad	360288194420353893
-	.quad	360288198715321189
-	.quad	360288203010288485
-	.quad	360288207305255781
-	.quad	360288211600223077
-	.quad	360288215895190373
-	.quad	360288177257261925
-	.quad	360288181552229221
-	.quad	360288185847196517
-	.quad	360288190142163813
-	.quad	360288194437131109
-	.quad	360288198732098405
-	.quad	360288203027065701
-	.quad	360288207322032997
-	.quad	360288211617000293
-	.quad	360288215911967589
-	.quad	360288177274039141
-	.quad	360288181569006437
-	.quad	360288185863973733
-	.quad	360288190158941029
-	.quad	360288194453908325
-	.quad	360288198748875621
-	.quad	360288203043842917
-	.quad	360288207338810213
-	.quad	360288211633777509
-	.quad	360288215928744805
-	.quad	360288177290816357
-	.quad	360288181585783653
-	.quad	360288185880750949
-	.quad	360288190175718245
-	.quad	360288194470685541
-	.quad	360288198765652837
-	.quad	360288203060620133
-	.quad	360288207355587429
-	.quad	360288211650554725
-	.quad	360288215945522021
-	.quad	360288177307593573
-	.quad	360288181602560869
-	.quad	360288185897528165
-	.quad	360288190192495461
-	.quad	360288194487462757
-	.quad	360288198782430053
-	.quad	360288203077397349
-	.quad	360288207372364645
-	.quad	360288211667331941
-	.quad	360288215962299237
-	.quad	360288177156664165
-	.quad	360288181451631461
-	.quad	360288185746598757
-	.quad	360288190041566053
-	.quad	360288194336533349
-	.quad	360288198631500645
-	.quad	360288202926467941
-	.quad	360288207221435237
-	.quad	360288211516402533
-	.quad	360288215811369829
-	.quad	360288177173441381
-	.quad	360288181468408677
-	.quad	360288185763375973
-	.quad	360288190058343269
-	.quad	360288194353310565
-	.quad	360288198648277861
-	.quad	360288202943245157
-	.quad	360288207238212453
-	.quad	360288211533179749
-	.quad	360288215828147045
-	.quad	360288177190218597
-	.quad	360288181485185893
-	.quad	360288185780153189
-	.quad	360288190075120485
-	.quad	360288194370087781
-	.quad	360288198665055077
-	.quad	360288202960022373
-	.quad	360288207254989669
-	.quad	360288211549956965
-	.quad	360288215844924261
-	.quad	360288177206995813
-	.quad	360288181501963109
-	.quad	360288185796930405
-	.quad	360288190091897701
-	.quad	360288194386864997
-	.quad	360288198681832293
-	.quad	360288202976799589
-	.quad	360288207271766885
-	.quad	360288211566734181
-	.quad	360288215861701477
-	.quad	360288177223773029
-	.quad	360288181518740325
-	.quad	360288185813707621
-	.quad	360288190108674917
-	.quad	360288194403642213
-	.quad	360288198698609509
-	.quad	360288202993576805
-	.quad	360288207288544101
-	.quad	360288211583511397
-	.quad	360288215878478693
-	.quad	360288177240550245
-	.quad	360288181535517541
-	.quad	360288185830484837
-	.quad	360288190125452133
-	.quad	360288194420419429
-	.quad	360288198715386725
-	.quad	360288203010354021
-	.quad	360288207305321317
-	.quad	360288211600288613
-	.quad	360288215895255909
-	.quad	360288177257327461
-	.quad	360288181552294757
-	.quad	360288185847262053
-	.quad	360288190142229349
-	.quad	360288194437196645
-	.quad	360288198732163941
-	.quad	360288203027131237
-	.quad	360288207322098533
-	.quad	360288211617065829
-	.quad	360288215912033125
-	.quad	360288177274104677
-	.quad	360288181569071973
-	.quad	360288185864039269
-	.quad	360288190159006565
-	.quad	360288194453973861
-	.quad	360288198748941157
-	.quad	360288203043908453
-	.quad	360288207338875749
-	.quad	360288211633843045
-	.quad	360288215928810341
-	.quad	360288177290881893
-	.quad	360288181585849189
-	.quad	360288185880816485
-	.quad	360288190175783781
-	.quad	360288194470751077
-	.quad	360288198765718373
-	.quad	360288203060685669
-	.quad	360288207355652965
-	.quad	360288211650620261
-	.quad	360288215945587557
-	.quad	360288177307659109
-	.quad	360288181602626405
-	.quad	360288185897593701
-	.quad	360288190192560997
-	.quad	360288194487528293
-	.quad	360288198782495589
-	.quad	360288203077462885
-	.quad	360288207372430181
-	.quad	360288211667397477
-	.quad	360288215962364773
-	.quad	360288177156729701
-	.quad	360288181451696997
-	.quad	360288185746664293
-	.quad	360288190041631589
-	.quad	360288194336598885
-	.quad	360288198631566181
-	.quad	360288202926533477
-	.quad	360288207221500773
-	.quad	360288211516468069
 	.section	.rodata.cst16,"aM",@progbits,16
 	.align 16
 .LC0:
@@ -2345,11 +4040,72 @@ _ZL17exp_result_double:
 	.quad	4503599627371
 	.quad	45035996273705
 	.quad	450359962737050
-	.section	.rodata.cst16
-	.align 16
+	.align 64
 .LC6:
-	.quad	-9223372036854775802
-	.quad	0
+	.byte	7
+	.byte	15
+	.byte	23
+	.byte	31
+	.byte	39
+	.byte	47
+	.byte	55
+	.byte	63
+	.byte	7
+	.byte	15
+	.byte	23
+	.byte	31
+	.byte	39
+	.byte	47
+	.byte	55
+	.byte	63
+	.byte	7
+	.byte	15
+	.byte	23
+	.byte	31
+	.byte	39
+	.byte	47
+	.byte	55
+	.byte	63
+	.byte	7
+	.byte	15
+	.byte	23
+	.byte	31
+	.byte	39
+	.byte	47
+	.byte	55
+	.byte	63
+	.byte	7
+	.byte	15
+	.byte	23
+	.byte	31
+	.byte	39
+	.byte	47
+	.byte	55
+	.byte	63
+	.byte	7
+	.byte	15
+	.byte	23
+	.byte	31
+	.byte	39
+	.byte	47
+	.byte	55
+	.byte	63
+	.byte	7
+	.byte	15
+	.byte	23
+	.byte	31
+	.byte	39
+	.byte	47
+	.byte	55
+	.byte	63
+	.byte	7
+	.byte	15
+	.byte	23
+	.byte	31
+	.byte	39
+	.byte	47
+	.byte	55
+	.byte	63
 	.ident	"GCC: (Ubuntu 15.2.0-11ubuntu1) 15.2.0"
 	.section	.note.GNU-stack,"",@progbits
 	.section	.note.gnu.property,"a"
