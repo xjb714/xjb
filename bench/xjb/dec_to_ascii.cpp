@@ -143,34 +143,58 @@ static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint6
 {
     return cmov_branchless(up_down, 7 - tz, 8 - lz);
 }
-struct const_value_double {//size = 40 bytes
-    int64_t c1;
-    int64_t c2;
-    int64_t c3;
-    int64_t c4;
-    int64_t e7;
-    int64_t e10;
+struct const_value_double {
+    uint64_t c1;//8
+    uint64_t c2;//8
+    uint64_t c3;//8
+    uint64_t c4;//8
+    uint64_t mul_const;       // 8
+    uint64_t hundred_million; // 8
+#if HAS_NEON
+    int32x4_t multipliers32;  // 16
+    int16x8_t multipliers16;  // 16
+#else
+    int32_t multipliers32[4]; // 16
+    int16_t multipliers16[8]; // 16
+#endif
 };
-static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_down, const uint64_t D17)
+struct double_table_t {
+    uint64_t pow10_double[(323 - (-293) + 1) * 2];
+    uint64_t exp_result_double[324 + 308 + 1];
+    uint64_t bit_array_irregular[32];
+    unsigned char e10_variable_data2[15 - (-3) + 1 + 1][20];
+};
+static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_down, const uint64_t D17, const struct const_value_double *cv)
 {
     // m range : [1, 1e16 - 1] ; m = abcdefgh * 10^8 + ijklmnop
     const uint64_t ZERO = 0x3030303030303030ull;
-    uint64_t abcdefgh = m / 100000000;
-    uint64_t ijklmnop = m - abcdefgh * 100000000;
+    // uint64_t abcdefgh = m / 100000000;
+    // uint64_t ijklmnop = m - abcdefgh * 100000000;
+    uint32_t abcdefgh = ((__uint128_t)m * cv->mul_const) >> 90;
+    uint64_t hundred_million = cv->hundred_million;
+#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
+    asm ("" : "+r"(hundred_million));
+#endif
+    uint32_t ijklmnop = m - abcdefgh * hundred_million;
 #if HAS_NEON
     // src from : https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
     // bolg : https://dougallj.wordpress.com/2022/04/01/converting-integers-to-fixed-width-strings-faster-with-neon-simd-on-the-apple-m1/
     // author : https://github.com/dougallj
     uint64x1_t hundredmillions = {abcdefgh | ((uint64_t)ijklmnop << 32)};
-    int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(0x68db8bb)), 9);
-    int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(-10000 + 0x10000));
+    //int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(0x68db8bb)), 9);
+    int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
+    int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
     int32x4_t extended = vshll_n_u16(tenthousands, 0);
-    int32x4_t high_100 = vqdmulhq_s32(extended, vdupq_n_s32(0x147b000));
-    int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(-100 + 0x10000));
-    int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(0xce0));
-    int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(-10 + 0x100));
+#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
+    asm ("" : "+w"(extended));
+#endif
+    int32x4_t high_100 = vqdmulhq_s32(extended, vdupq_n_s32(cv->multipliers32[2]));
+    int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(cv->multipliers32[3]));
+    int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
+    int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
     int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+    //int16x8_t ascii16 = vaddq_u64(BCD_little_endian, vdupq_n_s16(cv->multipliers16[2]));
     u64 abcdefgh_BCD = vgetq_lane_u64(BCD_little_endian, 0);
     u64 ijklmnop_BCD = vgetq_lane_u64(BCD_little_endian, 1);
     int abcdefgh_tz = u64_lz_bits(abcdefgh_BCD);
@@ -389,7 +413,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf)
         int16x4_t a_b_c_d_e_f_g_h = vmla_s16(ab_cd_ef_gh, vqdmulh_s16(ab_cd_ef_gh, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
         u64 bcd_big_endian = vget_lane_u64(a_b_c_d_e_f_g_h, 0);
         u64 lz = u64_lz_bits(bcd_big_endian) / 8; // lz max is 7 , bcd_big_endian = 0 is impossible
-        u64 abcdefgh_bcd = is_little_endian() ? byteswap64(bcd_big_endian) : bcd_big_endian ;
+        u64 abcdefgh_bcd = is_little_endian() ? byteswap64(bcd_big_endian) : bcd_big_endian;
         u64 abcdefgh_ascii = abcdefgh_bcd | ZERO;
         abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * lz) : abcdefgh_ascii << (8 * lz);
         memcpy(buf, &abcdefgh_ascii, 8);

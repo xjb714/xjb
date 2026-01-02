@@ -5,188 +5,137 @@
 __ZN3xjb5xjb64EdPc:                     ; @_ZN3xjb5xjb64EdPc
 	.cfi_startproc
 ; %bb.0:
-	fmov	x11, d0
+	fmov	x12, d0
 	mov	w8, #45                         ; =0x2d
 	strb	w8, [x0]
-	lsr	x9, x11, #63
+	lsr	x9, x12, #63
 	add	x8, x0, x9
-	and	x10, x11, #0x7fffffffffffffff
-	mov	x12, #-9218868437227405312      ; =0x8010000000000000
+	and	x10, x12, #0x7fffffffffffffff
+	mov	x11, #-9218868437227405312      ; =0x8010000000000000
 	mov	x13, #1                         ; =0x1
 	movk	x13, #32784, lsl #48
-	add	x12, x10, x12
-	cmp	x12, x13
-	b.ls	LBB0_8
+	add	x11, x10, x11
+	cmp	x11, x13
+	b.ls	LBB0_11
 ; %bb.1:
-	and	x12, x11, #0xfffffffffffff
-	ubfx	x10, x11, #52, #11
+	and	x13, x12, #0xfffffffffffff
+	ubfx	x11, x12, #52, #11
 	mov	w14, #1075                      ; =0x433
-	orr	x13, x12, #0x10000000000000
-	rbit	x15, x13
+	orr	x10, x13, #0x10000000000000
+	rbit	x15, x10
 	clz	x15, x15
-	sub	x14, x14, x10
+	sub	x14, x14, x11
 	cmp	x14, x15
-	b.ls	LBB0_5
+	b.ls	LBB0_4
 ; %bb.2:
-	sub	x14, x10, #1075
-	mov	x15, #-1074                     ; =0xfffffffffffffbce
-	cmp	x10, #0
-	csel	x17, x13, x12, ne
-	csel	x15, x14, x15, ne
-	mov	x13, #-131072                   ; =0xfffffffffffe0000
-	cmp	x12, #0
-	csel	x13, x13, xzr, eq
-	cset	w16, eq
-	mov	w1, #53509                      ; =0xd105
-	movk	w1, #4, lsl #16
-	smaddl	x13, w14, w1, x13
-	asr	x13, x13, #20
-	mov	x14, #-21099                    ; =0xffffffffffffad95
-	movk	x14, #65532, lsl #16
-	madd	x14, x13, x14, x14
-	add	x15, x15, x14, asr #16
 Lloh0:
-	adrp	x14, __ZL12pow10_double@PAGE
+	adrp	x14, __ZL16constants_double@PAGE
 Lloh1:
-	add	x14, x14, __ZL12pow10_double@PAGEOFF
-	sub	x14, x14, x13, lsl #4
-	add	x1, x15, #7
-	lsl	x1, x17, x1
-	mvn	w17, w17
-	ldr	x2, [x14, #4672]
-	umulh	x3, x1, x2
-	mul	x4, x1, x2
-	ldr	x14, [x14, #4680]
-	umulh	x14, x1, x14
-	adds	x14, x14, x4
-	cinc	x1, x3, hs
-	extr	x14, x1, x14, #6
-	lsr	x1, x1, #6
-	neg	x15, x15
-	lsr	x15, x2, x15
-	and	x17, x17, #0x1
-	add	x17, x15, x17
-	cmn	x14, x17
-	cset	w15, hs
-	cinc	x2, x1, hs
-	lsl	x3, x2, #2
-	adc	x1, x3, x1
-	lsl	x1, x1, #1
-	mov	x3, #32767                      ; =0x7fff
-	movk	x3, #42182, lsl #16
-	movk	x3, #36222, lsl #32
-	movk	x3, #3, lsl #48
-	cmp	x2, x3
-	csel	x1, x2, x1, hi
-	mov	x2, #59263                      ; =0xe77f
-	movk	x2, #49712, lsl #16
-	movk	x2, #15240, lsl #32
-	movk	x2, #21990, lsl #48
-	umulh	x2, x1, x2
-	lsr	x2, x2, #25
-	mov	x3, #-57600                     ; =0xffffffffffff1f00
-	movk	x3, #64010, lsl #16
-	madd	x1, x2, x3, x1
-	orr	x2, x2, x1, lsl #32
-	fmov	d0, x2
-	mov	w2, #47291                      ; =0xb8bb
-	movk	w2, #1677, lsl #16
-	dup.2s	v1, w2
-	sqdmulh.2s	v1, v0, v1
-	ushr.2s	v1, v1, #9
-	mov	w2, #55536                      ; =0xd8f0
-	dup.2s	v2, w2
-	mla.2s	v0, v1, v2
-	ushll.4s	v1, v0, #0
-	mov	w2, #45056                      ; =0xb000
-	movk	w2, #327, lsl #16
-	dup.4s	v2, w2
-	sqdmulh.4s	v1, v1, v2
-	mov	w2, #65436                      ; =0xff9c
-	dup.4s	v2, w2
-	lsr	x17, x17, x16
-	mul.4s	v1, v1, v2
-	uaddw.4s	v0, v1, v0
-	mov	w16, #3296                      ; =0xce0
-	dup.8h	v1, w16
-	sqdmulh.8h	v1, v0, v1
-	movi.8h	v2, #246
-	mla.8h	v0, v1, v2
-	rev64.16b	v1, v0
-	mov.d	x16, v1[1]
-	movi.16b	v0, #48
-	orr.16b	v0, v1, v0
-	fmov	x2, d1
-	clz	x2, x2
-	clz	x3, x16
-	add	w2, w2, #64
-	mov	w4, #15                         ; =0xf
-	cinc	x16, x4, hi
-	cmp	x1, #0
-	csel	w1, w2, w3, eq
-	sub	w1, w4, w1, lsr #3
-	cmp	x17, x14
-	mov	x17, #3472328296227680304       ; =0x3030303030303030
-	str	x17, [x8]
-	sxtw	x17, w1
-	csinc	w15, w15, wzr, ls
-	cmp	w15, #0
-	csel	x15, x17, x16, ne
-	add	x13, x16, x13
-	mov	w17, #10                        ; =0xa
-	umulh	x17, x14, x17
-	add	x1, x14, x14, lsl #2
-	lsl	x1, x1, #1
-	mov	x2, #4611686018427387904        ; =0x4000000000000000
-	cmp	x14, x2
-	mov	x14, #-7                        ; =0xfffffffffffffff9
-	movk	x14, #32767, lsl #48
-	ccmp	x14, x1, #2, ne
-	cinc	x14, x17, lo
-	mov	w17, #12336                     ; =0x3030
-	add	x14, x14, x17
-	cbz	x12, LBB0_11
-LBB0_3:
-	add	x11, x13, #3
-	mov	w12, #19                        ; =0x13
-	cmp	x11, #19
-	csel	x11, x11, x12, lo
-	mov	w12, #20                        ; =0x14
+	add	x14, x14, __ZL16constants_double@PAGEOFF
+	; InlineAsm Start
+	; InlineAsm End
+	sub	x15, x11, #1075
+	mov	x16, #-1074                     ; =0xfffffffffffffbce
+	cmp	x11, #0
+	csel	x17, x10, x13, ne
+	csel	x10, x15, x16, ne
+	mov	x16, #-131072                   ; =0xfffffffffffe0000
+	cmp	x13, #0
+	csel	x1, x16, xzr, eq
+	cset	w16, eq
+	ldp	x2, x3, [x14]
+	madd	x15, x2, x15, x1
+	asr	x15, x15, #20
+	madd	x1, x3, x15, x3
+	add	x1, x10, x1, asr #16
 Lloh2:
-	adrp	x17, __ZL18e10_variable_data2@PAGE
+	adrp	x10, __ZL12double_table@PAGE
 Lloh3:
-	add	x17, x17, __ZL18e10_variable_data2@PAGEOFF
-	madd	x11, x11, x12, x17
-	ldrb	w17, [x11, #17]
-	ldrb	w1, [x11, #18]
-	ldrb	w2, [x11, #19]
-	ldrb	w12, [x11, x15]
-	add	x11, x8, x17
-	str	q0, [x11]
-	str	x14, [x11, x16]
-	ldr	q0, [x11, x1]
-	str	q0, [x11, x2]
-	mov	w14, #46                        ; =0x2e
-	strb	w14, [x8, x1]
-	cbz	x10, LBB0_12
+	add	x10, x10, __ZL12double_table@PAGEOFF
+	sub	x2, x10, x15, lsl #4
+	add	x3, x1, #7
+	lsl	x3, x17, x3
+	mvn	w4, w17
+	ldr	x5, [x2, #4672]
+	ldr	x17, [x2, #4680]
+	umulh	x2, x3, x5
+	mul	x6, x3, x5
+	umulh	x17, x3, x17
+	adds	x17, x17, x6
+	cinc	x2, x2, hs
+	extr	x17, x2, x17, #6
+	lsr	x2, x2, #6
+	neg	x1, x1
+	lsr	x1, x5, x1
+	and	x3, x4, #0x1
+	add	x3, x1, x3
+	cmn	x17, x3
+	cset	w1, hs
+	cinc	x4, x2, hs
+	ldr	x5, [x14, #16]
+	lsl	x6, x4, #2
+	adc	x2, x6, x2
+	lsl	x2, x2, #1
+	cmp	x4, x5
+	csel	x2, x2, x4, lo
+	mov	x4, #3472328296227680304        ; =0x3030303030303030
+	str	x4, [x8]
+	ldp	x4, x5, [x14, #32]
+	umulh	x4, x2, x4
+	lsr	x4, x4, #26
+	; InlineAsm Start
+	; InlineAsm End
+	msub	x2, x5, x4, x2
+	bfi	x4, x2, #32, #32
+	fmov	d0, x4
+	ldp	q1, q2, [x14, #48]
+	sqdmulh.2s	v3, v0, v1[0]
+	ushr.2s	v3, v3, #9
+	mla.2s	v0, v3, v1[1]
+	ushll.4s	v0, v0, #0
+	; InlineAsm Start
+	; InlineAsm End
+	sqdmulh.4s	v3, v0, v1[2]
+	mla.4s	v0, v3, v1[3]
+	lsr	x3, x3, x16
+	mov	w4, #15                         ; =0xf
+	cinc	x16, x4, hs
+	sqdmulh.8h	v1, v0, v2[0]
+	mla.8h	v0, v1, v2[1]
+	rev64.16b	v0, v0
+	fmov	x5, d0
+	mov.d	x6, v0[1]
+	clz	x5, x5
+	clz	x6, x6
+	add	w5, w5, #64
+	cmp	w2, #0
+	csel	w2, w5, w6, eq
+	sub	w2, w4, w2, lsr #3
+	cmp	x3, x17
+	movi.16b	v1, #48
+	sxtw	x2, w2
+	csinc	w1, w1, wzr, ls
+	cmp	w1, #0
+	csel	x1, x2, x16, ne
+	add	x2, x17, x17, lsl #2
+	lsl	x2, x2, #1
+	mov	w3, #10                         ; =0xa
+	umulh	x3, x17, x3
+	mov	w4, #12336                      ; =0x3030
+	orr	x3, x3, x4
+	mov	x4, #4611686018427387904        ; =0x4000000000000000
+	cmp	x17, x4
+	b.ne	LBB0_6
+; %bb.3:
+	mov	x17, #-1                        ; =0xffffffffffffffff
+	b	LBB0_7
 LBB0_4:
-Lloh4:
-	adrp	x8, __ZL17exp_result_double@PAGE
-Lloh5:
-	add	x8, x8, __ZL17exp_result_double@PAGEOFF
-	add	x8, x8, x13, lsl #3
-	ldr	x8, [x8, #2592]
-	add	x9, x11, x12
-	str	x8, [x9]
-	add	x0, x9, x8, lsr #56
-	ret
-LBB0_5:
-	lsr	x9, x13, x14
+	lsr	x9, x10, x14
 	mov	w10, #57599                     ; =0xe0ff
 	movk	w10, #1525, lsl #16
 	cmp	x9, x10
-	b.hi	LBB0_7
-; %bb.6:
+	b.hi	LBB0_10
+; %bb.5:
 	mov	x10, #4300                      ; =0x10cc
 	movk	x10, #47815, lsl #16
 	movk	x10, #36280, lsl #32
@@ -219,7 +168,43 @@ LBB0_5:
 	str	w9, [x8, #8]
 	add	x0, x8, #10
 	ret
+LBB0_6:
+	ldr	x17, [x14, #24]
 LBB0_7:
+	add	x14, x16, x15
+	orr.16b	v0, v0, v1
+	cmp	x17, x2
+	cinc	x15, x3, lo
+	cbz	x13, LBB0_14
+LBB0_8:
+	add	x12, x14, #3
+	mov	w13, #19                        ; =0x13
+	cmp	x12, #19
+	csel	x12, x12, x13, lo
+	mov	w13, #20                        ; =0x14
+	madd	x12, x12, x13, x10
+	mov	w13, #15192                     ; =0x3b58
+	add	x12, x12, x13
+	ldrb	w17, [x12, #17]
+	ldrb	w2, [x12, #18]
+	ldrb	w3, [x12, #19]
+	ldrb	w13, [x12, x1]
+	add	x12, x8, x17
+	str	q0, [x12]
+	str	x15, [x12, x16]
+	ldr	q0, [x12, x2]
+	str	q0, [x12, x3]
+	mov	w15, #46                        ; =0x2e
+	strb	w15, [x8, x2]
+	cbz	x11, LBB0_15
+LBB0_9:
+	add	x8, x10, x14, lsl #3
+	ldr	x8, [x8, #12464]
+	add	x9, x12, x13
+	str	x8, [x9]
+	add	x0, x9, x8, lsr #56
+	ret
+LBB0_10:
 	mov	x10, #52989                     ; =0xcefd
 	movk	x10, #33889, lsl #16
 	movk	x10, #30481, lsl #32
@@ -269,56 +254,58 @@ LBB0_7:
 	str	w9, [x8, #16]
 	add	x0, x8, #18
 	ret
-LBB0_8:
+LBB0_11:
 	cmp	x10, #1
-	b.eq	LBB0_16
-; %bb.9:
-	cbnz	x10, LBB0_17
-; %bb.10:
+	b.eq	LBB0_19
+; %bb.12:
+	cbnz	x10, LBB0_20
+; %bb.13:
 	mov	w9, #11824                      ; =0x2e30
 	movk	w9, #48, lsl #16
 	str	w9, [x8]
 	mov	w9, #3                          ; =0x3
 	add	x0, x8, x9
 	ret
-LBB0_11:
-	lsr	x11, x11, #52
-	lsr	x12, x10, #3
-Lloh6:
-	adrp	x17, __ZL19bit_array_irregular@PAGE
-Lloh7:
-	add	x17, x17, __ZL19bit_array_irregular@PAGEOFF
-	and	x12, x12, #0xf8
-	ldr	x12, [x17, x12]
-	lsr	x11, x12, x11
-	and	x11, x11, #0x1
-	add	x14, x11, x14
-	b	LBB0_3
-LBB0_12:
-	ldrb	w8, [x11]
+LBB0_14:
+	lsr	x12, x12, #52
+	lsr	x13, x11, #3
+	and	x13, x13, #0xf8
+	add	x13, x10, x13
+	ldr	x13, [x13, #14936]
+	lsr	x12, x13, x12
+	and	x12, x12, #0x1
+	add	x15, x12, x15
+	b	LBB0_8
+LBB0_15:
+	ldrb	w8, [x12]
 	cmp	w8, #48
-	b.ne	LBB0_4
-; %bb.13:
+	b.ne	LBB0_9
+; %bb.16:
 	add	x8, x9, x17
 	add	x8, x8, x0
 	add	x9, x8, #2
 	mov	w8, #1                          ; =0x1
-	sub	x8, x8, x12
-LBB0_14:                                ; =>This Inner Loop Header: Depth=1
-	ldrb	w10, [x9], #1
-	sub	x13, x13, #1
+	sub	x8, x8, x13
+LBB0_17:                                ; =>This Inner Loop Header: Depth=1
+	ldrb	w11, [x9], #1
+	sub	x14, x14, #1
 	add	x8, x8, #1
-	cmp	w10, #48
-	b.eq	LBB0_14
-; %bb.15:
-	strb	w10, [x11]
+	cmp	w11, #48
+	b.eq	LBB0_17
+; %bb.18:
+	strb	w11, [x12]
 	ldr	q0, [x9]
-	stur	q0, [x11, #2]
+	stur	q0, [x12, #2]
 	cmn	x8, #1
 	cset	w9, ne
-	sub	x12, x9, x8
-	b	LBB0_4
-LBB0_16:
+	sub	x13, x9, x8
+	add	x8, x10, x14, lsl #3
+	ldr	x8, [x8, #12464]
+	add	x9, x12, x13
+	str	x8, [x9]
+	add	x0, x9, x8, lsr #56
+	ret
+LBB0_19:
 	mov	x9, #25909                      ; =0x6535
 	movk	x9, #13101, lsl #16
 	movk	x9, #13362, lsl #32
@@ -326,7 +313,7 @@ LBB0_16:
 	mov	w9, #6                          ; =0x6
 	add	x0, x8, x9
 	ret
-LBB0_17:
+LBB0_20:
 	mov	x9, #9218868437227405312        ; =0x7ff0000000000000
 	cmp	x10, x9
 	mov	w9, #24942                      ; =0x616e
@@ -338,10 +325,8 @@ LBB0_17:
 	mov	w9, #3                          ; =0x3
 	add	x0, x8, x9
 	ret
-	.loh AdrpAdd	Lloh0, Lloh1
 	.loh AdrpAdd	Lloh2, Lloh3
-	.loh AdrpAdd	Lloh4, Lloh5
-	.loh AdrpAdd	Lloh6, Lloh7
+	.loh AdrpAdd	Lloh0, Lloh1
 	.cfi_endproc
                                         ; -- End function
 	.globl	__ZN3xjb5xjb32EfPcb             ; -- Begin function _ZN3xjb5xjb32EfPcb
@@ -356,9 +341,9 @@ __ZN3xjb5xjb32EfPcb:                    ; @_ZN3xjb5xjb32EfPcb
 	add	x0, x0, x9
 	and	w13, w8, #0x7fffff
 	ubfx	x9, x8, #23, #8
-Lloh8:
+Lloh4:
 	adrp	x8, __ZL11float_table@PAGE
-Lloh9:
+Lloh5:
 	add	x8, x8, __ZL11float_table@PAGEOFF
 	cbz	w9, LBB1_7
 ; %bb.1:
@@ -377,9 +362,9 @@ Lloh9:
 	ldrb	w17, [x15, #1084]
 	asr	x11, x11, #12
 LBB1_4:
-Lloh10:
+Lloh6:
 	adrp	x15, __ZL15constants_float@PAGE
-Lloh11:
+Lloh7:
 	add	x15, x15, __ZL15constants_float@PAGEOFF
 	; InlineAsm Start
 	; InlineAsm End
@@ -548,13 +533,34 @@ LBB1_17:
 	movk	w8, #48, lsl #16
 	str	w8, [x0], #3
 	ret
-	.loh AdrpAdd	Lloh8, Lloh9
-	.loh AdrpAdd	Lloh10, Lloh11
+	.loh AdrpAdd	Lloh4, Lloh5
+	.loh AdrpAdd	Lloh6, Lloh7
 	.cfi_endproc
                                         ; -- End function
 	.section	__TEXT,__const
-	.p2align	3, 0x0                          ; @_ZL12pow10_double
-__ZL12pow10_double:
+	.p2align	4, 0x0                          ; @_ZL16constants_double
+__ZL16constants_double:
+	.quad	315653                          ; 0x4d105
+	.quad	-217707                         ; 0xfffffffffffcad95
+	.quad	1000000000000000                ; 0x38d7ea4c68000
+	.quad	9223372036854775801             ; 0x7ffffffffffffff9
+	.quad	-6067343680855748867            ; 0xabcc77118461cefd
+	.quad	100000000                       ; 0x5f5e100
+	.long	109951163                       ; 0x68db8bb
+	.long	55536                           ; 0xd8f0
+	.long	21475328                        ; 0x147b000
+	.long	65436                           ; 0xff9c
+	.short	3296                            ; 0xce0
+	.short	246                             ; 0xf6
+	.short	12336                           ; 0x3030
+	.short	0                               ; 0x0
+	.short	0                               ; 0x0
+	.short	0                               ; 0x0
+	.short	0                               ; 0x0
+	.short	0                               ; 0x0
+
+	.p2align	3, 0x0                          ; @_ZL12double_table
+__ZL12double_table:
 	.quad	-3720041912917459700            ; 0xcc5fc196fefd7d0c
 	.quad	2185351144835019465             ; 0x1e53ed49a96272c9
 	.quad	-38366372719436721              ; 0xff77b1fcbebcdc4f
@@ -1789,66 +1795,6 @@ __ZL12pow10_double:
 	.quad	4061034775552188357             ; 0x385bb19cb14bdfc5
 	.quad	-218939024818557886             ; 0xfcf62c1dee382c42
 	.quad	5076293469440235446             ; 0x46729e03dd9ed7b6
-
-	.p2align	3, 0x0                          ; @_ZL19bit_array_irregular
-__ZL19bit_array_irregular:
-	.quad	65600                           ; 0x10040
-	.quad	4                               ; 0x4
-	.quad	0                               ; 0x0
-	.quad	9017094859390976                ; 0x20090000000000
-	.quad	0                               ; 0x0
-	.quad	256                             ; 0x100
-	.quad	0                               ; 0x0
-	.quad	0                               ; 0x0
-	.quad	4194304                         ; 0x400000
-	.quad	0                               ; 0x0
-	.quad	131072                          ; 0x20000
-	.quad	8388608                         ; 0x800000
-	.quad	0                               ; 0x0
-	.quad	2251799813685248                ; 0x8000000000000
-	.quad	1125900980584448                ; 0x4000040000000
-	.quad	0                               ; 0x0
-	.quad	0                               ; 0x0
-	.quad	16777216                        ; 0x1000000
-	.quad	9007199254740992                ; 0x20000000000000
-	.quad	0                               ; 0x0
-	.quad	281474976972800                 ; 0x1000000040000
-	.quad	144115188092633088              ; 0x200000001000000
-	.quad	1056768                         ; 0x102000
-	.quad	4294967296                      ; 0x100000000
-	.quad	2305843009213693952             ; 0x2000000000000000
-	.quad	131072                          ; 0x20000
-	.quad	0                               ; 0x0
-	.quad	0                               ; 0x0
-	.quad	0                               ; 0x0
-	.quad	1073741824                      ; 0x40000000
-	.quad	0                               ; 0x0
-	.quad	32768                           ; 0x8000
-
-__ZL18e10_variable_data2:               ; @_ZL18e10_variable_data2
-	.ascii	"\001\002\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\004\001\001"
-	.ascii	"\001\002\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\003\001\001"
-	.ascii	"\001\002\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\002\001\001"
-	.ascii	"\003\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\022\000\001\002"
-	.ascii	"\004\004\004\005\006\007\b\t\n\013\f\r\016\017\020\021\022\000\002\003"
-	.ascii	"\005\005\005\005\006\007\b\t\n\013\f\r\016\017\020\021\022\000\003\004"
-	.ascii	"\006\006\006\006\006\007\b\t\n\013\f\r\016\017\020\021\022\000\004\005"
-	.ascii	"\007\007\007\007\007\007\b\t\n\013\f\r\016\017\020\021\022\000\005\006"
-	.ascii	"\b\b\b\b\b\b\b\t\n\013\f\r\016\017\020\021\022\000\006\007"
-	.ascii	"\t\t\t\t\t\t\t\t\n\013\f\r\016\017\020\021\022\000\007\b"
-	.ascii	"\n\n\n\n\n\n\n\n\n\013\f\r\016\017\020\021\022\000\b\t"
-	.ascii	"\013\013\013\013\013\013\013\013\013\013\f\r\016\017\020\021\022\000\t\n"
-	.ascii	"\f\f\f\f\f\f\f\f\f\f\f\r\016\017\020\021\022\000\n\013"
-	.ascii	"\r\r\r\r\r\r\r\r\r\r\r\r\016\017\020\021\022\000\013\f"
-	.ascii	"\016\016\016\016\016\016\016\016\016\016\016\016\016\017\020\021\022\000\f\r"
-	.ascii	"\017\017\017\017\017\017\017\017\017\017\017\017\017\017\020\021\022\000\r\016"
-	.ascii	"\020\020\020\020\020\020\020\020\020\020\020\020\020\020\020\021\022\000\016\017"
-	.ascii	"\021\021\021\021\021\021\021\021\021\021\021\021\021\021\021\021\022\000\017\020"
-	.ascii	"\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\000\020\021"
-	.ascii	"\001\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\022\000\001\002"
-
-	.p2align	3, 0x0                          ; @_ZL17exp_result_double
-__ZL17exp_result_double:
 	.quad	360288194370153829              ; 0x500003432332d65
 	.quad	360288190075186533              ; 0x500003332332d65
 	.quad	360288185780219237              ; 0x500003232332d65
@@ -2482,6 +2428,58 @@ __ZL17exp_result_double:
 	.quad	360288202926533477              ; 0x500003630332b65
 	.quad	360288207221500773              ; 0x500003730332b65
 	.quad	360288211516468069              ; 0x500003830332b65
+	.quad	65600                           ; 0x10040
+	.quad	4                               ; 0x4
+	.quad	0                               ; 0x0
+	.quad	9017094859390976                ; 0x20090000000000
+	.quad	0                               ; 0x0
+	.quad	256                             ; 0x100
+	.quad	0                               ; 0x0
+	.quad	0                               ; 0x0
+	.quad	4194304                         ; 0x400000
+	.quad	0                               ; 0x0
+	.quad	131072                          ; 0x20000
+	.quad	8388608                         ; 0x800000
+	.quad	0                               ; 0x0
+	.quad	2251799813685248                ; 0x8000000000000
+	.quad	1125900980584448                ; 0x4000040000000
+	.quad	0                               ; 0x0
+	.quad	0                               ; 0x0
+	.quad	16777216                        ; 0x1000000
+	.quad	9007199254740992                ; 0x20000000000000
+	.quad	0                               ; 0x0
+	.quad	281474976972800                 ; 0x1000000040000
+	.quad	144115188092633088              ; 0x200000001000000
+	.quad	1056768                         ; 0x102000
+	.quad	4294967296                      ; 0x100000000
+	.quad	2305843009213693952             ; 0x2000000000000000
+	.quad	131072                          ; 0x20000
+	.quad	0                               ; 0x0
+	.quad	0                               ; 0x0
+	.quad	0                               ; 0x0
+	.quad	1073741824                      ; 0x40000000
+	.quad	0                               ; 0x0
+	.quad	32768                           ; 0x8000
+	.ascii	"\001\002\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\004\001\001"
+	.ascii	"\001\002\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\003\001\001"
+	.ascii	"\001\002\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\002\001\001"
+	.ascii	"\003\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\022\000\001\002"
+	.ascii	"\004\004\004\005\006\007\b\t\n\013\f\r\016\017\020\021\022\000\002\003"
+	.ascii	"\005\005\005\005\006\007\b\t\n\013\f\r\016\017\020\021\022\000\003\004"
+	.ascii	"\006\006\006\006\006\007\b\t\n\013\f\r\016\017\020\021\022\000\004\005"
+	.ascii	"\007\007\007\007\007\007\b\t\n\013\f\r\016\017\020\021\022\000\005\006"
+	.ascii	"\b\b\b\b\b\b\b\t\n\013\f\r\016\017\020\021\022\000\006\007"
+	.ascii	"\t\t\t\t\t\t\t\t\n\013\f\r\016\017\020\021\022\000\007\b"
+	.ascii	"\n\n\n\n\n\n\n\n\n\013\f\r\016\017\020\021\022\000\b\t"
+	.ascii	"\013\013\013\013\013\013\013\013\013\013\f\r\016\017\020\021\022\000\t\n"
+	.ascii	"\f\f\f\f\f\f\f\f\f\f\f\r\016\017\020\021\022\000\n\013"
+	.ascii	"\r\r\r\r\r\r\r\r\r\r\r\r\016\017\020\021\022\000\013\f"
+	.ascii	"\016\016\016\016\016\016\016\016\016\016\016\016\016\017\020\021\022\000\f\r"
+	.ascii	"\017\017\017\017\017\017\017\017\017\017\017\017\017\017\020\021\022\000\r\016"
+	.ascii	"\020\020\020\020\020\020\020\020\020\020\020\020\020\020\020\021\022\000\016\017"
+	.ascii	"\021\021\021\021\021\021\021\021\021\021\021\021\021\021\021\021\022\000\017\020"
+	.ascii	"\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\000\020\021"
+	.ascii	"\001\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\022\000\001\002"
 
 	.p2align	4, 0x0                          ; @_ZL15constants_float
 __ZL15constants_float:

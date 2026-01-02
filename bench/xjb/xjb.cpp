@@ -43,6 +43,11 @@ static inline void byte_move_8(void *dst, const void *src)
 }
 char *xjb64(double v, char *buf)
 {
+    const struct const_value_double *cv = &constants_double;
+    const struct double_table_t *t = &double_table;
+#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions , MSVC not support inline asm
+    asm("" : "+r"(cv));                                                // read constant values from memory to register
+#endif
     u64 vi;
     memcpy(&vi, &v, sizeof(v));
     buf[0] = '-';
@@ -160,7 +165,8 @@ char *xjb64(double v, char *buf)
         k = (i64)((ieee_exponent - 1075) * 315653 - 131237) >> 20;
 #else
     //k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
-    k = (i64)(((i64)ieee_exponent - 1075) * 315653 + (irregular ? -131072 : 0)) >> 20;
+    //k = (i64)(((i64)ieee_exponent - 1075) * 315653 + (irregular ? -131072 : 0)) >> 20;
+    k = (i64)(((i64)ieee_exponent - 1075) * cv->c1 + (irregular ? -131072 : 0)) >> 20;
 #endif
 
 #ifdef __amd64__
@@ -170,22 +176,27 @@ char *xjb64(double v, char *buf)
     u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2]; // get 10**(-k-1)
     // u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2]; // gcc use this method , may cause performance issue. why?
 #else
-    i64 h = q + ((k * -217707 - 217707) >> 16);
-    static const u64 *pow10_ptr = pow10_double + 293 * 2 - 2;
+    //i64 h = q + ((k * -217707 - 217707) >> 16);
+    i64 h = q + ((k * (i64)cv->c2 + (i64)cv->c2 ) >> 16);
+    const u64 *pow10_ptr = t->pow10_double + 293 * 2 - 2;
     u64 *p10 = (u64 *)&pow10_ptr[k * -2]; // get 10**(-k-1)
 #endif
     u128 cb = c << (h + (1 + offset));
-    u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
+    u64 pow10_hi = p10[0];
+    u64 pow10_lo = p10[1];
+    u128 hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64));
+    //u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
     u64 dot_one = hi128 >> offset;
-    u64 half_ulp = (p10[0] >> (-h)) + ((c + 1) & 1);
+    u64 half_ulp = (pow10_hi >> (-h)) + ((c + 1) & 1);
     u64 up = (half_ulp > ~0 - dot_one);
     u64 down = ((half_ulp >> (irregular)) > dot_one);
     u64 m = (u64)(hi128 >> (offset + 64)) + up;
     u64 up_down = up + down;
-    u64 D17 = (m >= (u64)1e15);
+    //u64 D17 = (m >= (u64)1e15);
+    u64 D17 = m >= (u64)cv->c3;
     u64 mr = D17 ? m : m * 10;
     memcpy(buf, "00000000", 8);
-    shortest_ascii16 s = to_ascii16(mr, up_down, D17);
+    shortest_ascii16 s = to_ascii16(mr, up_down, D17,cv);
     k += 15 + D17;
     i64 e10 = k;
 #ifdef __amd64__
@@ -198,19 +209,20 @@ char *xjb64(double v, char *buf)
         if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
             one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
 #else
-    u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull)));
+    //u64 one = (((dot_one * (u128)10) >> 64) | (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull)));
+    u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : cv->c4)));//branch instruction
     if (irregular) [[unlikely]] // Since the compiler tries to prevent access to memory, it generates branch instructions.
-        one += (bit_array_irregular[ieee_exponent / 64] >> (ieee_exponent % 64)) & 1;
+        one += (t->bit_array_irregular[ieee_exponent / 64] >> (ieee_exponent % 64)) & 1;
 #endif
 
     const i64 e10_DN = -3;
     const i64 e10_UP = 15;
     u64 e10_3 = e10 + (-e10_DN);
     u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1; // compute offset , min(e10_3,19)
-    u64 first_sig_pos = e10_variable_data2[e10_data_ofs][17 + 0];
-    u64 dot_pos = e10_variable_data2[e10_data_ofs][17 + 1];
-    u64 move_pos = e10_variable_data2[e10_data_ofs][17 + 2];
-    u64 exp_pos = e10_variable_data2[e10_data_ofs][s.dec_sig_len];
+    u64 first_sig_pos = t->e10_variable_data2[e10_data_ofs][17 + 0];
+    u64 dot_pos = t->e10_variable_data2[e10_data_ofs][17 + 1];
+    u64 move_pos = t->e10_variable_data2[e10_data_ofs][17 + 2];
+    u64 exp_pos = t->e10_variable_data2[e10_data_ofs][s.dec_sig_len];
     char *buf_origin = buf;
     buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
@@ -222,7 +234,7 @@ char *xjb64(double v, char *buf)
     memcpy(&buf[15 + D17], &one, 8);
     byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
     buf_origin[dot_pos] = '.';
-    static const u64 *exp_ptr = (u64 *)&exp_result_double[324];
+    const u64 *exp_ptr = (u64 *)&t->exp_result_double[324];
     // if (m < (u64)1e14) [[unlikely]]
     if (ieee_exponent == 0) [[unlikely]]
     {
@@ -245,8 +257,8 @@ char *xjb64(double v, char *buf)
         //             return buf + 5;
         // #endif
     }
-    u64 exp_result = exp_ptr[e10];
-    // u64 exp_result = exp_result_double[e10 +  324];
+    //u64 exp_result = exp_ptr[e10];
+    u64 exp_result = t->exp_result_double[e10 +  324];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
