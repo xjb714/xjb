@@ -154,6 +154,8 @@ struct const_value_double {
     uint64_t hundred_million; // 8
     uint64_t div10000;
     uint64_t div10000_m;
+    double div10000_2_d;
+    int64_t div10000_2;
 #if HAS_NEON
     int32x4_t multipliers32;  // 16
     int16x8_t multipliers16;  // 16
@@ -177,15 +179,35 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     uint32_t abcdefgh = ((__uint128_t)m * cv->mul_const) >> 90;
     uint64_t hundred_million = cv->hundred_million;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
-   //asm ("" : "+r"(hundred_million));
+   asm ("" : "+r"(hundred_million));
 #endif
     uint32_t ijklmnop = m - abcdefgh * hundred_million;
+
+
 #if HAS_NEON
+//method 1
     // src from : https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
     // bolg : https://dougallj.wordpress.com/2022/04/01/converting-integers-to-fixed-width-strings-faster-with-neon-simd-on-the-apple-m1/
     // author : https://github.com/dougallj
+
+    // #define R(n) asm(".equ L__regnum_v" #n ", " #n);
+    // R(0) R(1) R(2) R(3) R(4) R(5) R(6) R(7) R(8) R(9) R(10) R(11) R(12) R(13)
+    // R(14) R(15) R(16) R(17) R(18) R(19) R(20) R(21) R(22) R(23) R(24) R(25)
+    // R(26) R(27) R(28) R(29) R(30) R(31)
+    // #undef R
+    // uint64x2_t hundredmillions = { abcdefgh, ijklmnop };
+    // uint64x2_t hundredmillions_origin = hundredmillions;
+    // asm(".word 0x00200400 | (L__regnum_%[multiplier] << 5) | (L__regnum_%[out] << 0)"
+    //   : [out] "+w"(hundredmillions)
+    //   : [multiplier] "w"(vdupq_n_s64(cv->div10000_2)));
+    // int32x4_t high_10000 = hundredmillions;
+    // int16x8_t tenthousands = vfmaq_f64(hundredmillions_origin, high_10000, vdupq_n_f64(cv->div10000_2_d));
+    // int32x4_t high_100 = vqdmulhq_s32(tenthousands, vdupq_n_s32(cv->multipliers32[2]));
+    // int32x4_t hundreds = vmlaq_s32(tenthousands, high_100, vdupq_n_s32(cv->multipliers32[3]));
+    // int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
+    // int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
+
     uint64x1_t hundredmillions = {abcdefgh | ((uint64_t)ijklmnop << 32)};
-    //int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(0x68db8bb)), 9);
     int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
     int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
     int32x4_t extended = vshll_n_u16(tenthousands, 0);
@@ -196,9 +218,11 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(cv->multipliers32[3]));
     int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
     int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
+
+
     int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    //int16x8_t ascii16 = vaddq_u64(BCD_little_endian, vdupq_n_s16(cv->multipliers16[2]));
+    //int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s16(cv->multipliers16[2]));
     // u64 abcdefgh_BCD = vgetq_lane_u64(BCD_little_endian, 0);
     // u64 ijklmnop_BCD = vgetq_lane_u64(BCD_little_endian, 1);
     // int abcdefgh_tz = u64_lz_bits(abcdefgh_BCD);
@@ -209,6 +233,20 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
     int tz = u64_lz_bits(zeroes) >> 2;
     return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
+
+//method 2 : slower
+    // uint64_t abcd_efgh = abcdefgh + cv->div10000_m * ((abcdefgh * (__uint128_t)cv->div10000) >> 64); // (abcd << 32) + efgh
+    // uint64_t ijkl_mnop = ijklmnop + cv->div10000_m * ((ijklmnop * (__uint128_t)cv->div10000) >> 64); // (ijkl << 32) + mnop
+    // uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
+    // uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(cv->multipliers32[2])), cv->multipliers32[3]);
+    // uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(cv->multipliers16[0])), cv->multipliers16[1]);
+    // uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+    // int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+    // uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
+    // uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
+    // int tz = u64_lz_bits(zeroes) >> 2;
+    // return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
+
 #endif
 
 #if HAS_SSE2
@@ -325,8 +363,8 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
     const uint64_t ZERO = 0x3030303030303030;
 #if HAS_NEON
     //u64 abcd_efgh = m + c->m * ((m * (u128)c->div10000) >> 64);
-    //int32x2_t tenthousands = vcreate_u64(m + c->m * ((m * (u128)c->div10000) >> 64));
-    int32x2_t tenthousands = vcreate_u64(m + ((1ull << 32) - 10000) * ((m * (u128)c->div10000) >> 64));
+    int32x2_t tenthousands = vcreate_u64(m + c->m * ((m * (u128)c->div10000) >> 64));
+    //int32x2_t tenthousands = vcreate_u64(m + ((1ull << 32) - 10000) * ((m * (u128)c->div10000) >> 64));
     int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->m32_4[0])), c->m32_4[1]);
     int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10+0x100);
     //int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])), c->m32_4[3]);//fewer instructions but slower,why? 

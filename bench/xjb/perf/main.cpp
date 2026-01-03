@@ -7,12 +7,12 @@
 #define DOUBLE 1
 
 #ifndef PERF_DOUBLE_OR_FLOAT  // 1 : double ; 0 : float
-    #define PERF_DOUBLE_OR_FLOAT 0
+    #define PERF_DOUBLE_OR_FLOAT 1
 #endif
 
 
-//#include "../xjb.cpp"
-#include "../xjb_comp.cpp"
+#include "../xjb.cpp"
+//#include "../xjb_comp.cpp"
 // #include "xjb64.cpp"
 //  char *xjb64(double value, char *buffer);
 //  char *xjb32(float value, char *buffer);
@@ -23,7 +23,7 @@ typedef uint64_t u64;
 
 std::random_device rd;
 std::mt19937_64 gen(rd());
-const u64 N = 100'000'000; // data size
+const u64 N = (1ull << 30); // data size
 #if PERF_DOUBLE_OR_FLOAT == FLOAT
     float *data;
 #else
@@ -132,7 +132,7 @@ int main()
             xjb_comp::xjb32_comp(num, buf);
 #else
             double num = *(double *)&random_num;
-            xjb64(num, buf);
+            xjb::xjb64(num, buf);
 #endif
         }
         auto c2 = get_cycle();

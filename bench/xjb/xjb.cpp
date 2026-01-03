@@ -133,13 +133,13 @@ namespace xjb
         u64 m = (u64)(hi128 >> (offset + 64)) + up;
         u64 up_down = up + down;
         // u64 D17 = (m >= (u64)1e15);
-        u64 D17 = m >= (u64)cv->c3;
+        u64 D17 = m > (u64)cv->c3;
         u64 mr = D17 ? m : m * 10;
-        // memcpy(buf, "00000000", 8);
-        memcpy(buf, "0000", 4);
+        memcpy(buf, "00000000", 8);
+        //memcpy(buf, "0000", 4);
         shortest_ascii16 s = to_ascii16(mr, up_down, D17, cv);
-        k += 15 + D17;
-        i64 e10 = k;
+        i64 e10 = k + (15 + D17);
+        //i64 e10 = k;
 #ifdef __amd64__
         // u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull << 63) + 6;
         u64 offset_num = (1ull << 63) + 6;
@@ -151,13 +151,14 @@ namespace xjb
                 one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
 #else
         // u64 one = (((dot_one * (u128)10) >> 64) | (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull)));
-        u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : cv->c4))); // branch instruction
-        // u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > cv->c4 ));
+        //u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : cv->c4))); // branch instruction
+        //u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one != (1ull << 62)) ? cv->c4 : ~0)));
+        // u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > cv->c4));
         // if (dot_one == (1ull << 62))[[unlikely]]
-        // {
         //     one = (u64)('2' + '0' * 256);
-        //     //one--;
-        // }
+        u64 one = ((dot_one * (u128)10 + cv->c4) >> 64) + (u64)('0' + '0' * 256);
+        if (dot_one == (1ull << 62)) [[unlikely]]
+            one = (u64)('2' + '0' * 256);
         // if (irregular) [[unlikely]] // Since the compiler tries to prevent access to memory, it generates branch instructions.
         //     one += (t->bit_array_irregular[ieee_exponent / 64] >> (ieee_exponent % 64)) & 1;
         if (irregular) [[unlikely]]

@@ -6,27 +6,27 @@ __ZN3xjb5xjb64EdPc:                     ; @_ZN3xjb5xjb64EdPc
 	.cfi_startproc
 ; %bb.0:
 	mov	x8, x0
-	fmov	x12, d0
-	mov	w9, #45                         ; =0x2d
-	strb	w9, [x0]
-	lsr	x9, x12, #63
-	add	x0, x0, x9
-	ubfx	x10, x12, #52, #11
-	mov	w11, #1075                      ; =0x433
-	mov	x17, #4503599627370496          ; =0x10000000000000
-	bfxil	x17, x12, #0, #52
-	rbit	x13, x17
-	clz	x13, x13
-	sub	x11, x11, x10
-	cmp	x11, x13
-	b.ls	LBB0_5
-; %bb.1:
 Lloh0:
 	adrp	x11, __ZL16constants_double@PAGE
 Lloh1:
 	add	x11, x11, __ZL16constants_double@PAGEOFF
 	; InlineAsm Start
 	; InlineAsm End
+	fmov	x12, d0
+	mov	w9, #45                         ; =0x2d
+	strb	w9, [x0]
+	lsr	x9, x12, #63
+	add	x0, x0, x9
+	ubfx	x10, x12, #52, #11
+	mov	w13, #1075                      ; =0x433
+	mov	x17, #4503599627370496          ; =0x10000000000000
+	bfxil	x17, x12, #0, #52
+	rbit	x14, x17
+	clz	x14, x14
+	sub	x13, x13, x10
+	cmp	x13, x14
+	b.ls	LBB0_5
+; %bb.1:
 	and	x14, x12, #0xfffffffffffff
 	sub	x12, x10, #1075
 	cbz	x10, LBB0_14
@@ -43,27 +43,19 @@ Lloh1:
 	mov	x14, x17
 	b	LBB0_9
 LBB0_5:
-	lsr	x8, x17, x11
+	lsr	x8, x17, x13
 	mov	w9, #57599                      ; =0xe0ff
 	movk	w9, #1525, lsl #16
 	cmp	x8, x9
 	b.hi	LBB0_7
 ; %bb.6:
-	mov	x9, #4300                       ; =0x10cc
-	movk	x9, #47815, lsl #16
-	movk	x9, #36280, lsl #32
-	movk	x9, #6, lsl #48
-	umulh	x9, x8, x9
-	mov	w10, #-10000                    ; =0xffffd8f0
+	ldp	x10, x9, [x11, #64]
+	umulh	x10, x10, x8
 	madd	x8, x9, x10, x8
 	fmov	d0, x8
-	mov	w8, #45056                      ; =0xb000
-	movk	w8, #327, lsl #16
-	dup.2s	v1, w8
-	sqdmulh.2s	v1, v0, v1
-	mov	w8, #65436                      ; =0xff9c
-	dup.2s	v2, w8
-	mla.2s	v0, v1, v2
+	ldr	q1, [x11, #96]
+	sqdmulh.2s	v2, v0, v1[2]
+	mla.2s	v0, v2, v1[3]
 	mov	w8, #3296                       ; =0xce0
 	dup.4h	v1, w8
 	sqdmulh.4h	v1, v0, v1
@@ -82,39 +74,23 @@ LBB0_5:
 	add	x0, x8, #10
 	ret
 LBB0_7:
-	mov	x9, #52989                      ; =0xcefd
-	movk	x9, #33889, lsl #16
-	movk	x9, #30481, lsl #32
-	movk	x9, #43980, lsl #48
-	umulh	x9, x8, x9
+	ldr	x9, [x11, #48]
+	umulh	x9, x9, x8
 	lsr	x9, x9, #26
-	mov	w10, #7936                      ; =0x1f00
-	movk	w10, #64010, lsl #16
-	madd	w8, w9, w10, w8
+	ldr	w10, [x11, #56]
+	msub	w8, w10, w9, w8
 	orr	x8, x9, x8, lsl #32
 	fmov	d0, x8
-	mov	w8, #47291                      ; =0xb8bb
-	movk	w8, #1677, lsl #16
-	dup.2s	v1, w8
-	sqdmulh.2s	v1, v0, v1
-	ushr.2s	v1, v1, #9
-	mov	w8, #55536                      ; =0xd8f0
-	dup.2s	v2, w8
-	mla.2s	v0, v1, v2
-	ushll.4s	v1, v0, #0
-	mov	w8, #45056                      ; =0xb000
-	movk	w8, #327, lsl #16
-	dup.4s	v2, w8
-	sqdmulh.4s	v1, v1, v2
-	mov	w8, #65436                      ; =0xff9c
-	dup.4s	v2, w8
-	mul.4s	v1, v1, v2
+	ldp	q1, q2, [x11, #96]
+	sqdmulh.2s	v3, v0, v1[0]
+	ushr.2s	v3, v3, #9
+	mla.2s	v0, v3, v1[1]
+	ushll.4s	v3, v0, #0
+	sqdmulh.4s	v3, v3, v1[2]
+	mul.4s	v1, v3, v1[3]
 	uaddw.4s	v0, v1, v0
-	mov	w8, #3296                       ; =0xce0
-	dup.8h	v1, w8
-	sqdmulh.8h	v1, v0, v1
-	movi.8h	v2, #246
-	mla.8h	v0, v1, v2
+	sqdmulh.8h	v1, v0, v2[0]
+	mla.8h	v0, v1, v2[1]
 	rev64.16b	v1, v0
 	mov.d	x8, v1[1]
 	fmov	x9, d0
@@ -142,12 +118,12 @@ LBB0_10:
 	madd	x12, x15, x12, x1
 	asr	x15, x12, #20
 	ldp	x12, x3, [x11, #8]
-	madd	x12, x12, x15, x12
-	add	x1, x17, x12, asr #16
+	madd	x1, x12, x15, x12
 Lloh2:
 	adrp	x12, __ZL12double_table@PAGE
 Lloh3:
 	add	x12, x12, __ZL12double_table@PAGEOFF
+	add	x1, x17, x1, asr #16
 	sub	x17, x12, x15, lsl #4
 	add	x2, x1, #7
 	mvn	w4, w14
@@ -172,7 +148,7 @@ Lloh3:
 	adc	x4, x4, x5
 	lsl	x4, x4, #1
 	cmp	x14, x3
-	csel	x3, x4, x14, lo
+	csel	x3, x14, x4, hi
 	mov	x4, #3472328296227680304        ; =0x3030303030303030
 	str	x4, [x0]
 	ldp	x4, x5, [x11, #48]
@@ -183,7 +159,7 @@ Lloh3:
 	msub	w3, w5, w4, w3
 	bfi	x4, x3, #32, #32
 	fmov	d0, x4
-	ldp	q1, q2, [x11, #64]
+	ldp	q1, q2, [x11, #96]
 	sqdmulh.2s	v3, v0, v1[0]
 	ushr.2s	v3, v3, #9
 	mla.2s	v0, v3, v1[1]
@@ -194,7 +170,7 @@ Lloh3:
 	mla.4s	v0, v3, v1[3]
 	lsr	x3, x1, x16
 	mov	w4, #15                         ; =0xf
-	cinc	x16, x4, hs
+	cinc	x16, x4, hi
 	sqdmulh.8h	v1, v0, v2[0]
 	mla.8h	v0, v1, v2[1]
 	rev64.16b	v0, v0
@@ -213,14 +189,13 @@ Lloh3:
 	umulh	x3, x17, x3
 	add	x4, x17, x17, lsl #2
 	ldr	x5, [x11, #24]
-	cmp	x5, x4, lsl #1
-	cinc	x3, x3, lo
+	cmn	x5, x4, lsl #1
+	mov	w4, #12336                      ; =0x3030
+	adc	x3, x3, x4
 	mov	x4, #4611686018427387904        ; =0x4000000000000000
 	cmp	x17, x4
 	b.eq	LBB0_17
 ; %bb.11:
-	mov	w4, #12336                      ; =0x3030
-	add	x3, x3, x4
 	add	x15, x16, x15
 	orr.16b	v0, v0, v1
 	cbnz	w13, LBB0_18
@@ -337,17 +312,229 @@ LBB0_23:
 	.loh AdrpAdd	Lloh2, Lloh3
 	.cfi_endproc
                                         ; -- End function
+	.globl	__ZN3xjb5xjb32EfPc              ; -- Begin function _ZN3xjb5xjb32EfPc
+	.p2align	2
+__ZN3xjb5xjb32EfPc:                     ; @_ZN3xjb5xjb32EfPc
+	.cfi_startproc
+; %bb.0:
+	fmov	w8, s0
+	mov	w9, #45                         ; =0x2d
+	strb	w9, [x0]
+	lsr	w9, w8, #31
+	add	x0, x0, x9
+	and	w13, w8, #0x7fffff
+	ubfx	x9, x8, #23, #8
+Lloh4:
+	adrp	x8, __ZL11float_table@PAGE
+Lloh5:
+	add	x8, x8, __ZL11float_table@PAGEOFF
+	cbz	w9, LBB1_7
+; %bb.1:
+	cmp	w9, #255
+	b.eq	LBB1_9
+; %bb.2:
+	orr	x14, x13, #0x800000
+	sub	x10, x9, #150
+	mov	w11, #1233                      ; =0x4d1
+	smull	x11, w10, w11
+	cbz	w13, LBB1_16
+; %bb.3:
+	mov	x16, #0                         ; =0x0
+	mov	w12, #0                         ; =0x0
+	add	x15, x8, x9
+	ldrb	w17, [x15, #1084]
+	asr	x11, x11, #12
+LBB1_4:
+Lloh6:
+	adrp	x15, __ZL15constants_float@PAGE
+Lloh7:
+	add	x15, x15, __ZL15constants_float@PAGEOFF
+	; InlineAsm Start
+	; InlineAsm End
+	add	x1, x8, x11, lsl #3
+	ldr	x1, [x1, #360]
+	mvn	w13, w13
+	and	x13, x13, #0x1
+	lsl	x14, x14, x17
+	umulh	x2, x14, x1
+	mov	w14, #65                        ; =0x41
+	sub	w14, w14, w17, uxtb
+	lsr	x17, x1, x14
+	and	x14, x2, #0xfffffffff
+	eor	x1, x14, #0xfffffffff
+	add	x13, x17, x13
+	lsr	x16, x13, x16
+	cmp	x16, x14
+	cset	w16, hi
+	cmp	x13, x1
+	lsr	x13, x2, #36
+	cinc	x13, x13, hi
+	mov	w17, #808464432                 ; =0x30303030
+	str	w17, [x0]
+	csinc	w16, w16, wzr, ls
+	ldp	w1, w17, [x15, #16]
+	cmp	x13, x17
+	cset	w17, lo
+	cmp	x13, x1
+	cinc	x17, x17, lo
+	ldr	w1, [x15, #28]
+	ldp	x3, x2, [x15]
+	umulh	x2, x13, x2
+	umaddl	x1, w2, w1, x13
+	fmov	d0, x1
+	ldr	d1, [x15, #32]
+	sqdmulh.2s	v2, v0, v1[0]
+	mla.2s	v0, v2, v1[1]
+	mov	w15, #3296                      ; =0xce0
+	dup.4h	v1, w15
+	sqdmulh.4h	v1, v0, v1
+	movi.4h	v2, #246
+	mla.4h	v0, v1, v2
+	fmov	x15, d0
+	rev	x15, x15
+	lsl	x1, x17, #3
+	lsr	x15, x15, x1
+	clz	x1, x15
+	orr	x15, x15, #0x3030303030303030
+	mov	w2, #7                          ; =0x7
+	sub	w1, w2, w1, lsr #3
+	sxtw	x1, w1
+	mov	w2, #8                          ; =0x8
+	cmp	w16, #0
+	sub	x16, x2, x17
+	add	x11, x16, x11
+	csel	x17, x1, x16, ne
+	add	x1, x14, x14, lsl #2
+	add	x14, x1, x14, lsr #32
+	add	x14, x14, x3
+	lsr	x14, x14, #35
+	cbnz	w12, LBB1_10
+LBB1_5:
+	add	x10, x11, #3
+	cmp	x10, #9
+	cset	w1, hi
+	mov	w12, #10                        ; =0xa
+	cmp	x10, #10
+	csel	x10, x10, x12, lo
+	mov	w12, #12                        ; =0xc
+	madd	x10, x10, x12, x8
+	add	x12, x10, x17
+	ldrb	w17, [x10, #961]
+	ldrb	w2, [x10, #962]
+	ldrb	w3, [x10, #963]
+	ldrb	w12, [x12, #952]
+	add	x10, x0, x17
+	str	x15, [x10]
+	str	x14, [x10, x16]
+	ldr	x15, [x10, x2]
+	ubfiz	x14, x1, #2, #32
+	str	x15, [x10, x3]
+	mov	w15, #46                        ; =0x2e
+	strb	w15, [x0, x2]
+	cbz	w9, LBB1_14
+LBB1_6:
+	add	x8, x8, x11, lsl #2
+	ldr	w8, [x8, #796]
+	add	x9, x10, x12
+	add	x0, x9, x14
+	str	x8, [x9]
+	ret
+LBB1_7:
+	cbz	w13, LBB1_17
+; %bb.8:
+	mov	x16, #0                         ; =0x0
+	mov	w12, #0                         ; =0x0
+	add	x10, x8, x9
+	ldrb	w17, [x10, #1084]
+	mov	x11, #-45                       ; =0xffffffffffffffd3
+	mov	x10, #-149                      ; =0xffffffffffffff6b
+	mov	x14, x13
+	b	LBB1_4
+LBB1_9:
+	mov	w8, #24942                      ; =0x616e
+	movk	w8, #110, lsl #16
+	mov	w9, #28265                      ; =0x6e69
+	movk	w9, #102, lsl #16
+	cmp	w13, #0
+	csel	w8, w9, w8, eq
+	str	w8, [x0], #3
+	ret
+LBB1_10:
+	cmn	x10, #119
+	b.eq	LBB1_13
+; %bb.11:
+	cmp	x10, #67
+	b.eq	LBB1_13
+; %bb.12:
+	cmp	x10, #64
+	b.ne	LBB1_5
+LBB1_13:
+	add	x14, x14, #1
+	b	LBB1_5
+LBB1_14:
+	lsr	x9, x13, #5
+	cmp	x9, #3124
+	b.hi	LBB1_6
+; %bb.15:
+	ldur	x9, [x10, #2]
+	and	x9, x9, #0xf0f0f0f0f0f0f0f
+	rbit	x9, x9
+	clz	x9, x9
+	ubfx	x9, x9, #3, #29
+	mov	w9, w9
+	add	x9, x9, #2
+	sub	x11, x11, x9
+	add	x11, x11, #1
+	add	x13, x10, x9
+	ldrb	w15, [x13]
+	strb	w15, [x10]
+	ldur	x13, [x13, #1]
+	stur	x13, [x10, #2]
+	sub	x9, x12, x9
+	cmp	x9, #1
+	cinc	x12, x9, ne
+	add	x8, x8, x11, lsl #2
+	ldr	w8, [x8, #796]
+	add	x9, x10, x12
+	add	x0, x9, x14
+	str	x8, [x9]
+	ret
+LBB1_16:
+	sub	x11, x11, #512
+	asr	x11, x11, #12
+	mov	w12, #63835                     ; =0xf95b
+	movk	w12, #1, lsl #16
+	smaddl	x12, w11, w12, x12
+	lsr	x12, x12, #9
+	add	w12, w9, w12
+	add	w17, w12, #143
+	mov	w16, #1                         ; =0x1
+	mov	w12, #1                         ; =0x1
+	b	LBB1_4
+LBB1_17:
+	mov	w8, #11824                      ; =0x2e30
+	movk	w8, #48, lsl #16
+	str	w8, [x0], #3
+	ret
+	.loh AdrpAdd	Lloh4, Lloh5
+	.loh AdrpAdd	Lloh6, Lloh7
+	.cfi_endproc
+                                        ; -- End function
 	.section	__TEXT,__const
 	.p2align	4, 0x0                          ; @_ZL16constants_double
 __ZL16constants_double:
 	.quad	315653                          ; 0x4d105
 	.quad	-217707                         ; 0xfffffffffffcad95
-	.quad	1000000000000000                ; 0x38d7ea4c68000
-	.quad	9223372036854775801             ; 0x7ffffffffffffff9
+	.quad	999999999999999                 ; 0x38d7ea4c67fff
+	.quad	-9223372036854775802            ; 0x8000000000000006
 	.quad	-131072                         ; 0xfffffffffffe0000
 	.quad	511                             ; 0x1ff
 	.quad	-6067343680855748867            ; 0xabcc77118461cefd
 	.quad	100000000                       ; 0x5f5e100
+	.quad	1844674407370956                ; 0x68db8bac710cc
+	.quad	4294957296                      ; 0xffffd8f0
+	.quad	0x41effffb1e000000              ; double 4294957296
+	.quad	900719927296                    ; 0xd1b7176000
 	.long	109951163                       ; 0x68db8bb
 	.long	55536                           ; 0xd8f0
 	.long	21475328                        ; 0x147b000
@@ -2282,5 +2469,195 @@ __ZL12double_table:
 	.ascii	"\021\021\021\021\021\021\021\021\021\021\021\021\021\021\021\021\022\000\017\020"
 	.ascii	"\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\022\000\020\021"
 	.ascii	"\001\003\004\005\006\007\b\t\n\013\f\r\016\017\020\021\022\000\001\002"
+
+	.p2align	4, 0x0                          ; @_ZL15constants_float
+__ZL15constants_float:
+	.quad	423878912376825                 ; 0x18183fffffff9
+	.quad	1844674407370956                ; 0x68db8bac710cc
+	.long	10000000                        ; 0x989680
+	.long	1000000                         ; 0xf4240
+	.long	100000                          ; 0x186a0
+	.long	4294957296                      ; 0xffffd8f0
+	.long	21475328                        ; 0x147b000
+	.long	65436                           ; 0xff9c
+	.long	3296                            ; 0xce0
+	.long	246                             ; 0xf6
+
+	.p2align	3, 0x0                          ; @_ZL11float_table
+__ZL11float_table:
+	.quad	-8106986416796705680            ; 0x8f7e32ce7bea5c70
+	.quad	-1903131822648998118            ; 0xe596b7b0c643c71a
+	.quad	-5211854272861108818            ; 0xb7abc627050305ae
+	.quad	-7858832233030797377            ; 0x92efd1b8d0cf37bf
+	.quad	-1506085128623544834            ; 0xeb194f8e1ae525fe
+	.quad	-4894216917640746190            ; 0xbc143fa4e250eb32
+	.quad	-7604722348854507275            ; 0x96769950b50d88f5
+	.quad	-1099509313941480671            ; 0xf0bdc21abb48db21
+	.quad	-4568956265895094860            ; 0xc097ce7bc90715b4
+	.quad	-7344513827457986211            ; 0x9a130b963a6c115d
+	.quad	-683175679707046969             ; 0xf684df56c3e01bc7
+	.quad	-4235889358507547898            ; 0xc5371912364ce306
+	.quad	-7078060301547948642            ; 0x9dc5ada82b70b59e
+	.quad	-256850038250986857             ; 0xfc6f7c4045812297
+	.quad	-3894828845342699809            ; 0xc9f2c9cd04674edf
+	.quad	-6805211891016070170            ; 0xa18f07d736b90be6
+	.quad	-9133518327554766459            ; 0x813f3978f8940985
+	.quad	-3545582879861895366            ; 0xcecb8f27f4200f3a
+	.quad	-6525815118631426616            ; 0xa56fa5b99019a5c8
+	.quad	-8910000909647051616            ; 0x84595161401484a0
+	.quad	-3187955011209551616            ; 0xd3c21bcecceda100
+	.quad	-6239712823709551616            ; 0xa968163f0a57b400
+	.quad	-8681119073709551616            ; 0x878678326eac9000
+	.quad	-2821744073709551616            ; 0xd8d726b7177a8000
+	.quad	-5946744073709551616            ; 0xad78ebc5ac620000
+	.quad	-8446744073709551616            ; 0x8ac7230489e80000
+	.quad	-2446744073709551616            ; 0xde0b6b3a76400000
+	.quad	-5646744073709551616            ; 0xb1a2bc2ec5000000
+	.quad	-8206744073709551616            ; 0x8e1bc9bf04000000
+	.quad	-2062744073709551616            ; 0xe35fa931a0000000
+	.quad	-5339544073709551616            ; 0xb5e620f480000000
+	.quad	-7960984073709551616            ; 0x9184e72a00000000
+	.quad	-1669528073709551616            ; 0xe8d4a51000000000
+	.quad	-5024971273709551616            ; 0xba43b74000000000
+	.quad	-7709325833709551616            ; 0x9502f90000000000
+	.quad	-1266874889709551616            ; 0xee6b280000000000
+	.quad	-4702848726509551616            ; 0xbebc200000000000
+	.quad	-7451627795949551616            ; 0x9896800000000000
+	.quad	-854558029293551616             ; 0xf424000000000000
+	.quad	-4372995238176751616            ; 0xc350000000000000
+	.quad	-7187745005283311616            ; 0x9c40000000000000
+	.quad	-432345564227567616             ; 0xfa00000000000000
+	.quad	-4035225266123964416            ; 0xc800000000000000
+	.quad	-6917529027641081856            ; 0xa000000000000000
+	.quad	-9223372036854775808            ; 0x8000000000000000
+	.quad	-3689348814741910323            ; 0xcccccccccccccccd
+	.quad	-6640827866535438581            ; 0xa3d70a3d70a3d70b
+	.quad	-9002011107970261188            ; 0x83126e978d4fdf3c
+	.quad	-3335171328526686932            ; 0xd1b71758e219652c
+	.quad	-6357485877563259868            ; 0xa7c5ac471b478424
+	.quad	-8775337516792518218            ; 0x8637bd05af6c69b6
+	.quad	-2972493582642298179            ; 0xd6bf94d5e57a42bd
+	.quad	-6067343680855748867            ; 0xabcc77118461cefd
+	.quad	-8543223759426509416            ; 0x89705f4136b4a598
+	.quad	-2601111570856684097            ; 0xdbe6fecebdedd5bf
+	.quad	-5770238071427257601            ; 0xafebff0bcb24aaff
+	.quad	-8305539271883716404            ; 0x8cbccc096f5088cc
+	.quad	-2220816390788215276            ; 0xe12e13424bb40e14
+	.quad	-5466001927372482544            ; 0xb424dc35095cd810
+	.quad	-8062150356639896358            ; 0x901d7cf73ab0acda
+	.quad	-1831394126398103204            ; 0xe69594bec44de15c
+	.quad	-5154464115860392886            ; 0xb877aa3236a4b44a
+	.quad	-7812920107430224632            ; 0x9392ee8e921d5d08
+	.quad	-1432625727662628442            ; 0xec1e4a7db69561a6
+	.quad	-4835449396872013077            ; 0xbce5086492111aeb
+	.quad	-7557708332239520785            ; 0x971da05074da7bef
+	.quad	-1024286887357502286            ; 0xf1c90080baf72cb2
+	.quad	-4508778324627912152            ; 0xc16d9a0095928a28
+	.quad	-7296371474444240045            ; 0x9abe14cd44753b53
+	.quad	-606147914885053102             ; 0xf79687aed3eec552
+	.quad	-4174267146649952805            ; 0xc612062576589ddb
+	.quad	-7028762532061872567            ; 0x9e74d1b791e07e49
+	.quad	-177973607073265138             ; 0xfd87b5f28300ca0e
+	.quad	-3831727700400522433            ; 0xcad2f7f5359a3b3f
+	.quad	-6754730975062328270            ; 0xa2425ff75e14fc32
+	.quad	-9093133594791772939            ; 0x81ceb32c4b43fcf5
+	.quad	-3480967307441105733            ; 0xcfb11ead453994bb
+	.long	892611941                       ; 0x35342d65
+	.long	875834725                       ; 0x34342d65
+	.long	859057509                       ; 0x33342d65
+	.long	842280293                       ; 0x32342d65
+	.long	825503077                       ; 0x31342d65
+	.long	808725861                       ; 0x30342d65
+	.long	959655269                       ; 0x39332d65
+	.long	942878053                       ; 0x38332d65
+	.long	926100837                       ; 0x37332d65
+	.long	909323621                       ; 0x36332d65
+	.long	892546405                       ; 0x35332d65
+	.long	875769189                       ; 0x34332d65
+	.long	858991973                       ; 0x33332d65
+	.long	842214757                       ; 0x32332d65
+	.long	825437541                       ; 0x31332d65
+	.long	808660325                       ; 0x30332d65
+	.long	959589733                       ; 0x39322d65
+	.long	942812517                       ; 0x38322d65
+	.long	926035301                       ; 0x37322d65
+	.long	909258085                       ; 0x36322d65
+	.long	892480869                       ; 0x35322d65
+	.long	875703653                       ; 0x34322d65
+	.long	858926437                       ; 0x33322d65
+	.long	842149221                       ; 0x32322d65
+	.long	825372005                       ; 0x31322d65
+	.long	808594789                       ; 0x30322d65
+	.long	959524197                       ; 0x39312d65
+	.long	942746981                       ; 0x38312d65
+	.long	925969765                       ; 0x37312d65
+	.long	909192549                       ; 0x36312d65
+	.long	892415333                       ; 0x35312d65
+	.long	875638117                       ; 0x34312d65
+	.long	858860901                       ; 0x33312d65
+	.long	842083685                       ; 0x32312d65
+	.long	825306469                       ; 0x31312d65
+	.long	808529253                       ; 0x30312d65
+	.long	959458661                       ; 0x39302d65
+	.long	942681445                       ; 0x38302d65
+	.long	925904229                       ; 0x37302d65
+	.long	909127013                       ; 0x36302d65
+	.long	892349797                       ; 0x35302d65
+	.long	875572581                       ; 0x34302d65
+	.long	0                               ; 0x0
+	.long	0                               ; 0x0
+	.long	0                               ; 0x0
+	.long	0                               ; 0x0
+	.long	0                               ; 0x0
+	.long	0                               ; 0x0
+	.long	0                               ; 0x0
+	.long	0                               ; 0x0
+	.long	0                               ; 0x0
+	.long	0                               ; 0x0
+	.long	925903717                       ; 0x37302b65
+	.long	942680933                       ; 0x38302b65
+	.long	959458149                       ; 0x39302b65
+	.long	808528741                       ; 0x30312b65
+	.long	825305957                       ; 0x31312b65
+	.long	842083173                       ; 0x32312b65
+	.long	858860389                       ; 0x33312b65
+	.long	875637605                       ; 0x34312b65
+	.long	892414821                       ; 0x35312b65
+	.long	909192037                       ; 0x36312b65
+	.long	925969253                       ; 0x37312b65
+	.long	942746469                       ; 0x38312b65
+	.long	959523685                       ; 0x39312b65
+	.long	808594277                       ; 0x30322b65
+	.long	825371493                       ; 0x31322b65
+	.long	842148709                       ; 0x32322b65
+	.long	858925925                       ; 0x33322b65
+	.long	875703141                       ; 0x34322b65
+	.long	892480357                       ; 0x35322b65
+	.long	909257573                       ; 0x36322b65
+	.long	926034789                       ; 0x37322b65
+	.long	942812005                       ; 0x38322b65
+	.long	959589221                       ; 0x39322b65
+	.long	808659813                       ; 0x30332b65
+	.long	825437029                       ; 0x31332b65
+	.long	842214245                       ; 0x32332b65
+	.long	858991461                       ; 0x33332b65
+	.long	875768677                       ; 0x34332b65
+	.long	892545893                       ; 0x35332b65
+	.long	909323109                       ; 0x36332b65
+	.long	926100325                       ; 0x37332b65
+	.long	942877541                       ; 0x38332b65
+	.ascii	"\001\002\003\004\005\006\007\b\t\004\001\001"
+	.ascii	"\001\002\003\004\005\006\007\b\t\003\001\001"
+	.ascii	"\001\002\003\004\005\006\007\b\t\002\001\001"
+	.ascii	"\003\003\004\005\006\007\b\t\n\000\001\002"
+	.ascii	"\004\004\004\005\006\007\b\t\n\000\002\003"
+	.ascii	"\005\005\005\005\006\007\b\t\n\000\003\004"
+	.ascii	"\006\006\006\006\006\007\b\t\n\000\004\005"
+	.ascii	"\007\007\007\007\007\007\b\t\n\000\005\006"
+	.ascii	"\b\b\b\b\b\b\b\t\n\000\006\007"
+	.ascii	"\t\t\t\t\t\t\t\t\n\000\007\b"
+	.ascii	"\001\003\004\005\006\007\b\t\n\000\001\002"
+	.asciz	"\"\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$!\"#$\"#$\"#$\"#$!\""
+	.space	4
 
 .subsections_via_symbols
