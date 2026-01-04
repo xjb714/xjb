@@ -454,8 +454,90 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
     return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, lz)};
 }
 
+#if HAS_SSE2
+static inline char* write_1_to_16_digit_sse2(u64 m, char *buf,const struct const_value_double *cv)
+{
+    uint64_t abcdefgh = ((__uint128_t)m * cv->mul_const) >> 90;
+    uint64_t ijklmnop = m - abcdefgh * cv->hundred_million;
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
+    const __m512i bcstq_h = _mm512_set1_epi64(abcdefgh);
+    const __m512i bcstq_l = _mm512_set1_epi64(ijklmnop);
+    const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
+    const __m512i zmmTen = _mm512_set1_epi64(10);
+    const __m512i zero = _mm512_set1_epi64(0);
+    const __m512i asciizero = _mm512_set1_epi8('0');
+    const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b, 0x0000000010c6f7a0c, 0x00000000a7c5ac472,
+                                                 0x000000068db8bac72, 0x0000004189374bc6b, 0x0000028f5c28f5c29, 0x0000199999999999a);
+    const __m512i permb_const = _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58, 0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
+    //const __m512i permb_const7 = _mm512_castsi128_si512(_mm_set_epi8(0x7f, 0x77, 0x6f, 0x67, 0x5f, 0x57, 0x4f, 0x47, 0x3f, 0x37, 0x2f, 0x27, 0x1f, 0x17, 0x0f, 0x07));
+    __m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
+    __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
+    __m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
+    __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
+    //__m512i highbits_h7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_h, 5), _mm512_slli_epi64(lowbits_h, 7));
+    //__m512i highbits_l7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_l, 5), _mm512_slli_epi64(lowbits_l, 7));
+    //__m512i bcd = _mm512_permutex2var_epi8(highbits_h7, permb_const7, highbits_l7);//another way to permute , but slower.
+    __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
+    __m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
+    //__m128i little_endian_ascii = _mm512_castsi512_si128(ascii);
+    //int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_ascii, _mm512_castsi512_si128(asciizero)));
+    //int tz = u64_lz_bits(mask);
+    //return {little_endian_ascii, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+    
+#elif defined(__SSSE3__) && (false)
+    __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
+    __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
+#ifdef __SSE4_1__
+    __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3))); //_mm_mullo_epi32 : sse4.1
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_si128(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+#endif
+    __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a))));
+    __m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7)); // ssse3
+    // int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
+    // int tz = u64_lz_bits(mask);
+    // __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+    // return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+#else // sse2
+    __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
+    __m128i x_div_10000 = _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi32(0xd1b71759)), 45);
+    __m128i x_mod_10000 = _mm_sub_epi32(x, _mm_mul_epu32(x_div_10000, _mm_set1_epi32(10000)));
+    __m128i y = _mm_or_si128(x_div_10000, _mm_slli_epi64(x_mod_10000, 32));
+#if defined(__SSE4_1__)
+    __m128i z = _mm_sub_epi32(_mm_slli_epi32(y, 16), _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+#endif
+    __m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
+    __m128i little_endian_bcd = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+    // int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
+    // int tz = u64_lz_bits(mask);
+    // __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+    // return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+#endif
+
+    int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
+    int lz = u64_tz_bits(mask);
+    __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+    static char buf_tmp[32];
+    _mm_storeu_si128((__m128i*)buf_tmp, ascii16);
+    memcpy(buf, buf_tmp + lz, 16);
+    memcpy(buf + 16 - lz, ".0\0", 4);
+    return buf + 16 - lz + 2;
+}
+#endif
+
 static inline char *write_1_to_16_digit(u64 x, char *buf,const struct const_value_double *cv)
 {
+
+// #if HAS_SSE2
+//     return write_1_to_16_digit_sse2(x, buf, cv);
+// #endif
+
     // require 1 <= x < 1e16
     const u64 ZERO = 0x3030303030303030;
     const u64 mask = (0x7FULL << 32) | 0x7FULL;
@@ -481,6 +563,85 @@ static inline char *write_1_to_16_digit(u64 x, char *buf,const struct const_valu
         memcpy(buf, ".0\0", 4);
         buf += 2;
         return buf;
+#elif HAS_SSE2
+
+#if defined(__AVX512F__) && defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
+    __m512i bcstq_l = _mm512_set1_epi64(xi);
+    const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
+    const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b,
+                                                 0x0000000010c6f7a0c, 0x00000000a7c5ac472, 0x000000068db8bac72, 0x0000004189374bc6b,
+                                                 0x0000028f5c28f5c29, 0x0000199999999999a);
+    // const u64 idx = 0 + (8 << 8) + (16 << 16) + (24 << 24) + (32ull << 32) + (40ull << 40) + (48ull << 48) + (56ull << 56);
+    // const __m512i permb_const = _mm512_castsi128_si512(_mm_cvtsi64_si128(idx));
+    // __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
+    // __m512i highbits_l = _mm512_madd52hi_epu64(_mm512_set1_epi64(0), lowbits_l, _mm512_set1_epi64(10));
+    // //__m512i highbits_l = _mm512_srli_epi64(_mm512_add_epi64(lowbits_l, _mm512_slli_epi64(lowbits_l, 2)), 51);
+    // __m512i bcd = _mm512_permutexvar_epi8(permb_const, highbits_l);
+
+    const u64 idx7 = 7 + (15 << 8) + (23 << 16) + (31 << 24) + (39ull << 32) + (47ull << 40) + (55ull << 48) + (63ull << 56);
+    const __m512i permb_const7 = _mm512_set1_epi64(idx7);
+    __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
+    __m512i highbits_l7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_l, 5), _mm512_slli_epi64(lowbits_l, 7));
+    //__m512i highbits_l7 = _mm512_mullo_epi64(lowbits_l , _mm512_set1_epi64(10<<4));
+    __m512i bcd = _mm512_permutexvar_epi8(permb_const7, highbits_l7);
+
+    u64 abcdefgh_BCD = _mm_cvtsi128_si64(_mm512_castsi512_si128(bcd));
+// #elif defined(__SSSE3__) //&& (false) // endif avx512ifma avx512vbmi
+//     u64 abcd_efgh = m + ((1ull << 32) - 10000) * ((m * (u128)1844674407370956) >> 64);
+//     __m128i y = _mm_set1_epi64x(abcd_efgh);
+// #ifdef __SSE4_1__
+//     __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3))); //_mm_mullo_epi32 : sse4.1
+// #else
+//     __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3);
+//     __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+//     __m128i z = _mm_or_si128(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+// #endif
+//     __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(6554))));
+//     const u64 idx = 7 + (6 << 8) + (5 << 16) + (4 << 24) + (3ull << 32) + (2ull << 40) + (1ull << 48) + (0ull << 56);
+//     __m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set1_epi64x(idx));
+//     u64 abcdefgh_BCD = _mm_cvtsi128_si64(little_endian_bcd);
+#else
+
+//method 1 : compute little endian bcd
+    u64 aabb_ccdd_merge = (xi << 32) + (1 - (10000ull << 32)) * ((xi * (u128)1844674407370956) >> 64);
+    //u64 aabb_ccdd_merge = (m << 32) - ((10000ull << 32) - 1) * ((m * 109951163) >> 40);
+    __m128i y = _mm_set1_epi64x(aabb_ccdd_merge);
+#if defined(__SSE4_1__)
+    __m128i z = _mm_sub_epi32(_mm_slli_epi32(y, 16), _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epi16(y, _mm_set1_epi16(0x147b)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+#endif
+    __m128i z_div_10 = _mm_mulhi_epi16(z, _mm_set1_epi16(0x199a));
+    __m128i tmp = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+    u64 abcdefgh_BCD = _mm_cvtsi128_si64(tmp);
+
+//method 2 : compute big endian bcd , performance worse than method 1
+//     u64 abcd_efgh = m + ((1ull << 32) - 10000) * ((m * (u128)1844674407370956) >> 64);
+//     __m128i y = _mm_set1_epi64x(abcd_efgh);
+// #ifdef __SSE4_1__
+//     __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3))); //_mm_mullo_epi32 : sse4.1
+// #else
+//     __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(5243)), 3);
+//     __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+//     __m128i z = _mm_or_si128(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+// #endif
+//     __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(6554))));
+//     u64 abcdefgh_BCD = byteswap64(_mm_cvtsi128_si64(big_endian_bcd));   
+
+#endif
+
+    u64 lz = u64_tz_bits(abcdefgh_BCD) / 8;
+    uint64_t abcdefgh_bcd = !is_little_endian() ? byteswap64(abcdefgh_BCD) : abcdefgh_BCD;
+    uint64_t abcdefgh_ascii = abcdefgh_bcd | ZERO;
+    abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * lz) : abcdefgh_ascii << (8 * lz); // remove leading zeros
+    memcpy(buf, &abcdefgh_ascii, 8);
+    buf = buf + 8 - lz;
+    memcpy(buf, ".0\0", 4);
+    buf += 2;
+    return buf;
+
 #else
         int64_t abcd_efgh = xi + (0x100000000 - 10000) * ((xi * 0x68db8bb) >> 40);
         int64_t ab_cd_ef_gh = abcd_efgh + (0x10000 - 100) * (((abcd_efgh * 0x147b) >> 19) & 0x7f0000007f);
@@ -536,6 +697,84 @@ static inline char *write_1_to_16_digit(u64 x, char *buf,const struct const_valu
         buf = buf + 8 - abcdefgh_lz;
         memcpy(buf, &ijklmnop_ascii, 8);
         buf += 8;
+#elif HAS_SSE2 && (false)
+
+    uint64_t abcdefgh = ((__uint128_t)xi * cv->mul_const) >> 90;
+    uint64_t ijklmnop = xi - abcdefgh * cv->hundred_million;
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
+    const __m512i bcstq_h = _mm512_set1_epi64(abcdefgh);
+    const __m512i bcstq_l = _mm512_set1_epi64(ijklmnop);
+    const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
+    const __m512i zmmTen = _mm512_set1_epi64(10);
+    const __m512i zero = _mm512_set1_epi64(0);
+    const __m512i asciizero = _mm512_set1_epi8('0');
+    const __m512i ifma_const = _mm512_setr_epi64(0x00000000002af31dc, 0x0000000001ad7f29b, 0x0000000010c6f7a0c, 0x00000000a7c5ac472,
+                                                 0x000000068db8bac72, 0x0000004189374bc6b, 0x0000028f5c28f5c29, 0x0000199999999999a);
+    const __m512i permb_const = _mm512_castsi128_si512(_mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58, 0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
+    //const __m512i permb_const7 = _mm512_castsi128_si512(_mm_set_epi8(0x7f, 0x77, 0x6f, 0x67, 0x5f, 0x57, 0x4f, 0x47, 0x3f, 0x37, 0x2f, 0x27, 0x1f, 0x17, 0x0f, 0x07));
+    __m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
+    __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
+    __m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
+    __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
+    //__m512i highbits_h7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_h, 5), _mm512_slli_epi64(lowbits_h, 7));
+    //__m512i highbits_l7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_l, 5), _mm512_slli_epi64(lowbits_l, 7));
+    //__m512i bcd = _mm512_permutex2var_epi8(highbits_h7, permb_const7, highbits_l7);//another way to permute , but slower.
+    __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
+    __m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
+    //__m128i little_endian_ascii = _mm512_castsi512_si128(ascii);
+    //int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_ascii, _mm512_castsi512_si128(asciizero)));
+    //int tz = u64_lz_bits(mask);
+    //return {little_endian_ascii, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+    
+#elif defined(__SSSE3__) && (false)
+    __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
+    __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
+#ifdef __SSE4_1__
+    __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1ull << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3))); //_mm_mullo_epi32 : sse4.1
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_si128(y_mod_100, _mm_slli_epi32(y_div_100, 16));
+#endif
+    __m128i big_endian_bcd = _mm_add_epi64(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a))));
+    __m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7)); // ssse3
+    // int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
+    // int tz = u64_lz_bits(mask);
+    // __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+    // return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+#else // sse2
+    __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
+    __m128i x_div_10000 = _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi32(0xd1b71759)), 45);
+    __m128i x_mod_10000 = _mm_sub_epi32(x, _mm_mul_epu32(x_div_10000, _mm_set1_epi32(10000)));
+    __m128i y = _mm_or_si128(x_div_10000, _mm_slli_epi64(x_mod_10000, 32));
+#if defined(__SSE4_1__)
+    __m128i z = _mm_sub_epi32(_mm_slli_epi32(y, 16), _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
+#else
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+#endif
+    __m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
+    __m128i little_endian_bcd = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+    // int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
+    // int tz = u64_lz_bits(mask);
+    // __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+    // return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+#endif
+
+    uint64_t abcdefgh_bcd = _mm_extract_epi64(little_endian_bcd,0);
+    uint64_t ijklmnop_bcd = _mm_extract_epi64(little_endian_bcd,1);
+    u64 abcdefgh_lz = u64_tz_bits(abcdefgh_bcd) / 8;
+    //abcdefgh_bcd = !is_little_endian() ? byteswap64(abcdefgh_bcd) : abcdefgh_bcd;
+    //ijklmnop_bcd = !is_little_endian() ? byteswap64(ijklmnop_bcd) : ijklmnop_bcd;
+    u64 abcdefgh_ascii = abcdefgh_bcd | ZERO;
+    u64 ijklmnop_ascii = ijklmnop_bcd | ZERO;
+    abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * abcdefgh_lz) : abcdefgh_ascii << (8 * abcdefgh_lz);
+    memcpy(buf, &abcdefgh_ascii, 8);
+    buf = buf + 8 - abcdefgh_lz;
+    memcpy(buf, &ijklmnop_ascii, 8);
+    buf += 8;
+
 #else
         uint64_t abcdefgh = xi / 100000000;
         uint64_t ijklmnop = xi + abcdefgh * (-100000000);
@@ -565,5 +804,8 @@ static inline char *write_1_to_16_digit(u64 x, char *buf,const struct const_valu
         return buf;
     }
 }
+
+
+
 
 #endif

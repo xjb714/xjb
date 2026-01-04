@@ -300,7 +300,7 @@ namespace xjb
         // if ( (is_little_endian() ? (s.ascii & 0xf) : (s.ascii & (0xfull<<56))) == 0)
         if (exp == 0) [[unlikely]]
             // if (m < c->e5) // m < 100000
-            if (m < 100000)
+            if (m < 100000)[[unlikely]]
             {
                 u64 lz = 0;
                 // while (buf[2 + lz] == '0')
