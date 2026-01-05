@@ -177,11 +177,11 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     // uint64_t abcdefgh = m / 100000000;
     // uint64_t ijklmnop = m - abcdefgh * 100000000;
     uint32_t abcdefgh = ((__uint128_t)m * cv->mul_const) >> 90;
-    uint64_t hundred_million = cv->hundred_million;
+    int64_t hundred_million = cv->hundred_million;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
    asm ("" : "+r"(hundred_million));
 #endif
-    uint32_t ijklmnop = m - abcdefgh * hundred_million;
+    uint32_t ijklmnop = m + abcdefgh * hundred_million;
 
 
 #if HAS_NEON
@@ -269,18 +269,19 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     //const __m512i permb_const7 = _mm512_castsi128_si512(_mm_set_epi8(0x7f, 0x77, 0x6f, 0x67, 0x5f, 0x57, 0x4f, 0x47, 0x3f, 0x37, 0x2f, 0x27, 0x1f, 0x17, 0x0f, 0x07));
     __m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
     __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
-    __m512i highbits_h = _mm512_madd52hi_epu64(asciizero, zmmTen, lowbits_h);
-    __m512i highbits_l = _mm512_madd52hi_epu64(asciizero, zmmTen, lowbits_l);
+    __m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
+    __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
     //__m512i highbits_h7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_h, 5), _mm512_slli_epi64(lowbits_h, 7));
     //__m512i highbits_l7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_l, 5), _mm512_slli_epi64(lowbits_l, 7));
     //__m512i bcd = _mm512_permutex2var_epi8(highbits_h7, permb_const7, highbits_l7);//another way to permute , but slower.
-    __m512i ascii = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
-    //__m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
-    __m128i little_endian_ascii = _mm512_castsi512_si128(ascii);
-    int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_ascii, _mm512_castsi512_si128(asciizero)));
+    __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
+    __m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
+    //__m128i little_endian_ascii = _mm512_castsi512_si128(ascii);
+    __m128i little_endian_ascii = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+    int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm512_castsi512_si128(zero)));
     int tz = u64_lz_bits(mask);
     return {little_endian_ascii, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
-#elif defined(__SSSE3__) //&& (false)
+#elif defined(__SSSE3__) && (false)
     __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
     __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
 #ifdef __SSE4_1__
@@ -297,10 +298,26 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
     return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
 #else // sse2
-    __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
-    __m128i x_div_10000 = _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi32(0xd1b71759)), 45);
-    __m128i x_mod_10000 = _mm_sub_epi32(x, _mm_mul_epu32(x_div_10000, _mm_set1_epi32(10000)));
-    __m128i y = _mm_or_si128(x_div_10000, _mm_slli_epi64(x_mod_10000, 32));
+
+
+
+//     __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
+//     __m128i x_div_10000 = _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi32(0xd1b71759)), 45);
+//     __m128i x_mod_10000 = _mm_sub_epi32(x, _mm_mul_epu32(x_div_10000, _mm_set1_epi32(10000)));
+//     __m128i y = _mm_or_si128(x_div_10000, _mm_slli_epi64(x_mod_10000, 32));
+// #if defined(__SSE4_1__)
+//     __m128i z = _mm_sub_epi32(_mm_slli_epi32(y, 16), _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
+// #else
+//     __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
+//     __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+//     __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+// #endif
+//     __m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
+//     __m128i little_endian_bcd = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+
+    __m128i x = _mm_unpacklo_epi64(_mm_cvtsi32_si128(abcdefgh),_mm_cvtsi32_si128(ijklmnop));
+    //__m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
+    __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
 #if defined(__SSE4_1__)
     __m128i z = _mm_sub_epi32(_mm_slli_epi32(y, 16), _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
 #else
@@ -309,7 +326,10 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
 #endif
     __m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
-    __m128i little_endian_bcd = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+    __m128i bcd_swapped = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+    __m128i little_endian_bcd = _mm_shuffle_epi32(bcd_swapped, _MM_SHUFFLE(2, 3, 0, 1));   
+
+
     int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
     int tz = u64_lz_bits(mask);
     __m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));

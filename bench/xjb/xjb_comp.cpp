@@ -167,7 +167,8 @@ namespace xjb_comp
         buf += first_sig_pos;
         memcpy(buf, &s.ascii, 8);
         memcpy(&buf[8 - lz], &one, 8);
-        byte_move_8(&buf[move_pos], &buf[dot_pos]);
+        //byte_move_8(&buf[move_pos], &buf[dot_pos]);
+        memmove(&buf[move_pos], &buf[dot_pos],8);
         buf_origin[dot_pos] = '.';
         if (exp == 0) [[unlikely]]
             if (m < (u32)1e5)
@@ -181,7 +182,8 @@ namespace xjb_comp
                 lz += 2;
                 e10 -= lz - 1;
                 buf[0] = buf[lz];
-                byte_move_8(&buf[2], &buf[lz + 1]);
+                //byte_move_8(&buf[2], &buf[lz + 1]);
+                memmove(&buf[2], &buf[lz + 1],8);
                 exp_pos = exp_pos - lz + (exp_pos - lz != 1);
             }
         // write exponent

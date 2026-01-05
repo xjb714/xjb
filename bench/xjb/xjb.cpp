@@ -186,7 +186,8 @@ namespace xjb
         memcpy(buf + 8, &(s.lo), 8);
 #endif
         memcpy(&buf[15 + D17], &one, 8);
-        byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
+        //byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
+        memmove(&buf[move_pos], &buf[dot_pos],16);
         buf_origin[dot_pos] = '.';
         // const u64 *exp_ptr = (u64 *)&t->exp_result_double[324];
         //  if (m < (u64)1e14) [[unlikely]]
@@ -202,7 +203,8 @@ namespace xjb
                 lz += 2;
                 e10 -= lz - 1;
                 buf[0] = buf[lz];
-                byte_move_16(&buf[2], &buf[lz + 1]);
+                //byte_move_16(&buf[2], &buf[lz + 1]);
+                memmove(&buf[2], &buf[lz + 1],16);
                 exp_pos = exp_pos - lz + (exp_pos - lz != 1);
             }
             // #if is_intel_compiler
@@ -295,7 +297,8 @@ namespace xjb
         buf += first_sig_pos;
         memcpy(buf, &(s.ascii), 8);
         memcpy(&buf[8 - lz], &one, 8);
-        byte_move_8(&buf[move_pos], &buf[dot_pos]);
+        //byte_move_8(&buf[move_pos], &buf[dot_pos]);
+        memmove(&buf[move_pos], &buf[dot_pos],8);
         buf_origin[dot_pos] = '.';
         // if ( (is_little_endian() ? (s.ascii & 0xf) : (s.ascii & (0xfull<<56))) == 0)
         if (exp == 0) [[unlikely]]
@@ -312,7 +315,8 @@ namespace xjb
                 lz += 2;
                 e10 -= lz - 1;
                 buf[0] = buf[lz];
-                byte_move_8(&buf[2], &buf[lz + 1]);
+                //byte_move_8(&buf[2], &buf[lz + 1]);
+                memmove(&buf[2], &buf[lz + 1],8);
                 exp_pos = exp_pos - lz + (exp_pos - lz != 1);
             }
         u64 exp_result = t->exp_result_float[45 + e10];
