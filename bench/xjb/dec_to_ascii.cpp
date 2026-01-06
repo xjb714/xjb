@@ -151,7 +151,7 @@ struct const_value_double {
     uint64_t c5;//8
     uint64_t c6;//8
     uint64_t mul_const;       // 8
-    uint64_t hundred_million; // 8
+    int64_t hundred_million; // 8
     uint64_t div10000;
     uint64_t div10000_m;
     double div10000_2_d;
@@ -478,7 +478,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 static inline char* write_1_to_16_digit_sse2(u64 m, char *buf,const struct const_value_double *cv)
 {
     uint64_t abcdefgh = ((__uint128_t)m * cv->mul_const) >> 90;
-    uint64_t ijklmnop = m - abcdefgh * cv->hundred_million;
+    uint64_t ijklmnop = m + abcdefgh * cv->hundred_million;
 #if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
     const __m512i bcstq_h = _mm512_set1_epi64(abcdefgh);
     const __m512i bcstq_l = _mm512_set1_epi64(ijklmnop);
@@ -683,7 +683,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf,const struct const_valu
 #if HAS_NEON
         // src from : https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
         uint32_t abcdefgh = ((__uint128_t)xi * cv->mul_const) >> 90;
-        uint32_t ijklmnop = xi - abcdefgh * cv->hundred_million;
+        uint32_t ijklmnop = xi + abcdefgh * cv->hundred_million;
         uint64x1_t hundredmillions = {abcdefgh | ((uint64_t)ijklmnop << 32)};
         int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
         int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
@@ -720,7 +720,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf,const struct const_valu
 #elif HAS_SSE2 && (false)
 
     uint64_t abcdefgh = ((__uint128_t)xi * cv->mul_const) >> 90;
-    uint64_t ijklmnop = xi - abcdefgh * cv->hundred_million;
+    uint64_t ijklmnop = xi + abcdefgh * cv->hundred_million;
 #if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
     const __m512i bcstq_h = _mm512_set1_epi64(abcdefgh);
     const __m512i bcstq_l = _mm512_set1_epi64(ijklmnop);
