@@ -1,6 +1,5 @@
 #include <stdint.h>
 #include <string.h>
-#include <stdio.h>
 
 typedef __uint128_t u128;
 typedef uint64_t u64;
@@ -12,33 +11,6 @@ typedef uint32_t u32;
 
 namespace xjb
 {
-    static inline void byte_move_16(void *dst, const void *src)
-    {
-        // move 16byte from src to dst; no overlap issue
-#if HAS_NEON
-        uint64x2_t src_value = vld1q_u64((const uint64_t *)src);
-        vst1q_u64((uint64_t *)dst, src_value);
-#elif HAS_SSE2
-        __m128i src_value = _mm_loadu_si128((const __m128i *)src);
-        _mm_storeu_si128((__m128i *)dst, src_value);
-#else
-        u64 hi;
-        u64 lo;
-        char *psrc = (char *)src;
-        memcpy(&hi, psrc, 8);
-        memcpy(&lo, psrc + 8, 8);
-        char *pdst = (char *)dst;
-        memcpy(pdst, &hi, 8);
-        memcpy(pdst + 8, &lo, 8);
-#endif
-    }
-    static inline void byte_move_8(void *dst, const void *src)
-    {
-        // move 8byte from src to dst; no overlap issue
-        u64 src_value;
-        memcpy(&src_value, src, 8);
-        memcpy(dst, &src_value, 8);
-    }
     // static inline
     char *xjb64(double v, char *buf)
     {
@@ -150,18 +122,10 @@ namespace xjb
             if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
                 one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
 #else
-        // u64 one = (((dot_one * (u128)10) >> 64) | (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull)));
-        //u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : cv->c4))); // branch instruction
-        //u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > ((dot_one != (1ull << 62)) ? cv->c4 : ~0)));
-        // u64 one = (((dot_one * (u128)10) >> 64) + (u64)('0' + '0' * 256)) + (((u64)(dot_one * (u128)10) > cv->c4));
-        // if (dot_one == (1ull << 62))[[unlikely]]
-        //     one = (u64)('2' + '0' * 256);
         u64 one = ((dot_one * (u128)10 + cv->c4) >> 64) + (u64)('0' + '0' * 256);
         if (dot_one == (1ull << 62)) [[unlikely]]
             one = (u64)('2' + '0' * 256);
-        // if (irregular) [[unlikely]] // Since the compiler tries to prevent access to memory, it generates branch instructions.
-        //     one += (t->bit_array_irregular[ieee_exponent / 64] >> (ieee_exponent % 64)) & 1;
-        if (irregular) [[unlikely]]
+        if (irregular) [[unlikely]]// This is a cold code, so it is more efficient to have the compiler automatically generate branch instructions.
         {                      // Since the compiler tries to prevent access to memory, it generates branch instructions.
             u64 mask = cv->c6; // read constant values from memory to register , so this code will be more fast.
             if ((((dot_one >> 54) * 5) & mask) > (((half_ulp >> 55) * 5)))
@@ -186,11 +150,9 @@ namespace xjb
         memcpy(buf + 8, &(s.lo), 8);
 #endif
         memcpy(&buf[15 + D17], &one, 8);
-        byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
-        //memmove(&buf[move_pos], &buf[dot_pos],16);
+        //byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
+        memmove(&buf[move_pos], &buf[dot_pos],16);
         buf_origin[dot_pos] = '.';
-        // const u64 *exp_ptr = (u64 *)&t->exp_result_double[324];
-        //  if (m < (u64)1e14) [[unlikely]]
         if (ieee_exponent == 0) [[unlikely]]
         {
             // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
@@ -203,8 +165,8 @@ namespace xjb
                 lz += 2;
                 e10 -= lz - 1;
                 buf[0] = buf[lz];
-                byte_move_16(&buf[2], &buf[lz + 1]);
-                //memmove(&buf[2], &buf[lz + 1],16);
+                //byte_move_16(&buf[2], &buf[lz + 1]);
+                memmove(&buf[2], &buf[lz + 1],16);
                 exp_pos = exp_pos - lz + (exp_pos - lz != 1);
             }
             // #if is_intel_compiler

@@ -538,14 +538,17 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
     char buf_xjb[33];
     char buf_xjb_comp[33];
     char buf_schubfach_xjb[33];
+    memset(buf_xjb, 0, 33);
+    memset(buf_xjb_comp, 0, 33);
+    memset(buf_schubfach_xjb, 0, 33);
     char *end_buf_xjb = xjb64_f64_to_str(d, buf_xjb);
-    // char* end_buf_xjb_comp = xjb32_comp_f32_to_str(d, buf_xjb_comp);
+    char *end_buf_xjb_comp = xjb64_comp_f64_to_str(d, buf_xjb_comp);
     char *end_buf_schubfach_xjb = schubfach_xjb_f64_to_str(d, buf_schubfach_xjb);
     int len_xjb = end_buf_xjb - buf_xjb;
-    // int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
+    int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
     int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
-    // if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
-    if (len_xjb != len_schubfach_xjb)
+    if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
+    //if (len_xjb != len_schubfach_xjb)
     {
         // printf("f = %.8le, u = %x, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
         //  unsigned int dec, dec_xjb,dec_xjb_comp;
@@ -553,13 +556,13 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
         //  schubfach_xjb_f32_to_dec(f, &dec, &e10);
         //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
-        // printf("f = %.8le, u = %x, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n",d,u,len_xjb,len_xjb_comp,len_schubfach_xjb,buf_xjb,buf_xjb_comp,buf_schubfach_xjb , (u&(2047ull<<52)) ? "normal" : "subnormal");
-        printf("f = %.16le, u = %llx, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_schubfach_xjb, buf_xjb, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
+        printf("f = %.16le, u = %llx, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n",d,u,len_xjb,len_xjb_comp,len_schubfach_xjb,buf_xjb,buf_xjb_comp,buf_schubfach_xjb , (u&(2047ull<<52)) ? "normal" : "subnormal");
+        //printf("f = %.16le, u = %llx, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_schubfach_xjb, buf_xjb, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
         // exit(0);
         return 1;
     }
-    // if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
-    if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    //if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     {
         // if three string equal return OK;
         return 0;
@@ -573,8 +576,8 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
         //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
 
-        // printf("f = %.8le, u = %x, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n",d,u,buf_xjb,buf_xjb_comp,buf_schubfach_xjb);
-        printf("f = %.16le, u = %llx, buf_xjb=%s, buf_schubfach_xjb=%s \n", d, u, buf_xjb, buf_schubfach_xjb);
+        printf("f = %.16le, u = %llx, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n",d,u,buf_xjb,buf_xjb_comp,buf_schubfach_xjb);
+        //printf("f = %.16le, u = %llx, buf_xjb=%s, buf_schubfach_xjb=%s \n", d, u, buf_xjb, buf_schubfach_xjb);
         // exit(0);
     }
     return 1;
@@ -623,6 +626,9 @@ unsigned check_xjb32_and_schubfach32_xjb_string(float f)
     char buf_xjb[32];
     char buf_xjb_comp[32];
     char buf_schubfach_xjb[32];
+    memset(buf_xjb, 0, 32);
+    memset(buf_xjb_comp, 0, 32);
+    memset(buf_schubfach_xjb, 0, 32);
     char *end_buf_xjb = xjb32_f32_to_str(f, buf_xjb);
     char *end_buf_xjb_comp = xjb32_comp_f32_to_str(f, buf_xjb_comp);
     char *end_buf_schubfach_xjb = schubfach_xjb_f32_to_str(f, buf_schubfach_xjb);
@@ -978,7 +984,7 @@ int main()
 #if BENCH_DOUBLE
     bench_double();
 
-    // check_double(); // check double correctness , may cost long time
+    check_double(); // check double correctness , may cost long time
 #endif
 
     return 0;

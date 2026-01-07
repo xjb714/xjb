@@ -19,8 +19,8 @@ char* xjb64_f64_to_str(double v,char* buf)
 char* xjb64_comp_f64_to_str(double v,char* buf)
 {
     // to be implemented
-    return buf;
-    //return xjb_comp::xjb64(v,buf);
+    //return buf;
+    return xjb_comp::xjb64_comp(v,buf);
     //return xjb64_32_comp::xjb64(v,buf);
 }
 
