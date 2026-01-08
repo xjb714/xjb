@@ -45,9 +45,9 @@ const int is_bench_float_to_string = BENCH_STR;
 #include "zmij/zmij_i.hpp"
 #include "jnum/jnum_i.hpp" // not satisfy the Steele and White algorithm
 
-const int N = (int)(1e7);
-const int N_double = N; // double data size
-const int N_float = N;  // float data size
+const int N = (int)(1 << 24); // about 16M
+const int N_double = N;       // double data size
+const int N_float = N;        // float data size
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -186,8 +186,6 @@ void init_double()
     double_to_string_algorithm_set.push_back(std::string("zmij")); // 12
     double_to_string_algorithm_set.push_back(std::string("jnum")); // 13
 
-    // algorithm_set.push_back({std::string("ldouble"), ldouble_f64_to_dec});
-
     auto t2 = getns();
     printf("init : cost %lf second\n", (t2 - t1) / 1e9);
 }
@@ -203,7 +201,7 @@ void init_float()
     {
         data_float[i] = gen_float_filter_NaN_Inf();
     }
-    printf("generate random float data finish\n");
+    printf("generate random float data finish, total sample size : %d \n", N);
 
     memset(&dec_float[0], 0, N * sizeof(unsigned int));
     memset(&e10_float[0], 0, N * sizeof(int));
@@ -323,6 +321,13 @@ void bench_double_single_impl(int i)
         if (i == 10)
             for (int j = 0; j < N; ++j)
                 zmij_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+        for (int j = 0; j < N; ++j)
+        {
+            volatile unsigned int d = dec_p[j];
+            volatile int e = e10_p[j];
+            (void)d;
+            (void)e;
+        }
     }
 
     if (is_bench_double_to_string)
@@ -373,20 +378,14 @@ void bench_double_single_impl(int i)
     }
     // auto c2 = get_cycle();
     auto t2 = getns();
-    for (int j = 0; j < N; ++j)
-    {
-        volatile unsigned int d = dec_p[j];
-        volatile int e = e10_p[j];
-        (void)d;
-        (void)e;
-    }
+
     printf("cost %5.4lf ms,every double cost %3.4lf ns\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N));
 }
 void bench_float_single_impl(int i)
 {
     const int N = N_float;
     std::string name;
-    if (is_bench_double_to_decimal)
+    if (is_bench_float_to_decimal)
         name = float_to_decimal_algorithm_set[i].first;
     else if (is_bench_float_to_string)
         name = float_to_string_algorithm_set[i];
@@ -433,6 +432,13 @@ void bench_float_single_impl(int i)
         if (i == 8)
             for (int j = 0; j < N; ++j)
                 zmij_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
+        for (int j = 0; j < N; ++j)
+        {
+            volatile unsigned int d = dec_p[j];
+            volatile int e = e10_p[j];
+            (void)d;
+            (void)e;
+        }
     }
 
     if (is_bench_float_to_string)
@@ -477,13 +483,7 @@ void bench_float_single_impl(int i)
     }
 
     auto t2 = getns();
-    for (int j = 0; j < N; ++j)
-    {
-        volatile unsigned int d = dec_p[j];
-        volatile int e = e10_p[j];
-        (void)d;
-        (void)e;
-    }
+
     printf("cost %5.4lf ms,every float cost %3.4lf ns\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N));
 }
 
@@ -548,7 +548,7 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
     int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
     int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
     if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
-    //if (len_xjb != len_schubfach_xjb)
+    // if (len_xjb != len_schubfach_xjb)
     {
         // printf("f = %.8le, u = %x, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
         //  unsigned int dec, dec_xjb,dec_xjb_comp;
@@ -556,13 +556,13 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
         //  schubfach_xjb_f32_to_dec(f, &dec, &e10);
         //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
-        printf("f = %.16le, u = %llx, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n",d,u,len_xjb,len_xjb_comp,len_schubfach_xjb,buf_xjb,buf_xjb_comp,buf_schubfach_xjb , (u&(2047ull<<52)) ? "normal" : "subnormal");
-        //printf("f = %.16le, u = %llx, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_schubfach_xjb, buf_xjb, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
-        // exit(0);
+        printf("f = %.16le, u = %llx, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_xjb_comp, len_schubfach_xjb, buf_xjb, buf_xjb_comp, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
+        // printf("f = %.16le, u = %llx, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_schubfach_xjb, buf_xjb, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
+        //  exit(0);
         return 1;
     }
     if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
-    //if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    // if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     {
         // if three string equal return OK;
         return 0;
@@ -576,9 +576,9 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
         //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
 
-        printf("f = %.16le, u = %llx, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n",d,u,buf_xjb,buf_xjb_comp,buf_schubfach_xjb);
-        //printf("f = %.16le, u = %llx, buf_xjb=%s, buf_schubfach_xjb=%s \n", d, u, buf_xjb, buf_schubfach_xjb);
-        // exit(0);
+        printf("f = %.16le, u = %llx, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n", d, u, buf_xjb, buf_xjb_comp, buf_schubfach_xjb);
+        // printf("f = %.16le, u = %llx, buf_xjb=%s, buf_schubfach_xjb=%s \n", d, u, buf_xjb, buf_schubfach_xjb);
+        //  exit(0);
     }
     return 1;
 #else
@@ -718,9 +718,6 @@ void check_all_float_number_to_string()
     {
         float f = *(float *)&i;
         error_sum += check_xjb32_and_schubfach32_xjb_string(f); // about 50 second on apple M1 ; 40-45 second on AMD R7 7840H
-        // if( (i & ((1u<<26) - 1)) == 0) {
-        //     printf("check float number progress : %.3lf %% \r", (double)i * (100.0 / (double)0x7F7FFFFF)  );
-        // }
     }
     auto t2 = getns();
     if (error_sum == 0)
@@ -974,7 +971,7 @@ int main()
     bench_float();
 
 #if BENCH_STR
-    //check_all_float_number_to_string(); // check all float number , may cost long time
+    check_all_float_number_to_string(); // check all float number , may cost long time
 #else
     // check_all_float_number_to_decimal(); // check all float number , may cost long time
 #endif

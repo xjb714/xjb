@@ -363,8 +363,6 @@ namespace xjb_comp
             .e6 = 1000000,
             .e5 = 100000,
             .m = (1ull << 32) - 10000,
-            // .m32_0 = 0x147b000,
-            // .m32_1 = -100 + 0x10000,
             .m32_4 = {0x147b000, -100 + 0x10000, 0xce0, -10 + 0x100},
         };
         const struct const_value_float *c = &constants_float_comp;
@@ -414,8 +412,8 @@ namespace xjb_comp
         u64 shift = ((get_e10 * 1701) >> 9) - ((p10_base * 1701) >> 9) - p5_off;
         u32 pow5_base;
         u8 pow5_offset;
-        static const char *start_ptr = ((char *)pow10_base_table_pow5) + 5 * sizeof(u64);
-        static const char *start_ptr2 = ((char *)pow10_base_table_pow5) + 7 * sizeof(u64);
+        const char *start_ptr = ((char *)pow10_base_table_pow5) + 5 * sizeof(u64);
+        const char *start_ptr2 = ((char *)pow10_base_table_pow5) + 7 * sizeof(u64);
         memcpy(&pow5_base, &start_ptr[4 * (p5_off / 4)], 4);
         memcpy(&pow5_offset, &start_ptr2[(p5_off % 4)], 1);
         u64 p5 = (u64)pow5_base * (u64)pow5_offset;
@@ -437,8 +435,7 @@ namespace xjb_comp
         memcpy(buf, "0000", 4);
         u64 lz = (m < 1000000) + (m < 10000000);
         shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
-        k += 8 - lz;
-        i64 e10 = k;
+        i64 e10 = k + (8 - lz);
         u64 offset_num = ((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7) + (dot_one_36bit >> (BIT - 4));
         u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
         if (irregular) [[unlikely]]
@@ -460,7 +457,7 @@ namespace xjb_comp
 0,5,6,7,7,7,7,7,7,8,9,10,// e10=4
 0,6,7,8,8,8,8,8,8,8,9,10,// e10=5
 0,7,8,9,9,9,9,9,9,9,9,10,// e10=6
-0,8,9,10,10,10,10,10,10,10,10,10,// e10=7
+//0,8,9,10,10,10,10,10,10,10,10,10,// e10=7
 0,1,2,1,3,4,5,6,7,8,9,10// e10=other
         };
     u64 e10_3 = e10 + (-e10_DN);//convert to unsigned number
@@ -468,7 +465,7 @@ namespace xjb_comp
     u64 first_sig_pos = e10_variable_data[e10_data_ofs][0];  // we use lookup table to get first_sig_pos
     u64 dot_pos = e10_variable_data[e10_data_ofs][1];
     u64 move_pos = e10_variable_data[e10_data_ofs][2];
-    u64 exp_pos = e10_variable_data[e10_data_ofs][dec_sig_len_ofs];
+    u64 exp_pos = e10_variable_data[e10_data_ofs][s.dec_sig_len + 3];
 #else
         // how to generate branchless code?
         u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
@@ -480,7 +477,6 @@ namespace xjb_comp
         buf += first_sig_pos;
         memcpy(buf, &s.ascii, 8);
         memcpy(&buf[8 - lz], &one, 8);
-        // byte_move_8(&buf[move_pos], &buf[dot_pos]);
         memmove(&buf[move_pos], &buf[dot_pos], 8);
         buf_origin[dot_pos] = '.';
         if (exp == 0) [[unlikely]]
@@ -495,7 +491,6 @@ namespace xjb_comp
                 lz += 2;
                 e10 -= lz - 1;
                 buf[0] = buf[lz];
-                // byte_move_8(&buf[2], &buf[lz + 1]);
                 memmove(&buf[2], &buf[lz + 1], 8);
                 exp_pos = exp_pos - lz + (exp_pos - lz != 1);
             }

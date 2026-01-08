@@ -1,11 +1,6 @@
 #include <stdint.h>
 #include <string.h>
 
-typedef __uint128_t u128;
-typedef uint64_t u64;
-typedef int64_t i64;
-typedef uint32_t u32;
-
 #include "dec_to_ascii.cpp"
 #include "table.cpp"
 
@@ -50,7 +45,7 @@ namespace xjb
 #else
         if (nq <= u64_tz_bits(c)) //[[unlikely]]
 #endif
-            return write_1_to_16_digit(c >> nq, buf,cv); // fast path for integer
+            return write_1_to_16_digit(c >> nq, buf, cv); // fast path for integer
 #endif
         if (ieee_exponent == 0) [[unlikely]]
         {
@@ -97,7 +92,6 @@ namespace xjb
         u64 pow10_hi = p10[0];
         u64 pow10_lo = p10[1];
         u128 hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64));
-        // u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64));
         u64 dot_one = hi128 >> offset;
         u64 half_ulp = (pow10_hi >> (-h)) + ((c + 1) & 1);
         u64 up = (half_ulp > ~0 - dot_one);
@@ -108,10 +102,9 @@ namespace xjb
         u64 D17 = m > (u64)cv->c3;
         u64 mr = D17 ? m : m * 10;
         memcpy(buf, "00000000", 8);
-        //memcpy(buf, "0000", 4);
+        // memcpy(buf, "0000", 4);
         shortest_ascii16 s = to_ascii16(mr, up_down, D17, cv);
         i64 e10 = k + (15 + D17);
-        //i64 e10 = k;
 #ifdef __amd64__
         // u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull << 63) + 6;
         u64 offset_num = (1ull << 63) + 6;
@@ -125,14 +118,13 @@ namespace xjb
         u64 one = ((dot_one * (u128)10 + cv->c4) >> 64) + (u64)('0' + '0' * 256);
         if (dot_one == (1ull << 62)) [[unlikely]]
             one = (u64)('2' + '0' * 256);
-        if (irregular) [[unlikely]]// This is a cold code, so it is more efficient to have the compiler automatically generate branch instructions.
-        {                      // Since the compiler tries to prevent access to memory, it generates branch instructions.
-            u64 mask = cv->c6; // read constant values from memory to register , so this code will be more fast.
+        if (irregular) [[unlikely]] // This is a cold code, so it is more efficient to have the compiler automatically generate branch instructions.
+        {                           // Since the compiler tries to prevent access to memory, it generates branch instructions.
+            u64 mask = cv->c6;      // read constant values from memory to register , so this code will be more fast.
             if ((((dot_one >> 54) * 5) & mask) > (((half_ulp >> 55) * 5)))
                 one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
         }
 #endif
-
         const i64 e10_DN = -3;
         const i64 e10_UP = 15;
         u64 e10_3 = e10 + (-e10_DN);
@@ -150,8 +142,7 @@ namespace xjb
         memcpy(buf + 8, &(s.lo), 8);
 #endif
         memcpy(&buf[15 + D17], &one, 8);
-        //byte_move_16(&buf[move_pos], &buf[dot_pos]); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
-        memmove(&buf[move_pos], &buf[dot_pos],16);
+        memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
         buf_origin[dot_pos] = '.';
         if (ieee_exponent == 0) [[unlikely]]
         {
@@ -165,25 +156,17 @@ namespace xjb
                 lz += 2;
                 e10 -= lz - 1;
                 buf[0] = buf[lz];
-                //byte_move_16(&buf[2], &buf[lz + 1]);
-                memmove(&buf[2], &buf[lz + 1],16);
+                // byte_move_16(&buf[2], &buf[lz + 1]);
+                memmove(&buf[2], &buf[lz + 1], 16);
                 exp_pos = exp_pos - lz + (exp_pos - lz != 1);
             }
-            // #if is_intel_compiler
-            //             buf += exp_pos;
-            //             u64 exp_result = exp_ptr[e10];
-            //             memcpy(buf, &exp_result, 8);
-            //             return buf + 5;
-            // #endif
         }
-        // u64 exp_result = exp_ptr[e10];
         u64 exp_result = t->exp_result_double[e10 + 324];
         buf += exp_pos;
         memcpy(buf, &exp_result, 8);
         u64 exp_len = exp_result >> 56;
         return buf + exp_len;
     }
-#if 1
     // static inline
     char *xjb32(float v, char *buf)
     {
@@ -192,7 +175,6 @@ namespace xjb
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions , MSVC not support inline asm
         asm("" : "+r"(c));                                            // read constant values from memory to register
 #endif
-
         u32 vi;
         memcpy(&vi, &v, 4);
         buf[0] = '-';
@@ -235,9 +217,8 @@ namespace xjb
         u64 m = (sig_hi >> BIT) + up;
         memcpy(buf, "0000", 4);
         // u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
-        u64 lz = (m < c->e6) + (m < c->e7);
-        // u64 lz = (m < c->e6) ? 2 : (m < c->e7); //branch instruction
-        // u64 lz = (m < (u32)1e6) ? 2 : (m < (u32)1e7);
+        // u64 lz = (m < c->e6) + (m < c->e7);
+        u64 lz = (m < c->e6) ? 2 : (m < c->e7); // branch instruction ， maybe faster than branchless cmov
         shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
         i64 e10 = k + (8 - lz);
         // u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
@@ -259,13 +240,11 @@ namespace xjb
         buf += first_sig_pos;
         memcpy(buf, &(s.ascii), 8);
         memcpy(&buf[8 - lz], &one, 8);
-        //byte_move_8(&buf[move_pos], &buf[dot_pos]);
-        memmove(&buf[move_pos], &buf[dot_pos],8);
+        memmove(&buf[move_pos], &buf[dot_pos], 8);
         buf_origin[dot_pos] = '.';
         // if ( (is_little_endian() ? (s.ascii & 0xf) : (s.ascii & (0xfull<<56))) == 0)
         if (exp == 0) [[unlikely]]
-            // if (m < c->e5) // m < 100000
-            if (m < 100000)[[unlikely]]
+            if (m < 100000) //[[unlikely]]
             {
                 u64 lz = 0;
                 // while (buf[2 + lz] == '0')
@@ -277,8 +256,7 @@ namespace xjb
                 lz += 2;
                 e10 -= lz - 1;
                 buf[0] = buf[lz];
-                //byte_move_8(&buf[2], &buf[lz + 1]);
-                memmove(&buf[2], &buf[lz + 1],8);
+                memmove(&buf[2], &buf[lz + 1], 8);
                 exp_pos = exp_pos - lz + (exp_pos - lz != 1);
             }
         u64 exp_result = t->exp_result_float[45 + e10];
@@ -297,6 +275,4 @@ namespace xjb
         else
             return buf;
     }
-#endif
-
 } // end of namespace xjb

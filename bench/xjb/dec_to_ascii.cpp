@@ -356,15 +356,13 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 
 }
 
-struct const_value_float {//size = 40 bytes
+struct const_value_float {
     int64_t c1;
     uint64_t div10000;
     uint32_t e7;
     uint32_t e6;
     uint32_t e5;
     uint32_t m;
-    // int32_t m32_0;
-    // int32_t m32_1;
 #if HAS_NEON
     int32x4_t m32_4;
 #else
