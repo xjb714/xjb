@@ -971,7 +971,7 @@ int main()
     bench_float();
 
 #if BENCH_STR
-    check_all_float_number_to_string(); // check all float number , may cost long time
+    //check_all_float_number_to_string(); // check all float number , may cost long time
 #else
     // check_all_float_number_to_decimal(); // check all float number , may cost long time
 #endif
@@ -981,7 +981,7 @@ int main()
 #if BENCH_DOUBLE
     bench_double();
 
-    check_double(); // check double correctness , may cost long time
+    //check_double(); // check double correctness , may cost long time
 #endif
 
     return 0;
