@@ -569,10 +569,12 @@ auto write_significand17(char* buffer, uint64_t value,
                              vreinterpretq_u16_s8(vdupq_n_s8('0')));
   memcpy(buffer, &str, sizeof(str));
 
-  uint16x8_t is_zero = vreinterpretq_u16_u8(vceqq_u8(digits, vdupq_n_u8(0)));
+  // uint16x8_t is_zero = vreinterpretq_u16_u8(vceqq_u8(digits, vdupq_n_u8(0)));
+  // uint64_t zeroes =
+  //     ~vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_zero, 4)), 0);
+  uint16x8_t is_not_zero = vreinterpretq_u16_u8(vcgtzq_s8(digits));
   uint64_t zeroes =
-      ~vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_zero, 4)), 0);
-
+          vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
   buffer += 16 - ((zeroes != 0 ? clz(zeroes) : 64) >> 2);
   return buffer - int(buffer - start == 1);
 #elif ZMIJ_USE_SSE
@@ -714,10 +716,12 @@ ZMIJ_INLINE auto to_decimal_zmij(UInt bin_sig, int64_t raw_exp, bool regular,
     // An optimization of integral % 10 by Dougall Johnson.
     // Relies on range calculation: (max_bin_sig << max_exp_shift) * max_u128.
     uint64_t quo10 = (integral * ((uint128_t(1) << 64) / 10 + 1)) >> 64;
-    uint64_t digit = integral - quo10 * 10;
-    asm("" : "+r"(digit));  // or it narrows to 32-bit and doesn't use madd/msub
+    uint64_t divmul10 = quo10 * 10; // integral / 10 * 10
+    uint64_t digit = integral - divmul10;
+    //asm("" : "+r"(digit));  // or it narrows to 32-bit and doesn't use madd/msub
 #else
-    uint64_t digit = integral % 10;
+    uint64_t divmul10 = (integral / 10) * 10;
+    uint64_t digit = integral - divmul10;
 #endif
 
     // Switch to a fixed-point representation with the least significant
@@ -764,11 +768,21 @@ ZMIJ_INLINE auto to_decimal_zmij(UInt bin_sig, int64_t raw_exp, bool regular,
       break;
     }
 
-    bool round_up = upper >= ten;
-    int64_t shorter = int64_t(integral - digit + round_up * 10);
-    int64_t longer = int64_t(integral + (fractional >= half_ulp));
-    bool use_shorter = (scaled_sig_mod10 <= scaled_half_ulp) + round_up != 0;
-    return {use_shorter ? shorter : longer, dec_exp};
+    /* another way to compute dec_sig*/
+    // bool round_up = upper > ten;
+    // bool round_down = scaled_sig_mod10 < scaled_half_ulp;
+    // int64_t shorter = int64_t(round_up ? divmul10 + 10 : divmul10);
+    // int64_t longer = int64_t(integral + (fractional >> 63));
+    // bool use_shorter = round_down + round_up > 0;
+    // return {use_shorter ? shorter : longer, dec_exp};
+
+    // Four candidate values ： {divmul10, integral,  integral + 1, divmul10 + 10}
+    bool round_up = upper > ten;
+    bool round_down = scaled_sig_mod10 < scaled_half_ulp;
+    int64_t longer = int64_t(integral + (fractional >> 63));
+    int64_t dec_sig = round_down ? divmul10 : longer;//cmov , branch is insufficient
+    dec_sig = round_up ? divmul10 + 10 : dec_sig;//cmov , branch is insufficient
+    return {dec_sig, dec_exp};
   }
   bin_exp += subnormal;
 
