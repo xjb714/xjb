@@ -7,4 +7,4 @@ arm_asm:
 	clang++ -O3 -S  -march=native -o xjb_comp_arm_clang.s xjb_comp.cpp
 
 clean:
-	rm -f xjb_icpx.s xjb_clang.s xjb_gcc.s xjb_arm_clang.s xjb_comp_arm_clang.s
+	rm -f xjb_icpx.s xjb_clang.s xjb_gcc.s xjb_arm_clang.s xjb_arm_gcc.s xjb_comp_arm_clang.s

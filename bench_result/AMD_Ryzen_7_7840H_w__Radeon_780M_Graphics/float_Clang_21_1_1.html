@@ -64,10 +64,10 @@ table .number {
             <div class='navbar-item has-dropdown is-hoverable'>
                 <a class='navbar-link'>Info</a>
                 <div class='navbar-dropdown'>
-                    <a class='navbar-item'>Compiler: Clang 21.1.6</a>
+                    <a class='navbar-item'>Compiler: Clang 21.1.1</a>
                     <a class='navbar-item'>OS: Linux 64-bit</a>
                     <a class='navbar-item'>CPU: AMD Ryzen 7 7840H w/ Radeon 780M Graphics</a>
-                    <a class='navbar-item'>CPU Frequency: 5115.32 MHz</a>
+                    <a class='navbar-item'>CPU Frequency: 5115.30 MHz</a>
                 </div>
             </div>
             <div class='navbar-item has-dropdown is-hoverable'>
@@ -89,7 +89,7 @@ Highcharts.chart('chart_id_0', {
     title: { text: 'random' },
     subtitle: { text: 'random float number in all binary range, ignore nan and inf' },
     credits: { enabled: false },
-    xAxis: { allowDecimals: true, categories: ['dragonbox_comp', 'ryu', 'fmt_full', 'fmt_comp', 'schubfach_xjb', 'schubfach', 'dragonbox_full', 'xjb32_comp', 'zmij', 'xjb32', 'yyjson', 'null'], type: 'linear' },
+    xAxis: { allowDecimals: true, categories: ['fmt_comp', 'fmt_full', 'jnum', 'ryu', 'dragonbox_comp', 'yyjson', 'schubfach', 'dragonbox_full', 'schubfach_xjb', 'xjb32_comp', 'zmij', 'xjb32', 'null'], type: 'linear' },
     yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
     tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
     legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
@@ -98,7 +98,7 @@ Highcharts.chart('chart_id_0', {
         series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
     },
     series: [
-        { data: [115.337875, 113.636612, 112.835831, 111.583046, 96.060486, 95.529106, 94.433899, 70.688080, 67.356705, 32.836323, 8.165385, 5.000580] }
+        { data: [117.644173, 117.305962, 112.574783, 111.122581, 109.115936, 101.782990, 96.399612, 88.089935, 56.999805, 52.964222, 50.233028, 32.866863, 4.126686] }
     ]
 });
 </script>

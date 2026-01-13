@@ -34,7 +34,7 @@ const int is_bench_float_to_string = BENCH_STR;
 
 // double and float algorithm set
 #include "schubfach/schubfach_i.hpp"
-#include "schubfach_vitaut/schubfach_vitaut_i.hpp"
+//#include "schubfach_vitaut/schubfach_vitaut_i.hpp"
 #include "schubfach_xjb/schubfach_xjb_i.hpp"
 #include "dragonbox/dragonbox_i.hpp"
 #include "ryu/ryu_i.hpp"
@@ -714,10 +714,11 @@ void check_all_float_number_to_string()
     printf("check xjb32 algorithm ; about one minute, check all float number start\n");
     u64 error_sum = 0;
     auto t1 = getns();
-    for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)
+    //for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)//not contain 0,nan,inf
+    for (u32 i = 0x00000000u; i <= 0x7F7FFFFFu + 2; ++i)//contain 0,nan,inf
     {
         float f = *(float *)&i;
-        error_sum += check_xjb32_and_schubfach32_xjb_string(f); // about 50 second on apple M1 ; 40-45 second on AMD R7 7840H
+        error_sum += check_xjb32_and_schubfach32_xjb_string(f); // about 80 second on apple M1 ; 60 second on AMD R7 7840H
     }
     auto t2 = getns();
     if (error_sum == 0)
@@ -902,7 +903,7 @@ bool createDirectories(const std::string &path)
 }
 std::string getFileName(char *float_or_double)
 {
-    std::string directoryName = std::string("bench_result/") + getCPUName();
+    std::string directoryName = std::string("../bench_result/") + getCPUName();
     createDirectories(directoryName);
     std::string fileName = directoryName;
     fileName += std::string("/") + std::string(float_or_double);

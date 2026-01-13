@@ -14,13 +14,13 @@
 #if defined(__GNUC__) || defined(__clang__)
 #define UNUSED_ATTR                __attribute__((unused))
 #define FALLTHROUGH_ATTR           __attribute__((fallthrough))
-#define likely(cond)               __builtin_expect(!!(cond), 1)
-#define unlikely(cond)             __builtin_expect(!!(cond), 0)
+#define likely_j(cond)               __builtin_expect(!!(cond), 1)
+#define unlikely_j(cond)             __builtin_expect(!!(cond), 0)
 #else
 #define UNUSED_ATTR
 #define FALLTHROUGH_ATTR
-#define likely(cond)               (cond)
-#define unlikely(cond)             (cond)
+#define likely_j(cond)               (cond)
+#define unlikely_j(cond)             (cond)
 #endif
 
 #define DIY_SIGNIFICAND_SIZE        64                  /* Symbol: 1 bit, Exponent, 11 bits, Mantissa, 52 bits */
@@ -1830,7 +1830,7 @@ int jnum_parse_num(const char *str, jnum_type_t *type, jnum_value_t *value)
         i -= (int)(t - s);
         s = t;
 
-        if (unlikely(IS_DIGIT(*s))) {
+        if (unlikely_j(IS_DIGIT(*s))) {
             while (IS_DIGIT(*s))
                 ++s;
         }
@@ -1863,7 +1863,7 @@ int jnum_parse_num(const char *str, jnum_type_t *type, jnum_value_t *value)
         eneg = *t == '-';
         if (*t == '-' || *t == '+')
             ++t;
-        if (unlikely(!IS_DIGIT(*t))) {
+        if (unlikely_j(!IS_DIGIT(*t))) {
             if (i)
                 goto end2;
             else

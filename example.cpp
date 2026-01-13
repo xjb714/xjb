@@ -34,9 +34,14 @@ int main()
         9999999999990000,
         // some subnormal numbers
         5e-324,
+        1e-323,
         1.23e-315,
         3e-310,
         1e-45,//min float
+        std::numeric_limits<double>::infinity(),
+        -std::numeric_limits<double>::infinity(),
+        std::numeric_limits<double>::quiet_NaN(),
+        -std::numeric_limits<double>::quiet_NaN(),
     };
     char buf_full_double[33],buf_full_float[24];
     char buf_comp_double[33],buf_comp_float[24];
