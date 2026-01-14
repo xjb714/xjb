@@ -272,8 +272,10 @@ namespace xjb
 
 
         // if ( (is_little_endian() ? (s.ascii & 0xf) : (s.ascii & (0xfull<<56))) == 0)
+#if defined(__aarch64__)  // for arm64 processor , fewer instructions
         if (exp == 0) [[unlikely]]
-            if (m < 100000) //[[unlikely]]
+#endif
+            if (m < 100000) [[unlikely]]
             {
                 u64 lz = 0;
                 // while (buf[2 + lz] == '0')
