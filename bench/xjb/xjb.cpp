@@ -18,10 +18,10 @@ namespace xjb
         memcpy(&vi, &v, sizeof(v));
         buf[0] = '-';
         buf += vi >> 63;
-        u64 vi_abs = (vi << 1) >> 1;
         u64 ieee_significand = vi & ((1ull << 52) - 1);
         u64 ieee_exponent = (vi << 1) >> 53;
 #ifdef __amd64__ // for x86_64 processor , if not use this code , the performance will be very poor on icpx compiler. 9ns -> 12.5ns. that's why we use this code.
+        u64 vi_abs = (vi << 1) >> 1;
         if ((u64)(vi_abs - 2) >= (u64)((2047ull << 52) - 2)) [[unlikely]]
         {
             // generate branch instruction
@@ -70,10 +70,16 @@ namespace xjb
         if (!irregular) [[likely]] // branch
             k = (i64)((ieee_exponent - 1075) * 315653) >> 20;
         else
-            k = (i64)((ieee_exponent - 1075) * 315653 - 131237) >> 20;
+            k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
 #else
         // k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
-        k = (i64)(((i64)ieee_exponent - 1075) * cv->c1 + (irregular ? cv->c5 : 0)) >> 20; // branch instruction , more efficient than cmov
+        //k = (i64)(((i64)ieee_exponent - 1075) * cv->c1 + (irregular ? cv->c5 : 0)) >> 20; // branch instruction , more efficient than cmov
+        if (!irregular) [[likely]] // branch
+            //k = int(((u64)(ieee_exponent - 1075) * (u128)0x4d10500000000000) >> 64);
+            //k = (i64)((ieee_exponent - 1075) * 315653) >> 20;
+            k = (i64)((ieee_exponent - 1075) * 78913) >> 18;
+        else
+            k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
 #endif
 
 #ifdef __amd64__
@@ -83,8 +89,8 @@ namespace xjb
         u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2]; // get 10**(-k-1)
                                                    // u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2]; // gcc use this method , may cause performance issue. why?
 #else
-        // i64 h = q + ((k * -217707 - 217707) >> 16);
-        i64 h = q + ((k * (i64)cv->c2 + (i64)cv->c2) >> 16);
+        //i64 h = q + ((k * -217707 - 217707) >> 16);
+        i64 h = q + ((k * (i64)cv->c2 + (i64)cv->c2) >> 16);//madd instruction , more efficient than mul and add
         const u64 *pow10_ptr = t->pow10_double + 293 * 2 - 2;
         u64 *p10 = (u64 *)&pow10_ptr[k * -2]; // get 10**(-k-1)
 #endif
