@@ -730,6 +730,29 @@ void check_all_float_number_to_string()
         printf("check_all_float fail error sum = %llu , cost %.3lf second\n", (unsigned long long)error_sum, (double)(t2 - t1) / 1e9);
     }
 }
+void check_all_irregular_float_number_to_string()
+{
+    printf("check xjb32 algorithm ; about one minute, check all float number start\n");
+    u64 error_sum = 0;
+    auto t1 = getns();
+    for (u32 i = 0; i <= 246; ++i)//contain 0
+    {
+        u32 u = i<<23;
+        float f = *(float *)&u;
+        int is_error = check_xjb32_and_schubfach32_xjb_string(f);
+        if(is_error)printf("exp=%d\n", (int)i);
+        error_sum += is_error; 
+    }
+    auto t2 = getns();
+    if (error_sum == 0)
+    {
+        printf("check_all_irregular_float ok, cost %.3lf second\n", (t2 - t1) / 1e9);
+    }
+    else
+    {
+        printf("check_all_irregular_float fail error sum = %llu , cost %.3lf second\n", (unsigned long long)error_sum, (double)(t2 - t1) / 1e9);
+    }
+}
 void check_float()
 {
     // not contain subnormal float
@@ -972,6 +995,7 @@ int main()
     bench_float();
 
 #if BENCH_STR
+    check_all_irregular_float_number_to_string();//fast
     //check_all_float_number_to_string(); // check all float number , may cost long time
 #else
     // check_all_float_number_to_decimal(); // check all float number , may cost long time

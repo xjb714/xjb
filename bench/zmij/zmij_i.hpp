@@ -31,7 +31,7 @@
 // }
 
 
-#include "zmij.cc"
+#include "zmij_new.cc"
 char* zmij_f64_to_str(double value, char* buffer) {
     char* buf = zmij::detail::write(value, buffer);
     return buf;

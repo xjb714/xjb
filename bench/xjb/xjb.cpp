@@ -202,10 +202,16 @@ namespace xjb
         u64 irregular = sig == 0;
         const int BIT = 36;                  // [33,36] all right
         i64 k = (i64)(exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
+        //i64 k = (int)((exp_bin * (u128)(1233ull<<52) ) >> 64);
         if (irregular) [[unlikely]]
         {
             k = (i64)(exp_bin * 1233 - 512) >> 12;
             h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
+            // another method
+            // if(exp_bin == 24-150)return (char *)memcpy(buf, "9.8607613e-32\0\0", 16) + 13;
+            // if(exp_bin == 57-150)return (char *)memcpy(buf, "8.4703295e-22\0\0", 16) + 13;
+            // if(exp_bin == 67-150)return (char *)memcpy(buf, "8.6736174e-19\0\0", 16) + 13;
+            // if(exp_bin == 220-150)return (char *)memcpy(buf, "9.9035203e+27\0\0", 16) + 13;
         }
         u64 pow10_hi = t->pow10_float_reverse[45 + k];
         u64 even = (sig + 1) & 1; // or (sig_bin + 1) & 1
@@ -231,9 +237,16 @@ namespace xjb
         u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
         u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
         // one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
-        if (irregular) [[unlikely]]
+        if (irregular) [[unlikely]]{
             if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
                 ++one;
+            // if(exp_bin == 24-150)return (char *)memcpy(buf, "9.8607613e-32\0\0", 16) + 13;
+            // if(exp_bin == 57-150)return (char *)memcpy(buf, "8.4703295e-22\0\0", 16) + 13;
+            // if(exp_bin == 67-150)return (char *)memcpy(buf, "8.6736174e-19\0\0", 16) + 13;
+            // if(exp_bin == 220-150)return (char *)memcpy(buf, "9.9035203e+27\0\0", 16) + 13;
+        }
+
+
         const i64 e10_DN = -3, e10_UP = 6;
         u64 e10_3 = e10 + (-e10_DN);
         u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
@@ -248,6 +261,16 @@ namespace xjb
         memcpy(&buf[8 - lz], &one, 8);
         memmove(&buf[move_pos], &buf[dot_pos], 8);
         buf_origin[dot_pos] = '.';
+
+        //fixed scientific notation
+        // memcpy(buf, &(s.ascii), 8);
+        // memcpy(&buf[8 - lz], &one, 8);
+        // memmove(&buf[2], &buf[1], 8);
+        // buf[1] = '.';
+        // u64 exp_pos = s.dec_sig_len + (s.dec_sig_len != 0) + 1;
+        // u64 exp_len = 4;
+
+
         // if ( (is_little_endian() ? (s.ascii & 0xf) : (s.ascii & (0xfull<<56))) == 0)
         if (exp == 0) [[unlikely]]
             if (m < 100000) //[[unlikely]]
