@@ -133,7 +133,7 @@ inline auto is_big_endian() noexcept -> bool {
   return *reinterpret_cast<char*>(&n) != 1;
 }
 
-inline auto bswap64(uint64_t x) noexcept -> uint64_t {
+inline auto byteswap64(uint64_t x) noexcept -> uint64_t {
 #if ZMIJ_HAS_BUILTIN(__builtin_bswap64)
   return __builtin_bswap64(x);
 #elif ZMIJ_MSC_VER
@@ -435,7 +435,7 @@ inline auto count_trailing_nonzeros(uint64_t x) noexcept -> int {
   // high bit is unused we can avoid the zero check by shifting the
   // datum left by one and inserting a sentinel bit at the end. This can
   // be faster than the automatically inserted range check.
-  if (is_big_endian()) x = bswap64(x);
+  if (is_big_endian()) x = byteswap64(x);
   return (size_t(70) - clz((x << 1) | 1)) / 8;  // size_t for native arithmetic
 }
 
@@ -481,7 +481,7 @@ auto to_bcd8(uint64_t abcdefgh) noexcept -> uint64_t {
   uint64_t a_b_c_d_e_f_g_h =
       ab_cd_ef_gh +
       neg10 * (((ab_cd_ef_gh * div10_sig) >> div10_exp) & 0xf000f000f000f);
-  return is_big_endian() ? a_b_c_d_e_f_g_h : bswap64(a_b_c_d_e_f_g_h);
+  return is_big_endian() ? a_b_c_d_e_f_g_h : byteswap64(a_b_c_d_e_f_g_h);
 }
 
 inline auto write_if(char* buffer, uint32_t digit, bool condition) noexcept
