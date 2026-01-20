@@ -87,7 +87,7 @@ namespace xjb
         i64 h = q + ((get_e10 * 217707) >> 16);
         const u64 *pow10_ptr = pow10_double + 293 * 2;
         u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2]; // get 10**(-k-1)
-                                                   // u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2]; // gcc use this method , may cause performance issue. why?
+                                                   // u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2];
 #else
         //i64 h = q + ((k * -217707 - 217707) >> 16);
         i64 h = q + ((k * (i64)cv->c2 + (i64)cv->c2) >> 16);//madd instruction , more efficient than mul and add
@@ -207,7 +207,7 @@ namespace xjb
         {
             k = (i64)(exp_bin * 1233 - 512) >> 12;
             h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
-            // another method
+            // another method : only four value generate false result;
             // if(exp_bin == 24-150)return (char *)memcpy(buf, "9.8607613e-32\0\0", 16) + 13;
             // if(exp_bin == 57-150)return (char *)memcpy(buf, "8.4703295e-22\0\0", 16) + 13;
             // if(exp_bin == 67-150)return (char *)memcpy(buf, "8.6736174e-19\0\0", 16) + 13;
