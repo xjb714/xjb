@@ -106,7 +106,7 @@ Here are a few examples for double to string algorithm:
 
 ## Algorithm characteristics:  
 This algorithm is based on the schubfach algorithm.  
-This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and grisu.
+This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and grisu.  
 (1) Support double and float  
 (2) Algorithm process optimization  
 (3) Low branch prediction failure rate  
