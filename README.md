@@ -4,7 +4,7 @@ xjb : a fast float to string algorithm.
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
 ## algorithm correctness proof:  
-xjb64:
+xjb64、xjb64_comp:
 f64 to string/decimal : please run `bench/main.cpp/check_double_to_string();` to check the correctness of the algorithm.  
 The document explaining the working principle of the code is called `code_explain.ipynb`.The document is currently under preparation.  
 
@@ -15,7 +15,7 @@ Test all positive single-precision floating-point numbers. The running time only
 
 ## note:
 the code is still under development and may contain bugs. if you find any bugs, please let me know.  
-**warning: The current code can only run on little-endian CPUs. The code for the big-endian CPU is currently under development.**
+**warning: The current code can only run on little-endian CPUs. The code for the big-endian CPU is currently under development. Support for the msvc compiler is under development.**
 
 ## src files:
 (1)float/double to decimal algorithm  
@@ -30,8 +30,8 @@ lookup table size:
 <table border="1px">
     <tr>
         <td colspan="1"></td>
-        <td colspan="1">full table:dtoa_xjb64_xjb32.cpp</td>
-        <td colspan="1">compress table:dtoa_xjb_comp.cpp</td>
+        <td colspan="1">full table:xjb.cpp</td>
+        <td colspan="1">compress table:xjb_comp.cpp</td>
     </tr>
     <tr>
         <td>float</td>
@@ -88,24 +88,34 @@ Here are a few examples for double to string algorithm:
         <td>0.000123</td>
         <td>"1.23e-04"</td>
     </tr>
+    <tr>
+        <td>0</td>
+        <td>"0.0"</td>
+    </tr>
+    <tr>
+        <td>NaN</td>
+        <td>"nan"</td>
+    </tr>
+    <tr>
+        <td>Inf</td>
+        <td>"inf"</td>
+    </tr>
 </table>
 
 <!-- demo link: https://onlinegdb.com/OPKdOpikG -->
 
 ## Algorithm characteristics:  
 This algorithm is based on the schubfach algorithm.  
-This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and grisu.  
-(1) Algorithm process optimization  
-(2) Low branch prediction failure rate  
-(3) Acceleration using SIMD instruction set  
-(4) Low instruction dependency, high IPC  
-(5) Fewer instructions  
+This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and grisu.
+(1) Support double and float  
+(2) Algorithm process optimization  
+(3) Low branch prediction failure rate  
+(4) Acceleration using SIMD instruction set  
+(5) Low instruction dependency, high IPC  
+(6) Fewer instructions  
 
 ## benchmark:
-The latest benchmark results:  
-to be completed.  
-
-benchmark result on Apple M1 and amd R7-7840h CPU:
+The latest benchmark results on Apple M1 and amd R7-7840h CPU:
 <!-- ![ramdom float apple M1](bench_result/random_float_m1.svg)
 ![ramdom double apple M1](bench_result/random_double_m1.svg)
 ![ramdom float amd 7840h](bench_result/random_float_7840h.svg)
