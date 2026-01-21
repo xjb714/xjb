@@ -108,7 +108,7 @@ to be completed.
 benchmark result on apple M1:
 ![ramdom float apple M1](bench_result/random_float_m1.svg)
 
-![ramdom float apple M1](bench_result/random_double_m1.svg)
+![ramdom double apple M1](bench_result/random_double_m1.svg)
 
 please refer to `bench` directory for more details.  
 
