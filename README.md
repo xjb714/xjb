@@ -3,7 +3,7 @@ xjb : a fast float to string algorithm.
 
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
-### algorithm correctness proof:  
+## algorithm correctness proof:  
 xjb64:
 f64 to string/decimal : please run `bench/main.cpp/check_double_to_string();` to check the correctness of the algorithm.  
 The document explaining the working principle of the code is called `code_explain.ipynb`.The document is currently under preparation.  
@@ -13,11 +13,11 @@ xjb32、xjb32_comp:
 (2)f32 to decimal : please run `bench/main.cpp/check_all_float_number_to_decimal()` to check the correctness of the algorithm.  
 Test all positive single-precision floating-point numbers. The running time only takes about one minute.  
 
-### note:
+## note:
 the code is still under development and may contain bugs. if you find any bugs, please let me know.  
 **warning: The current code can only run on little-endian CPUs. The code for the big-endian CPU is currently under development.**
 
-### src files:
+## src files:
 (1)float/double to decimal algorithm  
 &emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `bench/xjb/xjb32_i.cpp`;  <!-- https://godbolt.org/z/eT57sW9q1   -->  
 &emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `bench/xjb/xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
@@ -35,17 +35,17 @@ lookup table size:
     </tr>
     <tr>
         <td>float</td>
-        <td>1352+40 byte</td>
+        <td>1352 byte</td>
         <td>64 byte</td>
     </tr>
     <tr>
         <td>double</td>
-        <td>amd64:15336 byte <br> arm64:15336+256 = 15592 byte</td>
-        <td>amd64:592 byte <br> arm64:592+256 = 848 byte</td>
+        <td>15336 byte</td>
+        <td>592 byte</td>
     </tr>
 </table>
 
-### examples:
+## examples:
 Here are a few examples for double to string algorithm:
 <table border="1px">
     <tr>
@@ -92,7 +92,7 @@ Here are a few examples for double to string algorithm:
 
 <!-- demo link: https://onlinegdb.com/OPKdOpikG -->
 
-### Algorithm characteristics:  
+## Algorithm characteristics:  
 This algorithm is based on the schubfach algorithm.  
 This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and grisu.  
 (1) Algorithm process optimization  
@@ -101,16 +101,55 @@ This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and g
 (4) Low instruction dependency, high IPC  
 (5) Fewer instructions  
 
-### benchmark:
+## benchmark:
 The latest benchmark results:  
 to be completed.  
 
-benchmark result on apple M1:
-![ramdom float apple M1](bench_result/random_float_m1.svg)
-
+benchmark result on Apple M1 and amd R7-7840h CPU:
+<!-- ![ramdom float apple M1](bench_result/random_float_m1.svg)
 ![ramdom double apple M1](bench_result/random_double_m1.svg)
+![ramdom float amd 7840h](bench_result/random_float_7840h.svg)
+![ramdom double amd 7840h](bench_result/random_double_7840h.svg) -->
+<table>
+    <tr>
+        <td ><center><img src="bench_result/random_float_m1.svg" >ramdom float on Apple M1 </br> compiler: apple clang 17.0.0</center></td>
+        <td ><center><img src="bench_result/random_double_m1.svg"  >ramdom double on Apple M1</br> compiler: apple clang 17.0.0</center></td>
+    </tr>
+    <tr>
+        <td><center><img src="bench_result/random_float_7840h.svg" >ramdom float on AMD R7-7840H </br> compiler: icpx 2025.0.4</center></td>
+        <td ><center><img src="bench_result/random_double_7840h.svg"  >ramdom double on AMD R7-7840H</br> compiler: icpx 2025.0.4</center> </td>
+    </tr>
+</table>
 
 please refer to `bench` directory for more details.  
+
+## related algorithm
+
+algorithm     | Description
+--------------|-----------
+[schubfach](https://github.com/abolz/Drachennest) | Raffaello Giulietti's algorithm.Origin source code from https://github.com/c4f7fcce9cb06515/Schubfach
+schubfach_xjb  | It is improved by schubfach and has the same output result.
+[ryu](https://github.com/ulfjack/ryu) | Ulf Adams's [Ryū algorithm](https://dl.acm.org/citation.cfm?id=3192369).
+[dragonbox](https://github.com/jk-jeon/dragonbox) | Junekey Jeon's CPP implementation.
+[fmt](https://github.com/fmtlib/fmt) | Victor Zverovich.https://github.com/fmtlib/fmt. version:12.1.0
+[yy_double](https://github.com/ibireme/c_numconv_benchmark) | yy's algorithm ,  origin link : https://github.com/ibireme/c_numconv_benchmark/blob/master/vendor/yy_double/yy_double.c
+[yy_json](https://github.com/ibireme/yyjson) | yy's algorithm. https://github.com/ibireme/yyjson
+[teju](https://github.com/cassioneri/teju_jagua) | youtube  link : https://www.youtube.com/watch?v=fPZ1ZdA7Iwc . An academic paper will be written to provide proof of correctness.https://github.com/cassioneri/teju_jagua
+[xjb](https://github.com/xjb714/xjb) | XiangJunBo's algorithm. https://github.com/xjb714/xjb
+[schubfach_vitaut](https://github.com/vitaut/schubfach) | Vitaut's algorithm. https://github.com/vitaut/schubfach
+[zmij](https://github.com/vitaut/zmij) | Vitaut's algorithm. https://github.com/vitaut/zmij
+[jnum](https://github.com/lengjingzju/json) | Jing Leng's algorithm. https://github.com/lengjingzju/json
+
+## acknowledgement:
+Thanks to the following authors:
+
+* Yaoyuan Guo ([@ibireme](https://github.com/ibireme)) - Author of the yyjson and yy_double algorithm , provide benchmark data and test code. The code inspiration for this project comes from the yy algorithm.
+
+* Dougall Johnson ([@dougallj](https://github.com/dougallj)) - Authored the NEON implementation, which is used in the xjb algorithm.
+
+* Daniel Lemire ([@lemire](https://github.com/lerime)) - Authored the AVX512IFMA implementation(Convert 8/16 digit integer to decimal strings), which is used in the xjb algorithm. [code](https://lemire.me/blog/2022/03/28/converting-integers-to-decimal-strings-faster-with-avx-512/)
+
+* Raffaello Giulietti ([@rgiulietti](https://github.com/rgiulietti)) - Author of the Schubfach algorithm, whose work forms a foundational basis for xjb.
 
 <!-- https://github.com/xjb714/f2dec_bench
 ![alt text](image-1.png)
