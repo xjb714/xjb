@@ -39,7 +39,7 @@
 #endif
 #endif
 
-typedef __uint128_t u128;
+typedef __uint128_t u128;//msvc not support
 typedef uint64_t u64;
 typedef int64_t i64;
 typedef uint32_t u32;
@@ -72,8 +72,11 @@ static inline int u64_tz_bits(uint64_t x)
     return __tzcnt64(x);
 #elif defined(_MSC_VER)
     unsigned long idx;
-    _BitScanForward64(&idx, x); // Fallback to the BSF instruction.
-    return 63 - idx;
+    if (_BitScanForward64(&idx, x)) {
+        return (int)idx;
+    } else {
+        return 64;
+    }
 #else
     int n = 64;
     for (; x > 0; x <<= 1)

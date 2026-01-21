@@ -295,17 +295,6 @@ namespace xjb
         memcpy(buf, &exp_result, 8);
         return buf + exp_len;
     }
-
-    // template <typename Float>
-    // char *to_string(Float v, char *buf)
-    // {
-    //     if (sizeof(Float) == sizeof(float))
-    //         return xjb32(v, buf);
-    //     else if (sizeof(Float) == sizeof(double))
-    //         return xjb64(v, buf);
-    //     else
-    //         return buf;
-    // }
     char *to_string(float v, char *buf){return xjb32(v, buf);}
     char *to_string(double v, char *buf){return xjb64(v, buf);}
 } // end of namespace xjb

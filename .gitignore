@@ -17,3 +17,7 @@ bench/xjb/perf/main_i
 test
 bench/xjb/*.s
 bench/xjb/perf/*.s
+.DS_Store
+bench/.DS_Store
+bench_result/.DS_Store
+other_benchmark_project/.DS_Store
