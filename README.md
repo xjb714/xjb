@@ -148,7 +148,7 @@ schubfach_xjb  | It is improved by schubfach and has the same output result.
 [xjb](https://github.com/xjb714/xjb) | XiangJunBo's algorithm. https://github.com/xjb714/xjb
 [schubfach_vitaut](https://github.com/vitaut/schubfach) | Vitaut's algorithm. https://github.com/vitaut/schubfach
 [zmij](https://github.com/vitaut/zmij) | Vitaut's algorithm. https://github.com/vitaut/zmij
-[jnum](https://github.com/lengjingzju/json) | Jing Leng's algorithm. https://github.com/lengjingzju/json
+[jnum](https://github.com/lengjingzju/json/blob/master/jnum.c) | Jing Leng's algorithm. https://github.com/lengjingzju/json/blob/master/jnum.c
 
 ## acknowledgement:
 Thanks to the following authors:
