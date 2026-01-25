@@ -185,6 +185,7 @@ void init_double()
     // double_to_string_algorithm_set.push_back(std::string("schubfach_vitaut"));// 11
     double_to_string_algorithm_set.push_back(std::string("zmij")); // 12
     double_to_string_algorithm_set.push_back(std::string("jnum")); // 13
+    double_to_string_algorithm_set.push_back(std::string("d2e_xjb")); // 14
 
     auto t2 = getns();
     printf("init : cost %lf second\n", (t2 - t1) / 1e9);
@@ -375,6 +376,9 @@ void bench_double_single_impl(int i)
         if (i == 12)
             for (int j = 0; j < N; ++j)
                 jnum_f64_to_str(data[j], buffer);
+        if (i == 13)
+            for (int j = 0; j < N; ++j)
+                d2e_xjb_f64_to_str(data[j], buffer);
     }
     // auto c2 = get_cycle();
     auto t2 = getns();

@@ -44,7 +44,7 @@ typedef int64_t i64;
 typedef uint32_t u32;
 typedef uint16_t u16;
 
-static inline int u64_lz_bits(uint64_t x)
+static inline int u64_lz_bits_xjb(uint64_t x)
 {
 #if defined(__has_builtin) && __has_builtin(__builtin_clzll)
     return __builtin_clzll(x);
@@ -62,7 +62,23 @@ static inline int u64_lz_bits(uint64_t x)
     return n;
 #endif
 }
-
+static inline uint64_t is_little_endian_xjb()
+{
+    const int n = 1;
+    return *(char *)(&n) == 1;
+}
+static inline uint64_t byteswap64_xjb(uint64_t x){
+#if defined(__has_builtin) && __has_builtin(__builtin_bswap64)
+    return __builtin_bswap64(x);
+#elif defined(_MSC_VER)
+    return _byteswap_uint64(x);
+#else
+    return ((x & 0xff00000000000000) >> 56) | ((x & 0x00ff000000000000) >> 40) |
+           ((x & 0x0000ff0000000000) >> 24) | ((x & 0x000000ff00000000) >> 8) |
+           ((x & 0x00000000ff000000) << 8) | ((x & 0x0000000000ff0000) << 24) |
+           ((x & 0x000000000000ff00) << 40) | ((x & 0x00000000000000ff) << 56);
+#endif
+}
 typedef struct
 {
 #if HAS_NEON
@@ -80,7 +96,7 @@ const double _10en[324 * 2 + 1] = {0, 1e-323, 1e-322, 1e-321, 1e-320, 1e-319, 1e
 
 static inline ascii16 Convert16Digits(uint64_t abcdefgh, uint64_t ijklmnop)
 {
-
+    const uint64_t ZERO = 0x3030303030303030ull;
 #if HAS_SSE2
 
 #if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
@@ -138,8 +154,8 @@ static inline ascii16 Convert16Digits(uint64_t abcdefgh, uint64_t ijklmnop)
     uint64_t i_j_k_l_m_n_o_p = ij_kl_mn_op + (0x100 - 10) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f);
     //int abcdefgh_tz = u64_tz_bits(a_b_c_d_e_f_g_h);
     //int ijklmnop_tz = u64_tz_bits(i_j_k_l_m_n_o_p);
-    uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
-    uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
+    uint64_t abcdefgh_bcd = is_little_endian_xjb() ? byteswap64_xjb(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+    uint64_t ijklmnop_bcd = is_little_endian_xjb() ? byteswap64_xjb(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
     //int tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
     //tz = tz / 8;
     return {abcdefgh_bcd | ZERO, ijklmnop_bcd | ZERO};
@@ -173,8 +189,9 @@ struct exp_result_table
     }
 };
 alignas(64) constexpr exp_result_table exp_result;
-extern "C" char *d2e_impl(double v, char *buffer)
+inline char *d2e_xjb(double v, char *buffer)
 {
+    // equal to printf("%.16le\n", v); not shortest
     const int Precision = 16;
     buffer[0] = '-';
     u64 vi;
@@ -190,7 +207,7 @@ extern "C" char *d2e_impl(double v, char *buffer)
     {
         if (vi_abs == 0)
             return (char *)memcpy(buffer, "0", 2) + 1;
-        u64 clz = u64_lz_bits(vi_abs);//clz max = 63;
+        u64 clz = u64_lz_bits_xjb(vi_abs);//clz max = 63;
         f = vi_abs << clz;
         e2 = -1011 - clz;//min = -1074
     }

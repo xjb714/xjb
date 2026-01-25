@@ -264,7 +264,7 @@ static void dtoa_func_benchmark_all(const char *output_path) {
     yy_cpu_measure_freq();
 
 
-    const int num_per_case = 10000 * 10; //1e5
+    const int num_per_case = 1 << 17; // 131072
     const int meansure_count = 1;
 
     //bool recovery_from_file = true;         // read from file or not
@@ -866,6 +866,7 @@ static void dtoa_func_register_all(void) {
     //dtoa_func_register(schubfach_vitaut)
     dtoa_func_register(zmij)
     dtoa_func_register(jnum)
+    dtoa_func_register(d2e_xjb)
 
 
 
