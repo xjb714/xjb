@@ -136,7 +136,7 @@ const struct const_value_float *c = &constants_float;
     int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->m32_4[0])), c->m32_4[1]);
     int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10+0x100);
     //int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])), c->m32_4[3]);//fewer instructions but slower,why? 
-    u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0));// big_endian to little_endian , reverse 8 bytes
+    u64 abcdefgh_BCD = byteswap64_xjb(vget_lane_u64(BCD_big_endian, 0));// big_endian to little_endian , reverse 8 bytes
 #endif
 
 #if HAS_SSE2
@@ -377,12 +377,6 @@ const struct const_value_double *cv = &constants_double;
 struct exp_result_table
 {
     uint64_t data[308 - (-324) + 1] = {}; // [-324 , 308]
-
-    // constexpr u64 operator[](int e10) const
-    // {
-    //     return data[e10 + 324];
-    // }
-
     constexpr exp_result_table()
     {
         for (int e10 = -324; e10 <= 308; e10++)
@@ -429,7 +423,7 @@ inline char *d2e_xjb(double v, char *buffer)
     buffer += vi >> 63;
     u64 vi_abs = vi & (((u64)1 << 63) - 1);
     i64 ieee754_exp11 = (vi_abs >> 52);
-    if (ieee754_exp11 == 0x7ff) // nan or inf
+    if (ieee754_exp11 == 0x7ff) [[unlikely]] // nan or inf
         return (char *)memcpy(buffer, (vi_abs == ((u64)0x7ff << 52)) ? "inf" : "nan", 4) + 3;
     u64 f = (vi << 11) | (((u64)1) << 63);
     i64 e2 = ieee754_exp11 - 1023;//max = 2046-1023=1023
@@ -473,7 +467,7 @@ inline char *f2e_xjb(float v, char *buffer)
     buffer += vi >> 31;
     u32 vi_abs = vi & (((u32)1 << 31) - 1);
     i32 ieee754_exp11 = (vi_abs >> 23);
-    if (ieee754_exp11 == 0xff) // nan or inf
+    if (ieee754_exp11 == 0xff) [[unlikely]] // nan or inf
         return (char *)memcpy(buffer, (vi_abs == ((u64)0xff << 23)) ? "inf" : "nan", 4) + 3;
     u32 f = (vi << 8) | (1u << 31);
     i32 e2 = ieee754_exp11 - 127;//max = 2046-1023=1023
@@ -491,9 +485,8 @@ inline char *f2e_xjb(float v, char *buffer)
     i32 e10_tmp = (e2 * 1233) >> 12;                     // == floor(e2*log10(2))
     i32 e10 = e10_tmp + (vi_abs >= f32_pow10_ptr[e10_tmp]); // e10_tmp or e10_tmp+1
     u64 pow10_f = power_ptr[e10];//e10 : [-324]
-    i64 shift = 61 - e2 - (((Precision - e10) * 217707) >> 16);
-    u64 m = f * pow10_f;
-    u64 m2 = (m >> shift) + 1;
+    i64 shift = 61 - e2 - (((Precision - e10) * 1701) >> 9);
+    u64 m2 = ((f * pow10_f) >> shift) + 1;
     u64 h1 = m2 / (u64)2e8;
     u64 l8 = (m2 >> 1) + h1 * (i64)-1e8;
     u64 first_digit = h1 | ('0' + ((int)'.' << 8));
