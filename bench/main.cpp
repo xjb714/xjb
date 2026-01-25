@@ -236,6 +236,7 @@ void init_float()
     float_to_string_algorithm_set.push_back(std::string("fmt_full32"));
     float_to_string_algorithm_set.push_back(std::string("zmij32"));
     float_to_string_algorithm_set.push_back(std::string("jnum32"));
+    float_to_string_algorithm_set.push_back(std::string("f2e_xjb"));
 
     printf("init float algorithm set finish\n");
 }
@@ -484,6 +485,9 @@ void bench_float_single_impl(int i)
         if (i == 11)
             for (int j = 0; j < N; ++j)
                 jnum_f32_to_str(data_float[j], buffer);
+        if (i == 12)
+            for (int j = 0; j < N; ++j)
+                f2e_xjb_f32_to_str(data_float[j], buffer);
     }
 
     auto t2 = getns();

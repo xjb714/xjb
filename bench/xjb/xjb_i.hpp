@@ -43,8 +43,10 @@ char* xjb32_comp_f32_to_str(float v,char* buf)
 
 char* d2e_xjb_f64_to_str(double v,char* buf)
 {
-    //return buf;
     return d2e_xjb(v,buf);
-    //return xjb_comp::xjb32(v,buf);
-    //return xjb64_32_comp::xjb32(v,buf);
+}
+
+char* f2e_xjb_f32_to_str(float v,char* buf)
+{
+    return f2e_xjb(v,buf);
 }

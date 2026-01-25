@@ -924,6 +924,7 @@ static void ftoa_func_register_all(void) {
         ftoa_func_register(fmt_full)
         ftoa_func_register(zmij)
         ftoa_func_register(jnum)
+        ftoa_func_register(f2e_xjb)
 
     }
 
