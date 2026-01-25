@@ -178,13 +178,6 @@ const struct const_value_double *cv = &constants_double;
 
     int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    // //int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s16(cv->multipliers16[2]));
-    // // u64 abcdefgh_BCD = vgetq_lane_u64(BCD_little_endian, 0);
-    // // u64 ijklmnop_BCD = vgetq_lane_u64(BCD_little_endian, 1);
-    // // int abcdefgh_tz = u64_lz_bits(abcdefgh_BCD);
-    // // int ijklmnop_tz = u64_lz_bits(ijklmnop_BCD);
-    // // int tz = ijklmnop ? ijklmnop_tz : 64 + abcdefgh_tz;
-    // // tz = tz / 8;
     // uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
     // uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
     // int tz = u64_lz_bits_xjb(zeroes) >> 2;
