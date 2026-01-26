@@ -9,7 +9,7 @@
 
 // #include "util/check_float_multi_thread.cpp" // use multi-thread to check float algorithm
 
-#define USE_YYBENCH 1
+#define USE_YYBENCH 0
 
 #if USE_YYBENCH
 #include "util/yybench/src/yybench.cpp"
@@ -738,6 +738,38 @@ void check_all_float_number_to_string()
         printf("check_all_float fail error sum = %llu , cost %.3lf second\n", (unsigned long long)error_sum, (double)(t2 - t1) / 1e9);
     }
 }
+void check_f2e_xjb()
+{
+    printf("check f2e_xjb algorithm ; about one minute, check all float number start\n");
+    auto t1 = getns();
+    for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)//contain 0,nan,inf
+    {
+        float f = *(float *)&i;
+        // char buffer_printf[32];
+        // sprintf(buffer_printf, "%.8e", f);
+        char buffer_xjb[32];
+        char* end_buf_xjb = f2e_xjb_f32_to_str(f, buffer_xjb);
+        double f2 = atof(buffer_xjb);
+        if (f != (float)f2)
+        {
+            printf("i=%u, i=%x, f=%.8e, f2=%.8e, buffer_xjb=%s, f2=%.8e\n", i, i, f, (float)f2, buffer_xjb, f2);
+        }
+        //int len = end_buf_xjb - buffer_xjb;
+        // if (len != strlen(buffer_printf))
+        // {
+        //     printf("f = %.8e, buffer_printf=%s, buffer_xjb=%s\n", f, buffer_printf, buffer_xjb);
+        //     break;
+        // }
+        // if (memcmp(buffer_printf, buffer_xjb, len) != 0)
+        // {
+        //     if( abs(buffer_xjb[9] - buffer_printf[9]) > 1 && abs(buffer_xjb[9] - buffer_printf[9])!=9 )
+        //     printf("i = %u , f = %.8e, buffer_printf=%s, buffer_xjb=%s\n",i, f, buffer_printf, buffer_xjb);
+        //     //break;
+        // }
+    }
+    auto t2 = getns();
+    printf("check_all_float ok, cost %.3lf second\n", (t2 - t1) / 1e9);
+}
 void check_all_irregular_float_number_to_string()
 {
     printf("check xjb32 algorithm ; about one minute, check all float number start\n");
@@ -1004,6 +1036,9 @@ int main()
 
 #if BENCH_STR
     check_all_irregular_float_number_to_string();//fast
+    
+    //check_f2e_xjb();
+    
     //check_all_float_number_to_string(); // check all float number , may cost long time
 #else
     // check_all_float_number_to_decimal(); // check all float number , may cost long time
