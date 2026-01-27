@@ -112,7 +112,7 @@ char *yyjson_f64_to_str(double v, char *buffer)
 #if use_yyjson
     // src from yyjson.c
     //return (char *)write_f64_raw((u8 *)buffer, *(u64 *)&v, YYJSON_WRITE_INF_AND_NAN_AS_NULL);
-    char* buf_end = (char*)yyjson::write_f64_raw((u8 *)buffer, *(u64 *)&v, yyjson::YYJSON_WRITE_INF_AND_NAN_AS_NULL);
+    char* buf_end = (char*)yyjson::write_f64_raw((uint8_t *)buffer, *(uint64_t *)&v, yyjson::YYJSON_WRITE_INF_AND_NAN_AS_NULL);
     *buf_end = '\0';
     return buf_end;
 #else
@@ -124,7 +124,7 @@ char *yyjson_f32_to_str(float v, char *buffer)
 {
 #if use_yyjson
     // src from yyjson.c
-    return (char *)yyjson::write_f32_raw((u8 *)buffer, *(u64 *)&v, yyjson::YYJSON_WRITE_INF_AND_NAN_AS_NULL);
+    return (char *)yyjson::write_f32_raw((uint8_t *)buffer, *(uint64_t *)&v, yyjson::YYJSON_WRITE_INF_AND_NAN_AS_NULL);
 #else
     return buffer;
 #endif

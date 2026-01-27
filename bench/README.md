@@ -1,6 +1,8 @@
 a simple demo for bench float/double to decimal and string algorithm.
 
 
+## related algorithm
+
 algorithm     | Description
 --------------|-----------
 [schubfach](https://github.com/abolz/Drachennest) | Raffaello Giulietti's algorithm.Origin source code from https://github.com/c4f7fcce9cb06515/Schubfach
@@ -13,7 +15,8 @@ schubfach_xjb  | It is improved by schubfach and has the same output result.
 [teju](https://github.com/cassioneri/teju_jagua) | youtube  link : https://www.youtube.com/watch?v=fPZ1ZdA7Iwc . An academic paper will be written to provide proof of correctness.https://github.com/cassioneri/teju_jagua
 [xjb](https://github.com/xjb714/xjb) | XiangJunBo's algorithm. https://github.com/xjb714/xjb
 [schubfach_vitaut](https://github.com/vitaut/schubfach) | Vitaut's algorithm. https://github.com/vitaut/schubfach
-
+[zmij](https://github.com/vitaut/zmij) | Vitaut's algorithm. https://github.com/vitaut/zmij
+[jnum](https://github.com/lengjingzju/json/blob/master/jnum.c) | Jing Leng's algorithm. https://github.com/lengjingzju/json/blob/master/jnum.c
 
 
 (1) run :  
@@ -29,7 +32,7 @@ compile and exec :
 
 
 
-(2) benchmark results :
+<!-- (2) benchmark results :
 ``CPU : AMD R7 7840H , OS : ubuntu 24.04``
 ``compiler : (1)gcc13.3 (2)icpx 2025.0.4 (3)clang 18.1.3 ``
 
@@ -38,7 +41,7 @@ compile and exec :
 
 ``CPU : Apple M1 , OS : MacOS 26.1``
 ``compiler : apple clang 17.0.0 ``
-![alt text](image-2.png)
+![alt text](image-2.png) -->
 
 
 <!-- double:
@@ -46,7 +49,7 @@ compile and exec :
 
 float:
 ![benchmark](float.png) -->
-<div class="mw-heading mw-heading3"><h3 id="CPUs_with_AVX2">CPUs with AVX2</h3><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Advanced_Vector_Extensions&amp;action=edit&amp;section=8" title="Edit section: CPUs with AVX2"><span>edit</span></a><span class="mw-editsection-bracket">]</span></span></div>
+<!-- <div class="mw-heading mw-heading3"><h3 id="CPUs_with_AVX2">CPUs with AVX2</h3><span class="mw-editsection"><span class="mw-editsection-bracket">[</span><a href="/w/index.php?title=Advanced_Vector_Extensions&amp;action=edit&amp;section=8" title="Edit section: CPUs with AVX2"><span>edit</span></a><span class="mw-editsection-bracket">]</span></span></div>
 <ul><li><a href="/wiki/Intel_Corporation" class="mw-redirect" title="Intel Corporation">Intel</a>
 <ul><li><a href="/wiki/Haswell_(microarchitecture)" title="Haswell (microarchitecture)">Haswell</a> processors (Q2 2013) and newer, except models branded as Celeron and Pentium.</li>
 <li>Celeron and Pentium branded processors starting with <a href="/wiki/Tiger_Lake" title="Tiger Lake">Tiger Lake</a> (Q3 2020) and newer.<sup id="cite_ref-9r8b9_10-1" class="reference"><a href="#cite_note-9r8b9-10"><span class="cite-bracket">[</span>10<span class="cite-bracket">]</span></a></sup></li></ul></li>
@@ -236,6 +239,6 @@ float:
 </td></tr></tbody></table>
 <p><style data-mw-deduplicate="TemplateStyles:r1041539562">.mw-parser-output .citation{word-wrap:break-word}.mw-parser-output .citation:target{background-color:rgba(0,127,255,0.133)}</style><font _mstmutation="1"><span class="citation wikicite" id="endnote_adl-avx512-note" _mstmutation="1"><b><a href="#ref_adl-avx512-note">^Note 1</a></b></span>&nbsp;: </font><font _mstmutation="1">Intel does not officially support AVX-512 family of instructions on the <a href="/wiki/Alder_Lake" title="Alder Lake" _mstmutation="1">Alder Lake</a> microprocessors. In early 2022, Intel began disabling in silicon (fusing off) AVX-512 in Alder Lake microprocessors to prevent customers from enabling AVX-512.<sup id="cite_ref-38" class="reference" _mstmutation="1"><a href="#cite_note-38"><span class="cite-bracket">[</span>38<span class="cite-bracket">]</span></a></sup>
 In older Alder Lake family CPUs with some legacy combinations of BIOS and microcode revisions, it was possible to execute AVX-512 family instructions when disabling all the efficiency cores which do not contain the silicon for AVX-512.<sup id="cite_ref-39" class="reference" _mstmutation="1"><a href="#cite_note-39"><span class="cite-bracket">[</span>39<span class="cite-bracket">]</span></a></sup><sup id="cite_ref-40" class="reference" _mstmutation="1"><a href="#cite_note-40"><span class="cite-bracket">[</span>40<span class="cite-bracket">]</span></a></sup><sup id="cite_ref-anandalderreview_26-1" class="reference" _mstmutation="1"><a href="#cite_note-anandalderreview-26"><span class="cite-bracket">[</span>26<span class="cite-bracket">]</span></a></sup></font>
-</p>
-author : Xiang Jun Bo (xjb) , China , email : 1302035400@qq.com
+</p> -->
+<!-- author : Xiang Jun Bo (xjb) , China , email : 1302035400@qq.com -->
 date : 2025.5.13
