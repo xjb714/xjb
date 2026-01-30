@@ -440,9 +440,8 @@ inline char *d2e_xjb(double v, char *buffer)
     const u64 *exp_ptr = (u64 *)&exp_result.data[324];
     i64 e10_tmp = (e2 * 78913) >> 18;                     // == floor(e2*log10(2))
     i64 e10 = e10_tmp + (vi_abs >= f64_pow10_ptr[e10_tmp]); // e10_tmp or e10_tmp+1
-    u64 pow10_f = power_ptr[e10];//e10 : [-324]
+    u64 pow10_f = power_ptr[e10];
     i64 shift = 61 - e2 - (((Precision - e10) * 217707) >> 16);
-    //i64 shift = 61 - (e2 + (((Precision - e10) * 217707) >> 16));
     u64 m = ((u128)(f)*pow10_f) >> 64;
     u64 m2 = (m >> shift) + 1;
     u64 h9 = m2 / (u64)2e8;
@@ -459,7 +458,7 @@ inline char *d2e_xjb(double v, char *buffer)
 }
 inline char *f2e_xjb(float v, char *buffer)
 {
-    // equal to printf("%.8le\n", v); not shortest
+    // equal to printf("%.8e\n", v); not shortest
     const int Precision = 8;
     buffer[0] = '-';
     u32 vi;
@@ -470,21 +469,21 @@ inline char *f2e_xjb(float v, char *buffer)
     if (ieee754_exp11 == 0xff) [[unlikely]] // nan or inf
         return (char *)memcpy(buffer, (vi_abs == ((u64)0xff << 23)) ? "inf" : "nan", 4) + 3;
     u32 f = (vi << 8) | (1u << 31);
-    i32 e2 = ieee754_exp11 - 127;//max = 2046-1023=1023
+    i32 e2 = ieee754_exp11 - 127;
     if (ieee754_exp11 == 0) [[unlikely]]
     {
         if (vi_abs == 0)
             return (char *)memcpy(buffer, "0", 2) + 1;
-        u32 clz = u64_lz_bits_xjb(vi_abs) - 32;//clz max = 63;
+        u32 clz = u64_lz_bits_xjb(vi_abs) - 32;
         f = vi_abs << clz;
-        e2 = -118 - clz;//min = -1074
+        e2 = -118 - clz;
     }
     const u32 *f32_pow10_ptr = (u32 *)&p10[1 + 45];
     const u32 *power_ptr = &power_ten_r[53 - Precision];
     const u32 *exp_ptr = (u32 *)&(f32_exp_result.data[45]);
     i32 e10_tmp = (e2 * 1233) >> 12;                     // == floor(e2*log10(2))
     i32 e10 = e10_tmp + (vi_abs >= f32_pow10_ptr[e10_tmp]); // e10_tmp or e10_tmp+1
-    u64 pow10_f = power_ptr[e10];//e10 : [-324]
+    u64 pow10_f = power_ptr[e10];
     i64 shift = 61 - e2 - (((Precision - e10) * 1701) >> 9);
     u64 m2 = ((f * pow10_f) >> shift) + 1;
     u64 h1 = m2 / (u64)2e8;
