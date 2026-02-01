@@ -13,9 +13,10 @@ xjb32、xjb32_comp:
 (2)f32 to decimal : please run `bench/main.cpp/check_all_float_number_to_decimal()` to check the correctness of the algorithm.  
 Test all positive single-precision floating-point numbers. The running time only takes about one minute.  
 
-## note:
-the code is still under development and may contain bugs. if you find any bugs, please let me know.  
-**warning: The current code can only run on little-endian CPUs. The code for the big-endian CPU is currently under development. Support for the msvc compiler is under development.**
+## todo:
+(1) big-endian cpu support
+(2) msvc compiler support
+(3) f16, f128 and f256 support
 
 ## src files:
 (1)float/double to decimal algorithm  
