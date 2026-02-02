@@ -2312,10 +2312,11 @@ static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value,u
 //     return up_down ? true_value : b;
 // #endif
 
-#if defined(__clang__) || !defined(__amd64__)
+#if !is_real_gcc || !defined(__amd64__)
   return condition ? true_value : false_value;
 #else
-    asm volatile("test %2, %2\n\t"
+  // only amd64 , gcc compiler use this branchless cmov method
+  asm volatile("test %2, %2\n\t"
                "cmovne %1, %0\n\t" :
                "+r"(false_value) : "r"(true_value),
                "r"(condition) : "cc");
