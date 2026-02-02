@@ -1,3 +1,5 @@
+// todo : satify https://tc39.es/ecma262/#sec-numeric-types-number-tostring
+
 #include <stdint.h>
 #include <string.h>
 
@@ -85,7 +87,7 @@ namespace xjb
 #ifdef __amd64__
         i64 get_e10 = -1 - k;
         i64 h = q + ((get_e10 * 217707) >> 16);
-        const u64 *pow10_ptr = pow10_double + 293 * 2;
+        const u64 *pow10_ptr = t->pow10_double + 293 * 2;
         u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2]; // get 10**(-k-1)
                                                    // u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2];
 #else
