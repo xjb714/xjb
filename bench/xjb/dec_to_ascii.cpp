@@ -122,15 +122,25 @@ static inline uint64_t byteswap64(uint64_t x){
 #endif
 }
 
-static inline uint64_t cmov_branchless(uint64_t up_down, uint64_t a, uint64_t b)
+static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value,uint64_t false_value)
 {
-    // if up_down == 1 return a
-    // if up_down == 0 return b
-#if is_real_gcc
-    // prevent the gcc compiler generating branch instructions
-    return ((~(up_down - 1)) & a) | ((up_down - 1) & b); // only up_down = 1 or 0 can correctly execute.
+//     // if up_down == 1 return true_value
+//     // if up_down == 0 return false_value
+// #if is_real_gcc
+//     // prevent the gcc compiler generating branch instructions
+//     return ((~(up_down - 1)) & true_value) | ((up_down - 1) & false_value); // only up_down = 1 or 0 can correctly execute.
+// #else
+//     return up_down ? true_value : b;
+// #endif
+
+#if defined(__clang__) || !defined(__amd64__)
+  return condition ? true_value : false_value;
 #else
-    return up_down ? a : b;
+    asm volatile("test %2, %2\n\t"
+               "cmovne %1, %0\n\t" :
+               "+r"(false_value) : "r"(true_value),
+               "r"(condition) : "cc");
+  return false_value;
 #endif
 }
 

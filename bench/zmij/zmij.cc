@@ -68,6 +68,18 @@ static_assert(!ZMIJ_USE_SSE4_1 || ZMIJ_USE_SSE);
 #  define ZMIJ_AARCH64 0
 #endif
 
+#ifdef __x86_64__
+#  define ZMIJ_X86_64 1
+#else
+#  define ZMIJ_X86_64 0
+#endif
+
+#ifdef __clang__
+#  define ZMIJ_CLANG 1
+#else
+#  define ZMIJ_CLANG 0
+#endif
+
 #ifdef _MSC_VER
 #  define ZMIJ_MSC_VER _MSC_VER
 #  include <intrin.h>  // __lzcnt64/_umul128/__umulh
@@ -169,6 +181,19 @@ inline auto clz(uint64_t x) noexcept -> int {
   for (; x > 0; x >>= 1) --n;
   return n;
 #endif
+}
+
+// Returns true_value if condition != 0, else false_value, without branching.
+ZMIJ_INLINE auto select(uint64_t condition, int64_t true_value,
+                        int64_t false_value) -> int64_t {
+  // Clang can figure it out on its own.
+  if (!ZMIJ_X86_64 || ZMIJ_CLANG) return condition ? true_value : false_value;
+  ZMIJ_ASM(
+      volatile("test %2, %2\n\t"
+               "cmovne %1, %0\n\t" :  //
+               "+r"(false_value) : "r"(true_value),
+               "r"(condition) : "cc"));
+  return false_value;
 }
 
 struct uint128 {
@@ -506,8 +531,8 @@ inline auto read8(char* buffer) noexcept -> uint64_t {
 // (8-9 for normals) for float. The significant digits start from buffer[1].
 // buffer[0] may contain '0' after this function if the leading digit is zero.
 template <int num_bits, bool use_sse = ZMIJ_USE_SSE != 0 && num_bits == 64>
-auto write_significand(char* buffer, uint64_t value, bool extra_digit,
-                       long long value_div10) noexcept -> char* {
+ZMIJ_INLINE auto write_significand(char* buffer, uint64_t value,
+                                   bool extra_digit) noexcept -> char* {
   if (num_bits == 32) {
     buffer = write_if(buffer, value / 100'000'000, extra_digit);
     uint64_t bcd = to_bcd8(value % 100'000'000);
@@ -594,20 +619,14 @@ auto write_significand(char* buffer, uint64_t value, bool extra_digit,
       vreinterpretq_u16_u8(vcgtzq_s8(vreinterpretq_s8_u8(digits)));
   uint64_t zeroes =
       vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
-
-  buffer += 16 - ((zeroes != 0 ? clz(zeroes) : 64) >> 2);
-  return buffer;
+  return buffer + (16 - ((zeroes != 0 ? clz(zeroes) : 64) >> 2));
 #elif ZMIJ_USE_SSE
-  uint32_t last_digit = value - value_div10 * 10;
+  uint32_t abbccddee = uint32_t(value / 100'000'000);
+  uint32_t ffgghhii = uint32_t(value % 100'000'000);
+  uint32_t a = abbccddee / 100'000'000;
+  uint32_t bbccddee = abbccddee % 100'000'000;
 
-  // We always write 17 digits into the buffer, but the first one can be zero.
-  // buffer points to the second place in the output buffer to allow for the
-  // insertion of the decimal point, so we can use the first place as scratch.
-  buffer += extra_digit - 1;
-  buffer[16] = char(last_digit + '0');
-
-  uint32_t abcdefgh = value_div10 / uint64_t(1e8);
-  uint32_t ijklmnop = value_div10 % uint64_t(1e8);
+  buffer = write_if(buffer, a, extra_digit);
 
   alignas(64) static constexpr struct {
     static constexpr auto splat64(uint64_t x) -> uint128 { return {x, x}; }
@@ -658,8 +677,8 @@ auto write_significand(char* buffer, uint64_t value, bool extra_digit,
 #  endif
   const __m128i zeros = _mm_load_si128(ptr(&c->zeros));
 
-  // The BCD sequences are based on the ones provided by Xiang JunBo.
-  __m128i x = _mm_set_epi64x(abcdefgh, ijklmnop);
+  // The BCD sequences are based on ones provided by Xiang JunBo.
+  __m128i x = _mm_set_epi64x(bbccddee, ffgghhii);
   __m128i y = _mm_add_epi64(
       x, _mm_mul_epu32(neg10k,
                        _mm_srli_epi64(_mm_mul_epu32(x, div10k), div10k_exp)));
@@ -671,7 +690,7 @@ auto write_significand(char* buffer, uint64_t value, bool extra_digit,
   __m128i big_endian_bcd =
       _mm_add_epi16(z, _mm_mullo_epi16(neg10, _mm_mulhi_epu16(z, div10)));
   __m128i bcd = _mm_shuffle_epi8(big_endian_bcd, bswap);  // SSSE3
-#  else
+#  else   // !ZMIJ_USE_SSE4_1
   __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, div100), 3);
   __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, hundred));
   __m128i z = _mm_or_si128(_mm_slli_epi32(y_mod_100, 16), y_div_100);
@@ -685,30 +704,21 @@ auto write_significand(char* buffer, uint64_t value, bool extra_digit,
 
   // Count leading zeros.
   __m128i mask128 = _mm_cmpgt_epi8(bcd, _mm_setzero_si128());
-  uint32_t mask = _mm_movemask_epi8(mask128);
-  // We don't need a zero-check here: if the mask were zero, either the
-  // significand is zero which is handled elsewhere or the only non-zero digit
-  // is the last digit which we factored off. But in that case the number would
-  // be printed with a different exponent that shifts the last digit into the
-  // first position.
-  auto len = size_t(64) - clz(mask);  // size_t for native arithmetic
+  uint64_t mask = _mm_movemask_epi8(mask128);
+#  if defined(__LZCNT__) && !defined(ZMIJ_NO_BUILTINS)
+  auto len = 32 - _lzcnt_u32(mask);
+#  else
+  auto len = 63 - clz((mask << 1) | 1);
+#  endif
 
   _mm_storeu_si128(reinterpret_cast<__m128i*>(buffer), digits);
-  return buffer + (last_digit != 0 ? 17 : len);
-#endif    // ZMIJ_USE_SSE
+  return buffer + len;
+#endif  // ZMIJ_USE_SSE
 }
 
 struct to_decimal_result {
   long long sig;
   int exp;
-
-#if ZMIJ_USE_SSE
-  long long sig_div10;
-  void set_div10(long long value) { sig_div10 = value; }
-#else
-  static constexpr long long sig_div10 = 0;
-  void set_div10(long long) {}
-#endif
 };
 
 template <typename UInt>
@@ -738,13 +748,8 @@ ZMIJ_INLINE auto to_decimal_schubfach(UInt bin_sig, int64_t bin_exp,
 
   // The idea of using a single shorter candidate is by Cassio Neri.
   // It is less or equal to the upper bound by construction.
-  long long div10 = (upper >> bound_shift) / 10;
-  UInt shorter = div10 * 10;
-  if ((shorter << bound_shift) >= lower) {
-    to_decimal_result result = {int64_t(shorter), dec_exp};
-    result.set_div10(div10);
-    return result;
-  }
+  UInt shorter = ((upper >> bound_shift) / 10) * 10;
+  if ((shorter << bound_shift) >= lower) return {int64_t(shorter), dec_exp};
 
   UInt scaled_sig =
       umulhi_inexact_to_odd(pow10.hi, pow10.lo, bin_sig_shifted << exp_shift);
@@ -758,9 +763,7 @@ ZMIJ_INLINE auto to_decimal_schubfach(UInt bin_sig, int64_t bin_exp,
   bool below_closer = cmp < 0 || (cmp == 0 && (longer_below & 1) == 0);
   bool below_in = (longer_below << bound_shift) >= lower;
   UInt dec_sig = (below_closer & below_in) ? longer_below : longer_above;
-  to_decimal_result result = {int64_t(dec_sig), dec_exp};
-  result.set_div10(dec_sig / 10);
-  return result;
+  return {int64_t(dec_sig), dec_exp};
 }
 
 // Here be 🐉s.
@@ -845,38 +848,29 @@ ZMIJ_INLINE auto to_decimal_fast(UInt bin_sig, int64_t raw_exp,
 
     // Check for boundary case when rounding down to nearest 10 and
     // near-boundary case when rounding up to nearest 10.
-    if (scaled_sig_mod10 == scaled_half_ulp ||
-        // Case where upper == ten is insufficient: 1.342178e+08f.
-        ten - upper <= 1u)  // upper == ten || upper == ten - 1
-        [[ZMIJ_UNLIKELY]] {
+    // Case where upper == ten is insufficient: 1.342178e+08f.
+    if (ten - upper <= 1u ||  // upper == ten || upper == ten - 1
+        scaled_sig_mod10 == scaled_half_ulp) [[ZMIJ_UNLIKELY]] {
       break;
     }
 
     bool round_up = upper >= ten;
     int64_t shorter = int64_t(integral - digit);
     int64_t longer = int64_t(integral + (cmp >= 0));
-    if (ZMIJ_AARCH64) {  // Faster version without ccmp.
-      int64_t dec_sig = scaled_sig_mod10 < scaled_half_ulp ? shorter : longer;
-      return {round_up ? shorter + 10 : dec_sig, dec_exp};
-    }
-    shorter += round_up * 10;
-    bool use_shorter = (scaled_sig_mod10 <= scaled_half_ulp) + round_up != 0;
-    to_decimal_result result = {use_shorter ? shorter : longer, dec_exp};
-    result.set_div10(div10 + use_shorter * round_up);
-    return result;
+    int64_t dec_sig =
+        select(scaled_sig_mod10 < scaled_half_ulp, shorter, longer);
+    return {select(round_up, shorter + 10, dec_sig), dec_exp};
   }
   return to_decimal_schubfach(bin_sig, bin_exp, regular);
 }
 
 template <int num_bits>
-auto write_fixed(char* buffer, uint64_t dec_sig, int dec_exp, bool extra_digit,
-                 long long dec_sig_div10) noexcept -> char* {
+auto write_fixed(char* buffer, uint64_t dec_sig, int dec_exp,
+                 bool extra_digit) noexcept -> char* {
   if (dec_exp < 0) {
-    char* point = buffer + 1;
     memcpy(buffer, "0.000000", 8);
-    buffer = write_significand<num_bits>(buffer + 1 - dec_exp, dec_sig,
-                                         extra_digit, dec_sig_div10);
-    if (ZMIJ_USE_SSE) *point = '.';
+    buffer =
+        write_significand<num_bits>(buffer + 1 - dec_exp, dec_sig, extra_digit);
     *buffer = '\0';
     return buffer;
   }
@@ -885,8 +879,7 @@ auto write_fixed(char* buffer, uint64_t dec_sig, int dec_exp, bool extra_digit,
   write8(buffer + (num_bits == 64 ? 16 : 7), 0);
 
   char* start = buffer;
-  buffer = write_significand<num_bits, false>(buffer, dec_sig, extra_digit,
-                                              dec_sig_div10);
+  buffer = write_significand<num_bits, false>(buffer, dec_sig, extra_digit);
 
   // Branchless move to make space for the '.' without OOB accesses.
   char* part1 = start + dec_exp + (dec_exp < 2);
@@ -900,10 +893,10 @@ auto write_fixed(char* buffer, uint64_t dec_sig, int dec_exp, bool extra_digit,
     write8(part1 + 1, read8(part1));
   }
 
-  char* dot = start + dec_exp + 1;
-  *dot = '.';
+  char* point = start + dec_exp + 1;
+  *point = '.';
 
-  buffer = buffer > dot ? buffer + 1 : dot;
+  buffer = buffer > point ? buffer + 1 : point;
   *buffer = '\0';
   return buffer;
 }
@@ -959,7 +952,6 @@ auto write(Float value, char* buffer) noexcept -> char* {
       dec.sig *= 10;
       --dec.exp;
     }
-    dec.set_div10(dec.sig / 10);
   } else {
     dec = to_decimal_fast<Float>(bin_sig | traits::implicit_bit, bin_exp,
                                  bin_sig != 0);
@@ -973,13 +965,11 @@ auto write(Float value, char* buffer) noexcept -> char* {
   }
 
   // Write significand.
-  if (dec_exp >= -4 && dec_exp < compute_dec_exp(traits::digits + 1)) {
-    return write_fixed<traits::num_bits>(buffer, dec.sig, dec_exp, extra_digit,
-                                         dec.sig_div10);
-  }
+  if (dec_exp >= -4 && dec_exp < compute_dec_exp(traits::digits + 1))
+    return write_fixed<traits::num_bits>(buffer, dec.sig, dec_exp, extra_digit);
   char* start = buffer;
-  buffer = write_significand<traits::num_bits>(buffer + 1, dec.sig, extra_digit,
-                                               dec.sig_div10);
+  buffer =
+      write_significand<traits::num_bits>(buffer + 1, dec.sig, extra_digit);
   start[0] = start[1];
   start[1] = '.';
   buffer -= (buffer - 1 == start + 1);  // Remove trailing point.
