@@ -2670,68 +2670,68 @@ constexpr uint64_t umul128_hi64(uint64_t a, uint64_t b)
 {
     return (uint64_t)(((u128)a * b) >> 64);
 }
-void test_gen_table()
-{
-    const int num_pow10 = 323 - (-293) + 1; // exp10 range : [-293, 323]
-    uint64_t data[num_pow10 * 2];
-    struct uint192
-    {
-        uint64_t w0, w1, w2; // w0 = least significant, w2 = most significant
-    };
+// void test_gen_table()
+// {
+//     const int num_pow10 = 323 - (-293) + 1; // exp10 range : [-293, 323]
+//     uint64_t data[num_pow10 * 2];
+//     struct uint192
+//     {
+//         uint64_t w0, w1, w2; // w0 = least significant, w2 = most significant
+//     };
 
-    // First element, rounded up to cancel out rounding down in the
-    // multiplication, and minimize significant bits.
-    // uint192 current = {0xe000000000000000, 0x25e8e89c13bb0f7a, 0xff77b1fcbebcdc4f};
-    uint192 current = {0xb2e28cedd086d011, 0x1e53ed49a96272c8, 0xcc5fc196fefd7d0c}; //
-    uint64_t ten = 0xa000000000000000;
-    for (int i = 0; i < num_pow10; ++i)
-    {
-        int e10 = i - 293;
-        data[i * 2 + 0] = e10 == 0 ? 1ull << 63 : current.w2 + (e10 >= 0 && e10 <= 27);
-        data[i * 2 + 1] = current.w1 + 1;
+//     // First element, rounded up to cancel out rounding down in the
+//     // multiplication, and minimize significant bits.
+//     // uint192 current = {0xe000000000000000, 0x25e8e89c13bb0f7a, 0xff77b1fcbebcdc4f};
+//     uint192 current = {0xb2e28cedd086d011, 0x1e53ed49a96272c8, 0xcc5fc196fefd7d0c}; //
+//     uint64_t ten = 0xa000000000000000;
+//     for (int i = 0; i < num_pow10; ++i)
+//     {
+//         int e10 = i - 293;
+//         data[i * 2 + 0] = e10 == 0 ? 1ull << 63 : current.w2 + (e10 >= 0 && e10 <= 27);
+//         data[i * 2 + 1] = current.w1 + 1;
 
-        uint64_t h0 = umul128_hi64(current.w0, ten);
-        uint64_t h1 = umul128_hi64(current.w1, ten);
+//         uint64_t h0 = umul128_hi64(current.w0, ten);
+//         uint64_t h1 = umul128_hi64(current.w1, ten);
 
-        uint64_t c0 = h0 + current.w1 * ten;
-        uint64_t c1 = (c0 < h0) + h1 + current.w2 * ten;
-        uint64_t c2 = (c1 < h1) + umul128_hi64(current.w2, ten);
-        if (c2 >> 63)
-            current = {c0, c1, c2};
-        else
-            current = {c0 << 1, c1 << 1 | c0 >> 63, c2 << 1 | c1 >> 63};
+//         uint64_t c0 = h0 + current.w1 * ten;
+//         uint64_t c1 = (c0 < h0) + h1 + current.w2 * ten;
+//         uint64_t c2 = (c1 < h1) + umul128_hi64(current.w2, ten);
+//         if (c2 >> 63)
+//             current = {c0, c1, c2};
+//         else
+//             current = {c0 << 1, c1 << 1 | c0 >> 63, c2 << 1 | c1 >> 63};
 
-        if (data[i * 2] != double_table.pow10_double[i * 2] || data[i * 2 + 1] != double_table.pow10_double[i * 2 + 1])
-        {
-            printf("mismatch at e10=%d: computed=0x%016llx%016llx, table=0x%016llx%016llx\n", e10,
-                   data[i * 2], data[i * 2 + 1],
-                   double_table.pow10_double[i * 2], double_table.pow10_double[i * 2 + 1]);
-        }
-    }
+//         if (data[i * 2] != double_table.pow10_double[i * 2] || data[i * 2 + 1] != double_table.pow10_double[i * 2 + 1])
+//         {
+//             printf("mismatch at e10=%d: computed=0x%016llx%016llx, table=0x%016llx%016llx\n", e10,
+//                    data[i * 2], data[i * 2 + 1],
+//                    double_table.pow10_double[i * 2], double_table.pow10_double[i * 2 + 1]);
+//         }
+//     }
 
-    if (memcmp(data, double_table.pow10_double, num_pow10 * 2 * sizeof(uint64_t)) != 0)
-        printf("error\n");
-    else
-        printf("ok\n");
-    // for(int i=0;i<num_pow10 * 2;i++)
-    // {
-    //     if(data[i]!=double_table.pow10_double[i])
-    //     {
-    //         printf("mismatch at %d: computed=0x%016llx, table=0x%016llx\n", i, data[i], double_table .pow10_double[i]);
-    //     }
-    // }
-}
+//     if (memcmp(data, double_table.pow10_double, num_pow10 * 2 * sizeof(uint64_t)) != 0)
+//         printf("error\n");
+//     else
+//         printf("ok\n");
+//     // for(int i=0;i<num_pow10 * 2;i++)
+//     // {
+//     //     if(data[i]!=double_table.pow10_double[i])
+//     //     {
+//     //         printf("mismatch at %d: computed=0x%016llx, table=0x%016llx\n", i, data[i], double_table .pow10_double[i]);
+//     //     }
+//     // }
+// }
 
-struct double_table_t
+struct double_table_t2
 {
     static const int e10_DN = -3;
     static const int e10_UP = 15;
+    static const int max_dec_sig_len = 17;
     const int num_pow10 = 323 - (-293) + 1;
     uint64_t pow10_double[(323 - (-293) + 1) * 2] = {};
-    uint64_t exp_result[324 + 308 + 1] = {};
-    // uint64_t bit_array_irregular[32] = {}; // not used
-    unsigned char e10_variable_data2[e10_UP - (e10_DN) + 1 + 1][20] = {};
-    constexpr double_table_t()
+    uint64_t exp_result_double[324 + 308 + 1] = {};
+    unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][max_dec_sig_len + 3] = {};
+    constexpr double_table_t2()
     {
         struct uint192
         {
@@ -2752,7 +2752,7 @@ struct double_table_t
             if (c2 >> 63)
                 current = {c0, c1, c2};
             else
-                current = {c0 << 1, c1 << 1 | c0 >> 63, c2 << 1 | c1 >> 63};// left shift 1 bit
+                current = {c0 << 1, c1 << 1 | c0 >> 63, c2 << 1 | c1 >> 63}; // left shift 1 bit
         }
         for (int e10 = -324; e10 <= 308; ++e10)
         {
@@ -2765,13 +2765,132 @@ struct double_table_t
             u64 exp_len = 4 + (e10_abs >= 100);
             u64 e10_abs_ascii = (e10_abs >= 100) ? (a + '0') + ((b + '0') << 8) + ((c + '0') << 16) : (b + '0') + ((c + '0') << 8);
             u64 exp_res = e + (e10_abs_ascii << 16) + (exp_len << 56);
-            exp_res = (e10 >= e10_DN && e10 <= e10_UP) ? exp_res : 0;
-            exp_result[e10 + 324] = exp_res;
+            exp_res = (e10 >= e10_DN && e10 <= e10_UP) ? 0 : exp_res;
+            exp_result_double[e10 + 324] = exp_res;
+        }
+        for (int e10 = e10_DN; e10 <= e10_UP + 1; e10++)
+        {
+            int tmp_data_ofs = e10 - e10_DN;
+            u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
+            u64 dot_pos = (0 <= e10 && e10 <= e10_UP) ? 1 + e10 : 1;
+            u64 move_pos = dot_pos + ((0 <= e10 || e10 < e10_DN));
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 0] = first_sig_pos;
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 1] = dot_pos;
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 2] = move_pos;
+            for (int dec_sig_len = 1; dec_sig_len <= max_dec_sig_len; dec_sig_len++)
+            {
+                u64 exp_pos = (e10_DN <= e10 && e10 <= -1) ? dec_sig_len : (0 <= e10 && e10 <= e10_UP ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1) : (dec_sig_len + 1 - (dec_sig_len == 1)));
+                e10_variable_data[tmp_data_ofs][dec_sig_len - 1] = exp_pos;
+            }
         }
     }
 };
-alignas(64) constexpr double_table_t double_table;
 
+struct float_table_t2
+{
+    static const int e10_DN = -3;
+    static const int e10_UP = 6;
+    static const int max_dec_sig_len = 9;
+    const int num_pow10 = 44 - (-32) + 1;
+    uint64_t pow10_float_reverse[44 - (-32) + 1] = {};
+    uint32_t exp_result_float[45 + 38 + 1] = {};
+    unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][max_dec_sig_len + 3] = {};
+    unsigned char h37[256] = {};
+    constexpr float_table_t2()
+    {
+        struct uint128
+        {
+            uint64_t w0, w1;
+        };
+        uint128 current = {0x67de18eda5814af3, 0xcfb11ead453994ba}; // e10 = -32
+        uint64_t ten = 0xa000000000000000;
+        for (int i = 0; i < num_pow10; ++i)
+        {
+            int e10 = i - 32;
+            pow10_float_reverse[num_pow10 - i - 1] = e10 == 0 ? 1ull << 63 : current.w1 + 1;
+            uint64_t h0 = umul128_hi64(current.w0, ten);
+            uint64_t c0 = h0 + current.w1 * ten;
+            uint64_t c1 = (c0 < h0) + umul128_hi64(current.w1, ten);
+            if (c1 >> 63)
+                current = {c0, c1};
+            else
+                current = {c0 << 1, c1 << 1 | c0 >> 63}; // left shift 1 bit
+        }
+        for (int e10 = -45; e10 <= 38; e10++)
+        {
+            u64 e = e10 < 0 ? ('e' + '-' * 256) : ('e' + '+' * 256);
+            u64 e10_abs = e10 < 0 ? -e10 : e10;
+            u64 a = e10_abs / 10;
+            u64 b = e10_abs - a * 10;
+            u64 e10_abs_ascii = (a + '0') + ((b + '0') << 8);
+            u64 exp_res = e + (e10_abs_ascii << 16);
+            exp_res = (e10 >= e10_DN && e10 <= e10_UP) ? 0 : exp_res;
+            exp_result_float[e10 + 45] = (uint32_t)exp_res;
+        }
+        for (int e10 = e10_DN; e10 <= e10_UP + 1; e10++)
+        {
+            int tmp_data_ofs = e10 - e10_DN;
+            u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
+            u64 dot_pos = (0 <= e10 && e10 <= e10_UP) ? 1 + e10 : 1;
+            u64 move_pos = dot_pos + ((0 <= e10 || e10 < e10_DN));
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 0] = first_sig_pos;
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 1] = dot_pos;
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 2] = move_pos;
+            for (int dec_sig_len = 1; dec_sig_len <= max_dec_sig_len; dec_sig_len++)
+            {
+                u64 exp_pos = (e10_DN <= e10 && e10 <= -1) ? dec_sig_len : (0 <= e10 && e10 <= e10_UP ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1) : (dec_sig_len + 1 - (dec_sig_len == 1)));
+                e10_variable_data[tmp_data_ofs][dec_sig_len - 1] = exp_pos;
+            }
+        }
+        for(int exp = 0; exp < 255; exp++)
+        {
+            int exp_bin = exp - 150 + (exp == 0);
+            int k = (exp_bin * 1233) >> 12;
+            int h37_precalc = (36 + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
+            h37[exp] = (unsigned char)h37_precalc;
+        }
+        h37[255] = 0;
+    }
+};
+alignas(64) constexpr double_table_t2 double_table2;
+alignas(64) constexpr float_table_t2 float_table2;
+void test_gen_table()
+{
+    if (memcmp(double_table2.pow10_double, double_table.pow10_double, double_table2.num_pow10 * 2 * sizeof(uint64_t)) != 0)
+        printf("error\n");
+    else
+        printf("ok\n");
+
+    // if(memcmp(double_table2.exp_result, double_table2.exp_result + 324 + 308 + 1, (324 + 308 + 1)*sizeof(uint64_t)) != 0)
+    //     printf("error\n");
+    // else
+    //     printf("ok\n");
+
+    if(memcmp(double_table2.e10_variable_data, double_table.e10_variable_data2, (double_table2.e10_UP - double_table2.e10_DN + 1 + 1)*20*sizeof(unsigned char)) != 0)
+        printf("error\n");
+    else
+        printf("ok\n");
+
+    if(memcmp(float_table2.pow10_float_reverse, float_table.pow10_float_reverse, float_table2.num_pow10 * sizeof(uint64_t)) != 0)
+        printf("error\n");
+    else
+        printf("ok\n");
+
+    if(memcmp(float_table2.exp_result_float, float_table.exp_result_float, (45 + 38 + 1)*sizeof(uint32_t)) != 0)
+        printf("error\n");
+    else
+        printf("ok\n");
+    
+    if(memcmp(float_table2.e10_variable_data, float_table.e10_variable_data, (float_table2.e10_UP - float_table2.e10_DN + 1 + 1) * 12 *sizeof(unsigned char)) != 0)
+        printf("error\n");
+    else
+        printf("ok\n");
+
+    if(memcmp(float_table2.h37, float_table.h37, 256*sizeof(unsigned char)) != 0)
+        printf("error\n");
+    else
+        printf("ok\n");
+}
 int main()
 {
     test_gen_table();
