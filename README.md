@@ -1,6 +1,8 @@
 # xjb
 xjb : a fast float to string algorithm.
 
+float/double to string single file implementation : `src/ftoa.cpp`
+
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
 ## algorithm correctness proof:  

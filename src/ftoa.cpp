@@ -7,6 +7,8 @@
 // when input double in (1e-7,1e21), use %lf to format, otherwise use %le.
 // example : 123.456 -> "123.456", 0.000000123456 -> "1.23456e-7", 1e22 -> "1e+22"
 
+// todo : big-endian support, msvc support, optimize for performance, add comments, reduce code size, etc.
+
 
 #pragma once
 
