@@ -3,6 +3,7 @@
 //#include "dtoa_xjb_comp.cpp"
 //#include "dtoa_xjb64_xjb32.cpp"
 #include "xjb.cpp"
+//#include "ftoa.cpp"
 #include "xjb_comp.cpp"
 #include "d2e_xjb.cpp"
 

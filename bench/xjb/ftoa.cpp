@@ -117,7 +117,7 @@ static inline void mul_u128_u64_high128(
 	*result_mid = low_high + high_low;
 	*result_high = high_high + (*result_mid < low_high);
 #elif defined(__SIZEOF_INT128__)
-	u128 hi128 = ((u128)b * pow10_hi + (((u128)b * pow10_lo) >> 64));
+	u128 hi128 = ((u128)b * a_high + (((u128)b * a_low) >> 64));
 	*result_high = hi128 >> 64;
 	*result_mid = (uint64_t)hi128;
 #else
