@@ -51,7 +51,6 @@ typedef __uint128_t u128; // msvc not support
 typedef uint64_t u64;
 typedef int64_t i64;
 typedef uint32_t u32;
-typedef uint16_t u16;
 
 static inline int u64_lz_bits(uint64_t x)
 {
@@ -377,38 +376,16 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 {
     // m range : [1, 1e16 - 1] ; m = abcdefgh * 10^8 + ijklmnop
     const uint64_t ZERO = 0x3030303030303030ull;
-    // uint64_t abcdefgh = m / 100000000;
-    // uint64_t ijklmnop = m - abcdefgh * 100000000;
     uint32_t abcdefgh = ((__uint128_t)m * cv->mul_const) >> 90;
     int64_t hundred_million = cv->hundred_million;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
     asm("" : "+r"(hundred_million));
 #endif
     uint32_t ijklmnop = m + abcdefgh * hundred_million;
-
 #if HAS_NEON
-    // method 1
     //  src from : https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
     //  bolg : https://dougallj.wordpress.com/2022/04/01/converting-integers-to-fixed-width-strings-faster-with-neon-simd-on-the-apple-m1/
     //  author : https://github.com/dougallj
-
-    // #define R(n) asm(".equ L__regnum_v" #n ", " #n);
-    // R(0) R(1) R(2) R(3) R(4) R(5) R(6) R(7) R(8) R(9) R(10) R(11) R(12) R(13)
-    // R(14) R(15) R(16) R(17) R(18) R(19) R(20) R(21) R(22) R(23) R(24) R(25)
-    // R(26) R(27) R(28) R(29) R(30) R(31)
-    // #undef R
-    // uint64x2_t hundredmillions = { abcdefgh, ijklmnop };
-    // uint64x2_t hundredmillions_origin = hundredmillions;
-    // asm(".word 0x00200400 | (L__regnum_%[multiplier] << 5) | (L__regnum_%[out] << 0)"
-    //   : [out] "+w"(hundredmillions)
-    //   : [multiplier] "w"(vdupq_n_s64(cv->div10000_2)));
-    // int32x4_t high_10000 = hundredmillions;
-    // int16x8_t tenthousands = vfmaq_f64(hundredmillions_origin, high_10000, vdupq_n_f64(cv->div10000_2_d));
-    // int32x4_t high_100 = vqdmulhq_s32(tenthousands, vdupq_n_s32(cv->multipliers32[2]));
-    // int32x4_t hundreds = vmlaq_s32(tenthousands, high_100, vdupq_n_s32(cv->multipliers32[3]));
-    // int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
-    // int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
-
     uint64x1_t hundredmillions = {abcdefgh | ((uint64_t)ijklmnop << 32)};
     int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
     int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
@@ -420,34 +397,12 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
     int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(cv->multipliers32[3]));
     int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
     int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
-
     int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    // int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s16(cv->multipliers16[2]));
-    //  u64 abcdefgh_BCD = vgetq_lane_u64(BCD_little_endian, 0);
-    //  u64 ijklmnop_BCD = vgetq_lane_u64(BCD_little_endian, 1);
-    //  int abcdefgh_tz = u64_lz_bits(abcdefgh_BCD);
-    //  int ijklmnop_tz = u64_lz_bits(ijklmnop_BCD);
-    //  int tz = ijklmnop ? ijklmnop_tz : 64 + abcdefgh_tz;
-    //  tz = tz / 8;
     uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
     uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
     int tz = u64_lz_bits(zeroes) >> 2;
     return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
-
-    // method 2 : slower
-    //  uint64_t abcd_efgh = abcdefgh + cv->div10000_m * ((abcdefgh * (__uint128_t)cv->div10000) >> 64); // (abcd << 32) + efgh
-    //  uint64_t ijkl_mnop = ijklmnop + cv->div10000_m * ((ijklmnop * (__uint128_t)cv->div10000) >> 64); // (ijkl << 32) + mnop
-    //  uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
-    //  uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(cv->multipliers32[2])), cv->multipliers32[3]);
-    //  uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(cv->multipliers16[0])), cv->multipliers16[1]);
-    //  uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
-    //  int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    //  uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
-    //  uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
-    //  int tz = u64_lz_bits(zeroes) >> 2;
-    //  return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
-
 #endif
 
 #if HAS_SSE2
@@ -730,11 +685,6 @@ static inline char *write_1_to_16_digit_sse2(u64 m, char *buf, const struct cons
 
 static inline char *write_1_to_16_digit(u64 x, char *buf, const struct const_value_double *cv)
 {
-
-    // #if HAS_SSE2
-    //     return write_1_to_16_digit_sse2(x, buf, cv);
-    // #endif
-
     // require 1 <= x < 1e16
     const u64 ZERO = 0x3030303030303030;
     const u64 mask = (0x7FULL << 32) | 0x7FULL;
@@ -1198,18 +1148,12 @@ namespace xjb
             return (char *)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
         unsigned char h37_precalc = t->h37[exp];
         u64 irregular = sig == 0;
-        const int BIT = 36;                  // [33,36] all right
+        const int BIT = 36;
         i64 k = (i64)(exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
-        // i64 k = (int)((exp_bin * (u128)(1233ull<<52) ) >> 64);
         if (irregular) [[unlikely]]
         {
             k = (i64)(exp_bin * 1233 - 512) >> 12;
             h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
-            // another method : only four value generate false result;
-            // if(exp_bin == 24-150)return (char *)memcpy(buf, "9.8607613e-32\0\0", 16) + 13;
-            // if(exp_bin == 57-150)return (char *)memcpy(buf, "8.4703295e-22\0\0", 16) + 13;
-            // if(exp_bin == 67-150)return (char *)memcpy(buf, "8.6736174e-19\0\0", 16) + 13;
-            // if(exp_bin == 220-150)return (char *)memcpy(buf, "9.9035203e+27\0\0", 16) + 13;
         }
         u64 pow10_hi = t->pow10_float_reverse[45 + k];
         u64 even = (sig + 1) & 1; // or (sig_bin + 1) & 1
@@ -1239,10 +1183,6 @@ namespace xjb
         {
             if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
                 ++one;
-            // if(exp_bin == 24-150)return (char *)memcpy(buf, "9.8607613e-32\0\0", 16) + 13;
-            // if(exp_bin == 57-150)return (char *)memcpy(buf, "8.4703295e-22\0\0", 16) + 13;
-            // if(exp_bin == 67-150)return (char *)memcpy(buf, "8.6736174e-19\0\0", 16) + 13;
-            // if(exp_bin == 220-150)return (char *)memcpy(buf, "9.9035203e+27\0\0", 16) + 13;
         }
 
         const i64 e10_DN = -3, e10_UP = 6;
@@ -1259,16 +1199,6 @@ namespace xjb
         memcpy(&buf[8 - lz], &one, 8);
         memmove(&buf[move_pos], &buf[dot_pos], 8);
         buf_origin[dot_pos] = '.';
-
-        // fixed scientific notation
-        //  memcpy(buf, &(s.ascii), 8);
-        //  memcpy(&buf[8 - lz], &one, 8);
-        //  memmove(&buf[2], &buf[1], 8);
-        //  buf[1] = '.';
-        //  u64 exp_pos = s.dec_sig_len + (s.dec_sig_len != 0) + 1;
-        //  u64 exp_len = 4;
-
-        // if ( (is_little_endian() ? (s.ascii & 0xf) : (s.ascii & (0xfull<<56))) == 0)
 #if defined(__aarch64__) // for arm64 processor , fewer instructions
         if (exp == 0) [[unlikely]]
 #endif

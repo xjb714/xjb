@@ -183,16 +183,15 @@ inline auto clz(uint64_t x) noexcept -> int {
 #endif
 }
 
-// Returns true_value if condition != 0, else false_value, without branching.
-ZMIJ_INLINE auto select(uint64_t condition, int64_t true_value,
-                        int64_t false_value) -> int64_t {
-  // Clang can figure it out on its own.
-  if (!ZMIJ_X86_64 || ZMIJ_CLANG) return condition ? true_value : false_value;
+// Returns true_value if lhs < rhs, else false_value, without branching.
+ZMIJ_INLINE auto select_if_less(uint64_t lhs, uint64_t rhs, int64_t true_value,
+                                int64_t false_value) -> int64_t {
+  if (!ZMIJ_X86_64 || ZMIJ_CLANG) return lhs < rhs ? true_value : false_value;
   ZMIJ_ASM(
-      volatile("test %2, %2\n\t"
-               "cmovne %1, %0\n\t" :  //
-               "+r"(false_value) : "r"(true_value),
-               "r"(condition) : "cc"));
+      volatile("cmp %3, %2\n\t"
+               "cmovb %1, %0\n\t"  //
+               : "+r"(false_value) : "r"(true_value),
+               "r"(lhs), "r"(rhs) : "cc"));
   return false_value;
 }
 
@@ -333,9 +332,11 @@ template <typename Float> struct float_traits : std::numeric_limits<Float> {
 // 128-bit significands of powers of 10 rounded down.
 // Generated using 192-bit arithmetic method by Dougall Johnson.
 struct pow10_significands_table {
+  static constexpr bool compress = false;
   static constexpr bool split_tables = ZMIJ_AARCH64 != 0;
   static constexpr int num_pow10 = 617;
-  uint64_t data[num_pow10 * 2] = {};
+  static constexpr int compression_ratio = compress ? 27 : 1;
+  uint64_t data[(num_pow10 / compression_ratio + compress) * 2] = {};
 
   ZMIJ_CONSTEXPR auto operator[](int dec_exp) const noexcept -> uint128 {
     constexpr int dec_exp_min = -292;
@@ -362,13 +363,17 @@ struct pow10_significands_table {
     uint192 current = {0xe000000000000000, 0x25e8e89c13bb0f7a,
                        0xff77b1fcbebcdc4f};
     uint64_t ten = 0xa000000000000000;
+    constexpr int table_size = sizeof(data) / (sizeof(*data) * 2);
     for (int i = 0; i < num_pow10; ++i) {
-      if (split_tables) {
-        data[num_pow10 - i - 1] = current.w2;
-        data[num_pow10 * 2 - i - 1] = current.w1;
-      } else {
-        data[i * 2] = current.w2;
-        data[i * 2 + 1] = current.w1;
+      if (i % compression_ratio == 0) {
+        int index = i / compression_ratio;
+        if (split_tables) {
+          data[table_size - index - 1] = current.w2;
+          data[table_size * 2 - index - 1] = current.w1;
+        } else {
+          data[index * 2] = current.w2;
+          data[index * 2 + 1] = current.w1;
+        }
       }
 
       uint64_t h0 = umul128_hi64(current.w0, ten);
@@ -854,12 +859,11 @@ ZMIJ_INLINE auto to_decimal_fast(UInt bin_sig, int64_t raw_exp,
       break;
     }
 
-    bool round_up = upper >= ten;
     int64_t shorter = int64_t(integral - digit);
     int64_t longer = int64_t(integral + (cmp >= 0));
     int64_t dec_sig =
-        select(scaled_sig_mod10 < scaled_half_ulp, shorter, longer);
-    return {select(round_up, shorter + 10, dec_sig), dec_exp};
+        select_if_less(scaled_sig_mod10, scaled_half_ulp, shorter, longer);
+    return {select_if_less(ten, upper, shorter + 10, dec_sig), dec_exp};
   }
   return to_decimal_schubfach(bin_sig, bin_exp, regular);
 }

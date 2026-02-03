@@ -92,7 +92,7 @@ namespace xjb
                                                    // u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2];
 #else
         //i64 h = q + ((k * -217707 - 217707) >> 16);
-        i64 h = q + ((k * (i64)cv->c2 + (i64)cv->c2) >> 16);//madd instruction , more efficient than mul and add
+        i64 h = q + ((k * (i64)cv->c2 + (i64)cv->c2) >> 16);
         const u64 *pow10_ptr = t->pow10_double + 293 * 2 - 2;
         u64 *p10 = (u64 *)&pow10_ptr[k * -2]; // get 10**(-k-1)
 #endif
@@ -164,7 +164,6 @@ namespace xjb
                 lz += 2;
                 e10 -= lz - 1;
                 buf[0] = buf[lz];
-                // byte_move_16(&buf[2], &buf[lz + 1]);
                 memmove(&buf[2], &buf[lz + 1], 16);
                 exp_pos = exp_pos - lz + (exp_pos - lz != 1);
             }
