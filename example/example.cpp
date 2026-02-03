@@ -29,9 +29,9 @@ int main()
         sin(1),
         log2(10),
         log10(2),
-        M_SQRT2,
-        M_E,
-        M_PI,
+        //M_SQRT2,
+        //M_E,
+        //M_PI,
         0,
         9999999999990000,
         // some subnormal numbers
@@ -63,7 +63,8 @@ int main()
     {
         printf("input a real number:");
         double num;
-        scanf("%le",&num);
+        //scanf("%le",&num);
+        std::cin >> num;
 
         char* buf_end_full_double = xjb::xjb64(num,buf_full_double);
         //char* buf_end_comp_double = xjb_comp::xjb64_comp(num,buf_comp_double);
