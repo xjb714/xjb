@@ -3,6 +3,9 @@ BENCH_DOUBLE = 1 # 0 : float, 1 : double
 
 BENCH_F_TO_STR = 1 # 0 : float/double to decimal , 1 : float/double to string
 
+BENCH_FLOAT = 0 # 0 : float, 1 : double
+
+
 # default compiler : gcc
 # g:
 # 	g++ -O3 -std=c++20 main.cpp util/yybench/src/yybench.cpp  -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_gcc
@@ -16,13 +19,19 @@ BENCH_F_TO_STR = 1 # 0 : float/double to decimal , 1 : float/double to string
 
 # with -march=native for better performance
 g:
-	g++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_gcc
-	./main_gcc
+	g++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_gcc_double
+	g++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_FLOAT) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_gcc_float
+	./main_gcc_double
+	./main_gcc_float
 i:
-	icpx -O3 -std=c++20 -march=native -no-ftz main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_icpx
-	./main_icpx
+	icpx -O3 -std=c++20 -march=native -no-ftz main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_icpx_double
+	icpx -O3 -std=c++20 -march=native -no-ftz main.cpp -DBENCH_DOUBLE=$(BENCH_FLOAT) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_icpx_float
+	./main_icpx_double
+	./main_icpx_float
 c:
-	clang++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang
+	clang++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang_double
+	clang++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_FLOAT) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang_float
+	./main_clang_double
 	./main_clang
 
 

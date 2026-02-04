@@ -1,4 +1,4 @@
-// todo : satify https://tc39.es/ecma262/#sec-numeric-types-number-tostring
+// todo : satisfy https://tc39.es/ecma262/#sec-numeric-types-number-tostring
 
 #include <stdint.h>
 #include <string.h>

@@ -1,6 +1,12 @@
 bench/main_gcc
 bench/main_clang
 bench/main_icpx
+bench/main_gcc_double
+bench/main_clang_double
+bench/main_icpx_double
+bench/main_gcc_float
+bench/main_clang_float
+bench/main_icpx_float
 bench/main_gcc.exe
 bench/main_clang.exe
 bench/main_icpx.exe
