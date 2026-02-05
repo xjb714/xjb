@@ -36,10 +36,20 @@ void test_d2e_i()
         f2e_xjb(num,buffer_f32);
         printf("%.16le %s %s\n",num,buffer,buffer_f32);
     }
-} 
+}
+void test_pow10(){
+    for(int i=-324;i<=324;++i){
+        u64 pow10 = powers_ten_reverse[343 - i];
+        double v = _10en[i + 324];
+        u64 u = *(u64*)&v;
+        u64 u2 = ((u << 11) | (1ull<<63));
+        printf("i=%d, u=0x%016lx u2=0x%016lx pow10=0x%016lx\n",i,u,u2,pow10);
+    }
+}
 int main(){
     test_d2e();
     test_d2e_i();
     printf("\n");
+    //test_pow10();
     return 0;
 }

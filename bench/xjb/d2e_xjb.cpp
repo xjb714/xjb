@@ -30,6 +30,10 @@
 
 #endif // endif USE_NEON_SSE2
 
+#ifdef _MSC_VER
+#include <intrin.h>  // __lzcnt64/_umul128/__umulh
+#endif
+
 #ifndef is_real_gcc
 #if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
     !defined(__clang__) && !defined(__llvm__) &&    \
@@ -44,6 +48,36 @@ typedef int64_t i64;
 typedef uint32_t u32;
 typedef int32_t i32;
 typedef uint16_t u16;
+
+static inline uint64_t umul128_hi64_fallback(uint64_t x, uint64_t y)
+{
+	//constexpr function for all compiler and hardware. just for const value precalc , not a Runtime function.
+	uint64_t a = x >> 32;
+	uint64_t b = uint32_t(x);
+	uint64_t c = y >> 32;
+	uint64_t d = uint32_t(y);
+
+	uint64_t ac = a * c;
+	uint64_t bc = b * c;
+	uint64_t ad = a * d;
+	uint64_t bd = b * d;
+
+	uint64_t cs = (bd >> 32) + uint32_t(ad) + uint32_t(bc);  // cross sum
+	return ac + (ad >> 32) + (bc >> 32) + (cs >> 32);
+}
+
+static inline uint64_t umul128_hi64(uint64_t a, uint64_t b)
+{
+#if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
+	uint64_t hi = __umulh(a, b);
+	return hi;
+#elif defined(__SIZEOF_INT128__)
+	return ((u128)a * b) >> 64;
+#else
+	uint64_t hi = umul128_hi64_fallback(a, b);
+	return hi;
+#endif
+}
 
 static inline int u64_lz_bits_xjb(uint64_t x)
 {
