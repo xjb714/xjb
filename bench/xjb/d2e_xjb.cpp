@@ -49,7 +49,7 @@ typedef uint32_t u32;
 typedef int32_t i32;
 typedef uint16_t u16;
 
-static inline uint64_t umul128_hi64_fallback(uint64_t x, uint64_t y)
+static inline uint64_t umul128_hi64_fallback_xjb(uint64_t x, uint64_t y)
 {
 	//constexpr function for all compiler and hardware. just for const value precalc , not a Runtime function.
 	uint64_t a = x >> 32;
@@ -66,7 +66,7 @@ static inline uint64_t umul128_hi64_fallback(uint64_t x, uint64_t y)
 	return ac + (ad >> 32) + (bc >> 32) + (cs >> 32);
 }
 
-static inline uint64_t umul128_hi64(uint64_t a, uint64_t b)
+static inline uint64_t umul128_hi64_xjb(uint64_t a, uint64_t b)
 {
 #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
 	uint64_t hi = __umulh(a, b);
@@ -74,7 +74,7 @@ static inline uint64_t umul128_hi64(uint64_t a, uint64_t b)
 #elif defined(__SIZEOF_INT128__)
 	return ((u128)a * b) >> 64;
 #else
-	uint64_t hi = umul128_hi64_fallback(a, b);
+	uint64_t hi = umul128_hi64_fallback_xjb(a, b);
 	return hi;
 #endif
 }
@@ -476,7 +476,7 @@ inline char *d2e_xjb(double v, char *buffer)
     i64 e10 = e10_tmp + (vi_abs >= f64_pow10_ptr[e10_tmp]); // e10_tmp or e10_tmp+1
     u64 pow10_f = power_ptr[e10];
     i64 shift = 61 - e2 - (((Precision - e10) * 217707) >> 16);
-    u64 m = ((u128)(f)*pow10_f) >> 64;
+    u64 m = umul128_hi64_xjb(f, pow10_f);
     u64 m2 = (m >> shift) + 1;
     u64 h9 = m2 / (u64)2e8;
     u64 h1 = m2 / (u64)2e16;
