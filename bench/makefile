@@ -32,7 +32,7 @@ c:
 	clang++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_DOUBLE) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang_double
 	clang++ -O3 -std=c++20 -march=native main.cpp -DBENCH_DOUBLE=$(BENCH_FLOAT) -DBENCH_STR=$(BENCH_F_TO_STR) -o main_clang_float
 	./main_clang_double
-	./main_clang
+	./main_clang_float
 
 
 
