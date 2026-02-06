@@ -6,7 +6,7 @@
 // when input double in (1e-7,1e21), use %lf to format, otherwise use %le.
 // example : 123.456 -> "123.456", 0.000000123456 -> "1.23456e-7", 1e22 -> "1e+22"
 
-// todo : big-endian support, msvc support, optimize for performance, add comments, reduce code size, etc.
+// todo : optimize for performance, add comments, reduce code size, etc.
 
 #pragma once
 
@@ -514,7 +514,7 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 	// method 4 : SSE2
 
 	// method 1 : AVX512IFMA, AVX512VBMI
-#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) && (false)
 	const __m512i bcstq_h = _mm512_set1_epi64(abcdefgh);
 	const __m512i bcstq_l = _mm512_set1_epi64(ijklmnop);
 	const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
@@ -557,6 +557,7 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 	return { ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17) };
 #else // sse2
 
+//no swap version:
 	//     __m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
 	//     __m128i x_div_10000 = _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi32(0xd1b71759)), 45);
 	//     __m128i x_mod_10000 = _mm_sub_epi32(x, _mm_mul_epu32(x_div_10000, _mm_set1_epi32(10000)));
@@ -571,19 +572,39 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 	//     __m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
 	//     __m128i little_endian_bcd = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
 
+
+//old version:
+// 	__m128i x = _mm_unpacklo_epi64(_mm_cvtsi32_si128(abcdefgh), _mm_cvtsi32_si128(ijklmnop));
+// 	//__m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
+// 	__m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
+// #if defined(__SSE4_1__)
+// 	__m128i z = _mm_sub_epi32(_mm_slli_epi32(y, 16), _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
+// #else
+// 	__m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
+// 	__m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+// 	__m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+// #endif
+// 	__m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
+// 	__m128i bcd_swapped = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+// 	__m128i little_endian_bcd = _mm_shuffle_epi32(bcd_swapped, _MM_SHUFFLE(2, 3, 0, 1));
+
+//new version:
 	__m128i x = _mm_unpacklo_epi64(_mm_cvtsi32_si128(abcdefgh), _mm_cvtsi32_si128(ijklmnop));
 	//__m128i x = _mm_set_epi64x(ijklmnop, abcdefgh);
-	__m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
-#if defined(__SSE4_1__)
-	__m128i z = _mm_sub_epi32(_mm_slli_epi32(y, 16), _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
-#else
-	__m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
-	__m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
-	__m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+    __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ull << 32) - 10000), _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
+#if defined(__SSE4_1__) //&& (false)
+    __m128i z = _mm_add_epi64(y,_mm_mullo_epi32(_mm_set1_epi32((1 << 16) - 100), _mm_srli_epi32(_mm_mulhi_epu16(y, _mm_set1_epi32(5243)), 3)));
+    __m128i big_endian_bcd = _mm_add_epi16(z, _mm_mullo_epi16(_mm_set1_epi16((1 << 8) - 10), _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a))));
+    const __m128i bswap = _mm_set_epi8(8, 9, 10, 11, 12, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6, 7);
+    __m128i little_endian_bcd = _mm_shuffle_epi8(big_endian_bcd, bswap);//ssse3
+#else // sse2
+    __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
+    __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
+    __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
+    __m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
+    __m128i bcd_swapped = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
+    __m128i little_endian_bcd = _mm_shuffle_epi32(bcd_swapped, _MM_SHUFFLE(2, 3, 0, 1));   
 #endif
-	__m128i z_div_10 = _mm_mulhi_epu16(z, _mm_set1_epi16(0x199a));
-	__m128i bcd_swapped = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
-	__m128i little_endian_bcd = _mm_shuffle_epi32(bcd_swapped, _MM_SHUFFLE(2, 3, 0, 1));
 
 	int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
 	int tz = u64_lz_bits(mask);
