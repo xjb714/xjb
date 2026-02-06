@@ -16,9 +16,7 @@ xjb32、xjb32_comp:
 Test all positive single-precision floating-point numbers. The running time only takes about one minute.  
 
 ## todo:
-(1) big-endian cpu support
-(2) msvc compiler support
-(3) f16, f128 and f256 support
+(1) f16, f128 and f256 support
 
 ## src files:
 (1)float/double to decimal algorithm  
@@ -118,6 +116,8 @@ This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and g
 (6) Fewer instructions  
 
 ## benchmark:
+The benchmark test is in the `bench` directory. just run `make` to build the benchmark program.
+you can run `bench/main.cpp` to test the performance of the algorithm.  
 The latest benchmark results on Apple M1 and amd R7-7840h CPU:
 <!-- ![ramdom float apple M1](bench_result/random_float_m1.svg)
 ![ramdom double apple M1](bench_result/random_double_m1.svg)
