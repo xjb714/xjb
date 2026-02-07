@@ -1553,6 +1553,7 @@ namespace schubfach_xjb64
         
         //static constexpr int32_t MinFixedDecimalPoint = -3+1;
         //static constexpr int32_t MaxFixedDecimalPoint = 15+1;
+        
         // json format
         static constexpr int32_t MinFixedDecimalPoint = -6+1;
         static constexpr int32_t MaxFixedDecimalPoint = 20+1;
@@ -1665,11 +1666,11 @@ namespace schubfach_xjb64
             buffer += 2;
 
             const uint32_t k = static_cast<uint32_t>(scientific_exponent < 0 ? -scientific_exponent : scientific_exponent);
-            // if (k < 10)
-            // {
-            //     *buffer++ = static_cast<char>('0' + k);
-            // }
-            // else 
+            if (k < 10)
+            {
+                *buffer++ = static_cast<char>('0' + k);
+            }
+            else 
             if (k < 100)
             {
                 Utoa_2Digits(buffer, k);

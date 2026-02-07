@@ -27,3 +27,4 @@ bench/.DS_Store
 bench_result/.DS_Store
 other_benchmark_project/.DS_Store
 example/example
+example/example_json

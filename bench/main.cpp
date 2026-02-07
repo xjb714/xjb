@@ -410,6 +410,7 @@ void bench_float_single_impl(int i)
     printf("%2d. bench %16s : ", i, name.c_str());
 
     auto t1 = getns();
+    auto c1 = get_cycle();
 
     // This method has additional overhead,
     // which affects the test results to some extent,
@@ -453,54 +454,62 @@ void bench_float_single_impl(int i)
             (void)e;
         }
     }
-
+    u64 len_sum_final;
     if (is_bench_float_to_string)
     {
         char buffer[128];
+        u64 len_sum = 0;
         if (i == 0)
             for (int j = 0; j < N; ++j)
-                ryu_f32_to_str(data_float[j], buffer);
+                len_sum += ryu_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 1)
             for (int j = 0; j < N; ++j)
-                schubfach_f32_to_str(data_float[j], buffer);
+                len_sum += schubfach_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 2)
             for (int j = 0; j < N; ++j)
-                schubfach_xjb_f32_to_str(data_float[j], buffer);
+                len_sum += schubfach_xjb_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 3)
             for (int j = 0; j < N; ++j)
-                xjb32_f32_to_str(data_float[j], buffer);
+                len_sum += xjb32_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 4)
             for (int j = 0; j < N; ++j)
-                xjb32_comp_f32_to_str(data_float[j], buffer);
+                len_sum += xjb32_comp_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 5)
             for (int j = 0; j < N; ++j)
-                yyjson_f32_to_str(data_float[j], buffer);
+                len_sum += yyjson_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 6)
             for (int j = 0; j < N; ++j)
-                dragonbox_comp_f32_to_str(data_float[j], buffer);
+                len_sum += dragonbox_comp_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 7)
             for (int j = 0; j < N; ++j)
-                dragonbox_full_f32_to_str(data_float[j], buffer);
+                len_sum += dragonbox_full_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 8)
             for (int j = 0; j < N; ++j)
-                fmt_comp_f32_to_str(data_float[j], buffer);
+                len_sum += fmt_comp_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 9)
             for (int j = 0; j < N; ++j)
-                fmt_full_f32_to_str(data_float[j], buffer);
+                len_sum += fmt_full_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 10)
             for (int j = 0; j < N; ++j)
-                zmij_f32_to_str(data_float[j], buffer);
+                len_sum += zmij_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 11)
             for (int j = 0; j < N; ++j)
-                jnum_f32_to_str(data_float[j], buffer);
+                len_sum += jnum_f32_to_str(data_float[j], buffer) - buffer;
         if (i == 12)
             for (int j = 0; j < N; ++j)
-                f2e_xjb_f32_to_str(data_float[j], buffer);
+                len_sum += f2e_xjb_f32_to_str(data_float[j], buffer) - buffer;
+        len_sum_final = len_sum;
     }
-
+    auto c2 = get_cycle();
     auto t2 = getns();
 
-    printf("cost %5.4lf ms,every float cost %3.4lf ns\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N));
+    uint64_t cycle_sum = c2 - c1;
+    double cycle_avg = (double)cycle_sum * (1.0 / N);
+#if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ,%3.4lf cycle; write_length_sum = %lu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, len_sum_final);
+#else
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ; write_length_sum = %lu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), len_sum_final);
+#endif
 }
 
 void bench_double_all_algorithm()
@@ -710,8 +719,60 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
     }
     return 1;
 }
+unsigned check_xjb32_and_schubfach32_xjb_string_jsonformat(float f)
+{
+    u32 u = *(u32 *)&f;
+    char buf_xjb[32];
+    //char buf_xjb_comp[32];
+    char buf_schubfach_xjb[32];
+    memset(buf_xjb, 0, 32);
+    //memset(buf_xjb_comp, 0, 32);
+    memset(buf_schubfach_xjb, 0, 32);
+    char *end_buf_xjb = xjb32_f32_to_str(f, buf_xjb);
+    //char *end_buf_xjb_comp = xjb32_comp_f32_to_str(f, buf_xjb_comp);
+    char *end_buf_schubfach_xjb = schubfach_xjb_f32_to_str(f, buf_schubfach_xjb);
+    int len_xjb = end_buf_xjb - buf_xjb;
+    //int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
+    int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
+    //if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
+    if (len_xjb != len_schubfach_xjb)
+    {
+        // printf("f = %.8le, u = %x, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
+        //  unsigned int dec, dec_xjb,dec_xjb_comp;
+        //  int e10, e10_xjb,e10_xjb_comp;
+        //  schubfach_xjb_f32_to_dec(f, &dec, &e10);
+        //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
+        //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
+        //printf("f = %.8le, u = %x, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n", f, u, len_xjb, len_xjb_comp, len_schubfach_xjb, buf_xjb, buf_xjb_comp, buf_schubfach_xjb, (u >> 23) ? "normal" : "subnormal");
+        printf("f = %.8le, u = %x, len_xjb=%d  , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n", f, u, len_xjb, len_schubfach_xjb, buf_xjb, buf_schubfach_xjb, (u >> 23) ? "normal" : "subnormal");
+        // exit(0);
+        return 1;
+    }
+    //if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    {
+        // if three string equal return OK;
+        return 0;
+    }
+    else
+    {
+        // printf("f = %.8le, u = %x, buf_xjb=%s, buf_schubfach_xjb=%s\n",f,u,buf_xjb,buf_schubfach_xjb);
+        //  unsigned int dec, dec_xjb,dec_xjb_comp;
+        //  int e10, e10_xjb,e10_xjb_comp;
+        //  schubfach_xjb_f32_to_dec(f, &dec, &e10);
+        //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
+        //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
+
+        //printf("f = %.8e, u = %x, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n", f, u, buf_xjb, buf_xjb_comp, buf_schubfach_xjb);
+        printf("f = %.8e, u = %x, buf_xjb=%s, buf_schubfach_xjb=%s \n", f, u, buf_xjb, buf_schubfach_xjb);
+        // exit(0);
+    }
+    return 1;
+}
 unsigned check_xjb32_and_schubfach32_xjb_string(float f)
 {
+    return check_xjb32_and_schubfach32_xjb_string_jsonformat(f);
+
     u32 u = *(u32 *)&f;
     char buf_xjb[32];
     char buf_xjb_comp[32];
@@ -1121,7 +1182,7 @@ int main()
     
     //check_f2e_xjb();
     
-    //check_all_float_number_to_string(); // check all float number , may cost long time
+    check_all_float_number_to_string(); // check all float number , may cost long time , about one minute;
 #else
     // check_all_float_number_to_decimal(); // check all float number , may cost long time
 #endif
@@ -1131,7 +1192,7 @@ int main()
 #if BENCH_DOUBLE
     bench_double();
 
-    //check_double(); // check double correctness , may cost long time
+    check_double(); // check double correctness , may cost long time
 #endif
 
     return 0;

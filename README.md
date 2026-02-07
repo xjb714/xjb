@@ -3,6 +3,8 @@ xjb : a fast float to string algorithm.
 
 float/double to string single file implementation : `src/ftoa.cpp`
 
+for json lib, satisfy  `RFC8295` or https://tc39.es/ecma262/#sec-numeric-types-number-tostring : `src/ftoa_json.cpp`
+
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
 ## algorithm correctness proof:  
@@ -16,7 +18,8 @@ xjb32、xjb32_comp:
 Test all positive single-precision floating-point numbers. The running time only takes about one minute.  
 
 ## todo:
-(1) f16, f128 and f256 support
+(1) little-endian support
+(2) f16, f128 and f256 support
 
 ## src files:
 (1)float/double to decimal algorithm  

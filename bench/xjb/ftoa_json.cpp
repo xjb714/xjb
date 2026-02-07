@@ -281,7 +281,7 @@ static const struct const_value_double constants_double = {
 	.multipliers16 = {0xce0, -10 + 0x100, '0' + '0' * 256},
 };
 static const struct const_value_float constants_float = {
-	.c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
+	.c1 = (((u64)(0x303030) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
 	.div10000 = 1844674407370956,
 	.e7 = 10000000,
 	.e6 = 1000000,
@@ -298,7 +298,7 @@ struct double_table_t
 	static const int num_pow10 = 323 - (-293) + 1;
 	uint64_t pow10_double[num_pow10 * 2] = {};// from 10**(-293) to 10**323
 	uint64_t exp_result_double[324 + 308 + 1] = {};// from "e-308" to "e+324"
-	unsigned char e10_variable_data[e10_UP - (e10_DN)+1 + 1][max_dec_sig_len + 3] = {};
+	unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][max_dec_sig_len + 3] = {};
 
 	constexpr double_table_t()
 	{
@@ -331,8 +331,10 @@ struct double_table_t
 			u64 bc = e10_abs - a * 100;
 			u64 b = bc / 10;
 			u64 c = bc - b * 10;
-			u64 exp_len = 4 + (e10_abs >= 100);
-			u64 e10_abs_ascii = (e10_abs >= 100) ? (a + '0') + ((b + '0') << 8) + ((c + '0') << 16) : (b + '0') + ((c + '0') << 8);
+			const int use_prefix_zero = 0; // 1 : "e-09" ; 0 : "e-9"
+			u64 exp_len = use_prefix_zero ? 4 + (e10_abs >= 100) : 3 + (e10_abs >= 100) + (e10_abs >= 10);
+			u64 e10_abs_ascii = (e10_abs >= 100) ? (a + '0') + ((b + '0') << 8) + ((c + '0') << 16) 
+								: ((e10_abs >= 10) || use_prefix_zero ? (b + '0') + ((c + '0') << 8) : c + '0');
 			u64 exp_res = e + (e10_abs_ascii << 16) + (exp_len << 56);
 			exp_res = (e10 >= e10_DN && e10 <= e10_UP) ? 0 : exp_res;
 			exp_result_double[e10 + 324] = exp_res;
@@ -357,13 +359,13 @@ struct double_table_t
 
 struct float_table_t
 {
-	static const int e10_DN = -3;
-	static const int e10_UP = 6;
+	static const int e10_DN = -6;
+	static const int e10_UP = 20;
 	static const int max_dec_sig_len = 9;
 	static const int num_pow10 = 44 - (-32) + 1;
 	uint64_t pow10_float_reverse[44 - (-32) + 1] = {};
 	uint32_t exp_result_float[45 + 38 + 1] = {};
-	unsigned char e10_variable_data[e10_UP - (e10_DN)+1 + 1][max_dec_sig_len + 3] = {};
+	unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][max_dec_sig_len + 3] = {};
 	unsigned char h37[256] = {};
 	constexpr float_table_t()
 	{
@@ -391,7 +393,8 @@ struct float_table_t
 			u64 e10_abs = e10 < 0 ? -e10 : e10;
 			u64 a = e10_abs / 10;
 			u64 b = e10_abs - a * 10;
-			u64 e10_abs_ascii = (a + '0') + ((b + '0') << 8);
+			const int use_prefix_zero = 0; // 1 : "e-09" ; 0 : "e-9"
+			u64 e10_abs_ascii = (a > 0 || use_prefix_zero) ? (a + '0') + ((b + '0') << 8) : b + '0';
 			u64 exp_res = e + (e10_abs_ascii << 16);
 			exp_res = (e10 >= e10_DN && e10 <= e10_UP) ? 0 : exp_res;
 			exp_result_float[e10 + 45] = (uint32_t)exp_res;
@@ -1313,26 +1316,34 @@ namespace xjb
 		u64 down = (half_ulp >> irregular) > dot_one_36bit;
 		u64 up_down = up + down;
 		u64 m = (sig_hi >> BIT) + up;
-		memcpy(buf, "0000", 4);
+		//memcpy(buf, "0000", 4);
+		memcpy(buf, "00000000", 8);
 		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
 		// u64 lz = (m < c->e6) + (m < c->e7);
 		u64 lz = (m < c->e6) ? 2 : (m < c->e7); // branch instruction ， maybe faster than branchless cmov
 		shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
 		i64 e10 = k + (8 - lz);
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
+		const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"
+		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
+
 		u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
 		u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
-		// one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
+		one |= ZERO_DIGIT;
+		
+		if(e10_UP >= t->max_dec_sig_len - 2 /* 20 >= 7 */ ) // constant expression
+			one = cmov_branchless(up_down, ZERO_DIGIT, one); // prevent gcc generate branch instruction
+
 		if (irregular) [[unlikely]]
 		{
 			if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
 				++one;
 		}
 
-		const i64 e10_DN = -3, e10_UP = 6;
+		
 		u64 e10_3 = e10 + (-e10_DN);
 		u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
-		u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
+		u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 3 + ((u64)e10 < (u64)-9);
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
 		u64 move_pos = t->e10_variable_data[e10_data_ofs][9 + 2];
@@ -1341,6 +1352,7 @@ namespace xjb
 		buf += first_sig_pos;
 		memcpy(buf, &(s.ascii), 8);
 		memcpy(&buf[8 - lz], &one, 8);
+		memcpy(&buf[8 - lz + 8],&ZERO_DIGIT, 8);
 		memmove(&buf[move_pos], &buf[dot_pos], 8);
 		buf_origin[dot_pos] = '.';
 #if defined(__aarch64__) // for arm64 processor , fewer instructions
