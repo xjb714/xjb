@@ -2,7 +2,8 @@
 // src : github.com/xjb714/xjb
 // date : 2026.2.2
 
-// todo : satisfy https://tc39.es/ecma262/#sec-numeric-types-number-tostring
+// RFC8259 JSON number to string conversion
+// satisfy https://tc39.es/ecma262/#sec-numeric-types-number-tostring
 // when input double in (1e-7,1e21), use %lf to format, otherwise use %le.
 // example : 123.456 -> "123.456", 0.000000123456 -> "1.23456e-7", 1e22 -> "1e+22"
 

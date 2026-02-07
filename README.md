@@ -3,7 +3,7 @@ xjb : a fast float to string algorithm.
 
 float/double to string single file implementation : `src/ftoa.cpp`
 
-for json lib, satisfy  `RFC8295` or https://tc39.es/ecma262/#sec-numeric-types-number-tostring : `src/ftoa_json.cpp`
+for json lib, satisfy  `RFC8259` or https://tc39.es/ecma262/#sec-numeric-types-number-tostring : `src/ftoa_json.cpp`
 
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
