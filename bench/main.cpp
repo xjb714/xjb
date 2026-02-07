@@ -389,9 +389,9 @@ void bench_double_single_impl(int i)
     uint64_t cycle_sum = c2 - c1;
     double cycle_avg = (double)cycle_sum * (1.0 / N);
 #if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
-    printf("cost %5.4lf ms,every double cost %3.4lf ns ,%3.4lf cycle; write_length_sum = %lu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, len_sum_final);
+    printf("cost %5.4lf ms,every double cost %3.4lf ns ,%3.4lf cycle; write_length_sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, (unsigned long long)len_sum_final);
 #else
-    printf("cost %5.4lf ms,every double cost %3.4lf ns ; write_length_sum = %lu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), len_sum_final);
+    printf("cost %5.4lf ms,every double cost %3.4lf ns ; write_length_sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), (unsigned long long)len_sum_final);
 #endif
 }
 void bench_float_single_impl(int i)
@@ -506,9 +506,9 @@ void bench_float_single_impl(int i)
     uint64_t cycle_sum = c2 - c1;
     double cycle_avg = (double)cycle_sum * (1.0 / N);
 #if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
-    printf("cost %5.4lf ms,every float cost %3.4lf ns ,%3.4lf cycle; write_length_sum = %lu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, len_sum_final);
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ,%3.4lf cycle; write_length_sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, (unsigned long long)len_sum_final);
 #else
-    printf("cost %5.4lf ms,every float cost %3.4lf ns ; write_length_sum = %lu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), len_sum_final);
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ; write_length_sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), (unsigned long long)len_sum_final);
 #endif
 }
 
