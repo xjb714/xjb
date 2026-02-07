@@ -2,7 +2,7 @@
 // src : github.com/xjb714/xjb
 // date : 2026.2.2
 
-// todo : satisfy https://tc39.es/ecma262/#sec-numeric-types-number-tostring
+// satisfy https://tc39.es/ecma262/#sec-numeric-types-number-tostring
 // when input double in (1e-7,1e21), use %lf to format, otherwise use %le.
 // example : 123.456 -> "123.456", 0.000000123456 -> "1.23456e-7", 1e22 -> "1e+22"
 
@@ -166,7 +166,7 @@ static inline int u64_tz_bits(uint64_t x)
 	return n;
 #endif
 }
-static inline uint64_t umul128_hi64(uint64_t a, uint64_t b)
+static inline uint64_t umul128_hi64_xjb_json(uint64_t a, uint64_t b)
 {
 #if defined(_MSC_VER) && (defined(_M_X64) || defined(_M_ARM64))
 	uint64_t hi = __umulh(a, b);
@@ -292,13 +292,14 @@ static const struct const_value_float constants_float = {
 
 struct double_table_t
 {
-	static const int e10_DN = -3; // -6
-	static const int e10_UP = 15; // 20
+	static const int e10_DN = -6; // -6
+	static const int e10_UP = 20; // 20
 	static const int max_dec_sig_len = 17;
-	const int num_pow10 = 323 - (-293) + 1;
-	uint64_t pow10_double[(323 - (-293) + 1) * 2] = {};
-	uint64_t exp_result_double[324 + 308 + 1] = {};
+	static const int num_pow10 = 323 - (-293) + 1;
+	uint64_t pow10_double[num_pow10 * 2] = {};// from 10**(-293) to 10**323
+	uint64_t exp_result_double[324 + 308 + 1] = {};// from "e-308" to "e+324"
 	unsigned char e10_variable_data[e10_UP - (e10_DN)+1 + 1][max_dec_sig_len + 3] = {};
+
 	constexpr double_table_t()
 	{
 		struct uint192
@@ -359,7 +360,7 @@ struct float_table_t
 	static const int e10_DN = -3;
 	static const int e10_UP = 6;
 	static const int max_dec_sig_len = 9;
-	const int num_pow10 = 44 - (-32) + 1;
+	static const int num_pow10 = 44 - (-32) + 1;
 	uint64_t pow10_float_reverse[44 - (-32) + 1] = {};
 	uint32_t exp_result_float[45 + 38 + 1] = {};
 	unsigned char e10_variable_data[e10_UP - (e10_DN)+1 + 1][max_dec_sig_len + 3] = {};
@@ -419,8 +420,8 @@ struct float_table_t
 		}
 	}
 };
-alignas(64) constexpr double_table_t double_table;
-alignas(64) constexpr float_table_t float_table;
+constexpr struct double_table_t double_table;
+constexpr struct float_table_t float_table;
 /* const value table for double to string : end */
 
 
@@ -478,7 +479,7 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 	// m range : [1, 1e16 - 1] ; m = abcdefgh * 10^8 + ijklmnop
 	const uint64_t ZERO = 0x3030303030303030ull;
 	//uint32_t abcdefgh = ((__uint128_t)m * cv->mul_const) >> 90;
-	uint32_t abcdefgh = umul128_hi64(m, cv->mul_const) >> (90 - 64);
+	uint32_t abcdefgh = umul128_hi64_xjb_json(m, cv->mul_const) >> (90 - 64);
 	int64_t hundred_million = cv->hundred_million;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
 	asm("" : "+r"(hundred_million));
@@ -1091,7 +1092,12 @@ namespace xjb
 		buf += vi >> 63;
 		u64 ieee_significand = vi & ((1ull << 52) - 1);
 		u64 ieee_exponent = (vi << 1) >> 53;
-#ifdef __amd64__ // for x86_64 processor , if not use this code , the performance will be very poor on icpx compiler. 9ns -> 12.5ns. that's why we use this code.
+
+#if defined(__amd64__) && !is_real_gcc
+	#define amd64_not_gcc
+#endif
+
+#ifdef amd64_not_gcc // for x86_64 processor , if not use this code , the performance will be very poor on icpx compiler. 9ns -> 12.5ns. that's why we use this code.
 		u64 vi_abs = (vi << 1) >> 1;
 		if ((u64)(vi_abs - 2) >= (u64)((2047ull << 52) - 2)) [[unlikely]]
 		{
@@ -1110,7 +1116,10 @@ namespace xjb
 		i64 q = (i64)ieee_exponent - 1075;
 		u64 nq = -q;
 		u64 c = ((1ull << 52) | ieee_significand);
-#if 1
+
+#define use_fast_path_for_integer 1
+
+#if use_fast_path_for_integer
 #if is_real_gcc
 		if (nq <= u64_tz_bits(c)) [[unlikely]] // use unlikely will generate jmp instruction
 #else
@@ -1118,9 +1127,10 @@ namespace xjb
 #endif
 			return write_1_to_16_digit(c >> nq, buf, cv); // fast path for integer
 #endif
+
 		if (ieee_exponent == 0) [[unlikely]]
 		{
-#ifndef __amd64__
+#ifndef amd64_not_gcc
 			if (ieee_significand <= 1)
 			{
 				return (char*)memcpy(buf, ieee_significand ? "5e-324\0" : "0.0\0\0\0\0", 8) + (ieee_significand ? 6 : 3);
@@ -1129,7 +1139,7 @@ namespace xjb
 			c = ieee_significand;
 			q = 1 - 1075; // -1074
 		}
-#ifndef __amd64__ // for arm64 processor , better performance
+#ifndef amd64_not_gcc // for arm64 processor , better performance
 		if (ieee_exponent == 2047) [[unlikely]]
 			return (char*)memcpy(buf, ieee_significand ? "nan" : "inf", 4) + 3;
 #endif
@@ -1139,7 +1149,7 @@ namespace xjb
 		u64 irregular = (ieee_significand == 0);
 #ifdef __amd64__
 		if (!irregular) [[likely]] // branch
-			k = (i64)((ieee_exponent - 1075) * 315653) >> 20;
+			k = (i64)((ieee_exponent - 1075) * 78913) >> 18;
 		else
 			k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
 #else
@@ -1159,7 +1169,7 @@ namespace xjb
 		const u64* pow10_ptr = t->pow10_double + 293 * 2;
 		u64* p10 = (u64*)&pow10_ptr[get_e10 * 2]; // get 10**(-k-1)
 		// u64 *p10 = (u64*)&pow10_double[293*2 + get_e10*2];
-#else
+#else // for arm64 processor , fewer instructions, better performance
 		// i64 h = q + ((k * -217707 - 217707) >> 16);
 		i64 h = q + ((k * (i64)cv->c2 + (i64)cv->c2) >> 16); // madd instruction , more efficient than mul and add
 		const u64* pow10_ptr = t->pow10_double + 293 * 2 - 2;
@@ -1170,9 +1180,10 @@ namespace xjb
 		u64 pow10_lo = p10[1];
 		u64 hi64, lo64;
 		mul_u128_u64_high128(pow10_hi, pow10_lo, cb, &hi64, &lo64);
-		//u128 hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64));
-		//u64 dot_one = hi128 >> offset;
 		u64 dot_one = (hi64 << (64 - offset)) | (lo64 >> offset);
+		//u128 hi128 = ((u128)cb * pow10_hi + (((u128)cb * pow10_lo) >> 64));
+		//u64 dot_one = hi128 >> offset;
+		//hi64 = hi128 >> 64;
 		u64 half_ulp = (pow10_hi >> (-h)) + ((c + 1) & 1);
 		u64 up = (half_ulp > ~0 - dot_one);
 		u64 down = ((half_ulp >> (irregular)) > dot_one);
@@ -1185,29 +1196,33 @@ namespace xjb
 		// memcpy(buf, "0000", 4);
 		shortest_ascii16 s = to_ascii16(mr, up_down, D17, cv);
 		i64 e10 = k + (15 + D17);
+		const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"
 #ifdef __amd64__
 		// u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull << 63) + 6;
 		u64 offset_num = (1ull << 63) + 6;
-		if (dot_one == (1ull << 62)) [[unlikely]]
+		if (dot_one == (1ull << 62)) //[[unlikely]]
 			offset_num = 0;
-		u64 one = ((dot_one * (u128)10 + offset_num) >> 64) + (u64)('0' + '0' * 256);
+		u64 one = ((dot_one * (u128)10 + offset_num) >> 64) | ZERO_DIGIT;
 		if (irregular) [[unlikely]]
 			if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
-				one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
+				one = ((((dot_one >> 54) * 5) >> 9) + 1) | ZERO_DIGIT;
 #else
 		//u64 one = ((dot_one * (u128)10 + cv->c4) >> 64) + (u64)('0' + '0' * 256);
-		u64 one = (u128_madd_hi64(dot_one, 10, cv->c4)) + (u64)('0' + '0' * 256);
+		u64 one = (u128_madd_hi64(dot_one, 10, cv->c4)) | ZERO_DIGIT;
 		if (dot_one == (1ull << 62)) [[unlikely]]
-			one = (u64)('2' + '0' * 256);
+			one = ZERO_DIGIT + 2;
 		if (irregular) [[unlikely]] // This is a cold code, so it is more efficient to have the compiler automatically generate branch instructions.
 		{                           // Since the compiler tries to prevent access to memory, it generates branch instructions.
 			u64 mask = cv->c6;      // read constant values from memory to register , so this code will be more fast.
 			if ((((dot_one >> 54) * 5) & mask) > (((half_ulp >> 55) * 5)))
-				one = (((dot_one >> 54) * 5) >> 9) + 1 + (u64)('0' + '0' * 256);
+				one = ((((dot_one >> 54) * 5) >> 9) + 1) | ZERO_DIGIT;
 		}
 #endif
-		const i64 e10_DN = -3;
-		const i64 e10_UP = 15;
+		const i64 e10_DN = t->e10_DN;// -6
+		const i64 e10_UP = t->e10_UP;// 20
+		//static_assert(e10_DN <= e10_UP , "not support");
+		if(e10_UP >= t->max_dec_sig_len - 1 /* 20 >= 16 */ ) // constant expression
+			one = cmov_branchless(up_down, ZERO_DIGIT, one);
 		u64 e10_3 = e10 + (-e10_DN);
 		u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1; // compute offset , min(e10_3,19)
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
@@ -1243,10 +1258,10 @@ namespace xjb
 			}
 		}
 		u64 exp_result = t->exp_result_double[e10 + 324];
-		u64 exp_len = exp_result >> 56;
-		exp_result = is_little_endian() ? exp_result : byteswap64(exp_result);
+		//exp_result = is_little_endian() ? exp_result : byteswap64(exp_result);
 		buf += exp_pos;
 		memcpy(buf, &exp_result, 8);
+		u64 exp_len = exp_result >> 56;
 		return buf + exp_len;
 	}
 	// static inline
@@ -1287,7 +1302,7 @@ namespace xjb
 		u64 even = (sig + 1) & 1; // or (sig_bin + 1) & 1
 		u64 cb = sig_bin << h37_precalc;
 		//u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64;
-		u64 sig_hi = umul128_hi64(cb, pow10_hi);
+		u64 sig_hi = umul128_hi64_xjb_json(cb, pow10_hi);
 		u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + even;
 		u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1);
 #ifdef __amd64__

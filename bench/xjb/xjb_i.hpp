@@ -2,9 +2,17 @@
 
 //#include "dtoa_xjb_comp.cpp"
 //#include "dtoa_xjb64_xjb32.cpp"
-#include "xjb.cpp"
+//#include "xjb.cpp"
 //#include "ftoa.cpp"
-#include "xjb_comp.cpp"
+
+#define USE_xjb_comp 0
+
+#include "ftoa_json.cpp"
+
+#if USE_xjb_comp
+    #include "xjb_comp.cpp"
+#endif
+
 #include "d2e_xjb.cpp"
 
 //float/double to decimal
@@ -22,7 +30,11 @@ char* xjb64_comp_f64_to_str(double v,char* buf)
 {
     // to be implemented
     //return buf;
+#if USE_xjb_comp
     return xjb_comp::xjb64_comp(v,buf);
+#else
+    return buf;
+#endif
     //return xjb64_32_comp::xjb64(v,buf);
 }
 
@@ -36,10 +48,11 @@ char* xjb32_f32_to_str(float v,char* buf)
 
 char* xjb32_comp_f32_to_str(float v,char* buf)
 {
-    //return buf;
+#if USE_xjb_comp
     return xjb_comp::xjb32_comp(v,buf);
-    //return xjb_comp::xjb32(v,buf);
-    //return xjb64_32_comp::xjb32(v,buf);
+#else
+    return buf;
+#endif
 }
 
 char* d2e_xjb_f64_to_str(double v,char* buf)

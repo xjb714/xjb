@@ -1550,8 +1550,13 @@ namespace schubfach_xjb64
     {
         //static constexpr int32_t MinFixedDecimalPoint = -6;
         //static constexpr int32_t MaxFixedDecimalPoint = 17;
-        static constexpr int32_t MinFixedDecimalPoint = -3+1;
-        static constexpr int32_t MaxFixedDecimalPoint = 15+1;
+        
+        //static constexpr int32_t MinFixedDecimalPoint = -3+1;
+        //static constexpr int32_t MaxFixedDecimalPoint = 15+1;
+        // json format
+        static constexpr int32_t MinFixedDecimalPoint = -6+1;
+        static constexpr int32_t MaxFixedDecimalPoint = 20+1;
+
         static_assert(MinFixedDecimalPoint <= -1, "internal error");
         static_assert(MaxFixedDecimalPoint >= 1, "internal error");
 

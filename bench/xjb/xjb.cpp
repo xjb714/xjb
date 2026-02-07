@@ -70,7 +70,7 @@ namespace xjb
         u64 irregular = (ieee_significand == 0);
 #ifdef __amd64__
         if (!irregular) [[likely]] // branch
-            k = (i64)((ieee_exponent - 1075) * 315653) >> 20;
+            k = (i64)((ieee_exponent - 1075) * 78913) >> 18;
         else
             k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
 #else
