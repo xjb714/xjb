@@ -514,7 +514,7 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 	// method 4 : SSE2
 
 	// method 1 : AVX512IFMA, AVX512VBMI
-#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) && (false)
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__) //&& (false)
 	const __m512i bcstq_h = _mm512_set1_epi64(abcdefgh);
 	const __m512i bcstq_l = _mm512_set1_epi64(ijklmnop);
 	const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
