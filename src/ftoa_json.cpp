@@ -6,6 +6,9 @@
 // satisfy https://tc39.es/ecma262/#sec-numeric-types-number-tostring
 // when input double in (1e-7,1e21), use %lf to format, otherwise use %le.
 // example : 123.456 -> "123.456", 0.000000123456 -> "1.23456e-7", 1e22 -> "1e+22"
+// example code : https://github.com/xjb714/xjb/blob/main/example/example_json.cpp
+
+
 
 // todo : optimize for performance, add comments, reduce code size, etc.
 
@@ -1206,7 +1209,7 @@ namespace xjb
 		u64 offset_num = (1ull << 63) + 6;
 		if (dot_one == (1ull << 62)) //[[unlikely]]
 			offset_num = 0;
-		u64 one = ((dot_one * (u128)10 + offset_num) >> 64) | ZERO_DIGIT;
+		u64 one = (u128_madd_hi64(dot_one, 10, offset_num)) | ZERO_DIGIT;
 		if (irregular) [[unlikely]]
 			if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
 				one = ((((dot_one >> 54) * 5) >> 9) + 1) | ZERO_DIGIT;
