@@ -559,12 +559,12 @@ unsigned check_xjb64_and_schubfach_xjb_jsonformat(double d)
 {
 #if BENCH_STR
     unsigned long long u = *(u64 *)&d;
-    char buf_xjb[33];
+    static char buf_xjb[64];
     //char buf_xjb_comp[33];
-    char buf_schubfach_xjb[33];
-    memset(buf_xjb, 0, 33);
+    static char buf_schubfach_xjb[32];
+    //memset(buf_xjb, 0, 33);
     //memset(buf_xjb_comp, 0, 33);
-    memset(buf_schubfach_xjb, 0, 33);
+    //memset(buf_schubfach_xjb, 0, 33);
     char *end_buf_xjb = xjb64_f64_to_str(d, buf_xjb);
     //char *end_buf_xjb_comp = xjb64_comp_f64_to_str(d, buf_xjb_comp);
     char *end_buf_schubfach_xjb = schubfach_xjb_f64_to_str(d, buf_schubfach_xjb);

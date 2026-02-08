@@ -78,22 +78,33 @@ int main()
         std::numeric_limits<double>::quiet_NaN(),
         -std::numeric_limits<double>::quiet_NaN(),
     };
-    char buf_full_double[33],buf_full_float[24];
-    char buf_comp_double[33],buf_comp_float[24];
+    
     for(int i = 0; i < sizeof(v) / sizeof(double); i++)
     {
+        static char buf_full_double[33],buf_full_float[24];
+        //static char buf_comp_double[33],buf_comp_float[24];
         xjb::xjb64(v[i],buf_full_double);
         //xjb_comp::xjb64_comp(v[i],buf_comp_double);
 
         xjb::xjb32(v[i],buf_full_float);
         //xjb_comp::xjb32_comp(v[i],buf_comp_float);
 
-        printf("i = %2d, xjb64_full : %s  xjb32_full : %s\n",i,buf_full_double,buf_full_float);
+        printf("i = %2d, xjb64_full : %25s  xjb32_full : %25s\n",i,buf_full_double,buf_full_float);
+        //printf("i = %2d, xjb64_comp : %s  xjb32_comp : %s\n",i,buf_comp_double,buf_comp_float);
+        // int j=0;
+        // while(buf_full_double[j]){
+        //     putchar(buf_full_double[j]);
+        //     j++;
+        // }
+        // putchar('\n');
+        //std::cout << i << " xjb64_full : " << buf_full_double << "  xjb32_full : " << buf_full_float << std::endl;
         //printf("i = %d, xjb64_comp : %10s  xjb32_comp : %10s\n",i,buf_comp_double,buf_comp_float);
     }
     int i = 0;
     while(i++ < 30)
     {
+        static char buf_full_double[33],buf_full_float[24];
+        //static char buf_comp_double[33],buf_comp_float[24];
         printf("input a real number:");
         double num;
         //scanf("%le",&num);
