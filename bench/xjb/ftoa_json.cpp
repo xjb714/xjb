@@ -1160,8 +1160,10 @@ namespace xjb
 		else
 			k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
 #else
+		//k = (i64)((ieee_exponent - 1075) * 78913) >> 18;
 		// k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
 		// k = (i64)(((i64)ieee_exponent - 1075) * cv->c1 + (irregular ? cv->c5 : 0)) >> 20; // branch instruction , more efficient than cmov
+		
 		if (!irregular) [[likely]] // branch
 			// k = int(((u64)(ieee_exponent - 1075) * (u128)0x4d10500000000000) >> 64);
 			// k = (i64)((ieee_exponent - 1075) * 315653) >> 20;
@@ -1183,24 +1185,18 @@ namespace xjb
 		u64* p10 = (u64*)&pow10_ptr[k * -2]; // get 10**(-k-1)
 #endif
 		u64 cb = c << (h + (1 + offset));
-		u64 pow10_hi = p10[0];
-		u64 pow10_lo = p10[1];
+		u64 pow10_hi = p10[0] , pow10_lo = p10[1];
 		u64 hi64, lo64;
 		mul_u128_u64_high128(pow10_hi, pow10_lo, cb, &hi64, &lo64);
 		u64 dot_one = (hi64 << (64 - offset)) | (lo64 >> offset);
-		//u128 hi128 = ((u128)cb * pow10_hi + (((u128)cb * pow10_lo) >> 64));
-		//u64 dot_one = hi128 >> offset;
-		//hi64 = hi128 >> 64;
 		u64 half_ulp = (pow10_hi >> (-h)) + ((c + 1) & 1);
 		u64 up = (half_ulp > ~0 - dot_one);
 		u64 down = ((half_ulp >> (irregular)) > dot_one);
 		u64 m = (u64)(hi64 >> offset) + up;
 		u64 up_down = up + down;
-		// u64 D17 = (m >= (u64)1e15);
-		u64 D17 = m > (u64)cv->c3;
+		u64 D17 = m > (u64)cv->c3; // (m >= (u64)1e15);
 		u64 mr = D17 ? m : m * 10;
 		memcpy(buf, "00000000", 8);
-		// memcpy(buf, "0000", 4);
 		shortest_ascii16 s = to_ascii16(mr, up_down, D17, cv);
 		i64 e10 = k + (15 + D17);
 		const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"

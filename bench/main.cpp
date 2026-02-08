@@ -44,6 +44,7 @@ const int is_bench_float_to_string = BENCH_STR;
 #include "fmt/fmt_i.hpp"
 #include "zmij/zmij_i.hpp"
 #include "jnum/jnum_i.hpp" // not satisfy the Steele and White algorithm
+#include "uscalec/uscalec_i.hpp"
 
 const int N = (int)(1 << 24); // about 16M
 const int N_double = N;       // double data size
@@ -186,6 +187,7 @@ void init_double()
     double_to_string_algorithm_set.push_back(std::string("zmij")); // 12
     double_to_string_algorithm_set.push_back(std::string("jnum")); // 13
     double_to_string_algorithm_set.push_back(std::string("d2e_xjb")); // 14
+    double_to_string_algorithm_set.push_back(std::string("uscalec")); // 15
 
     auto t2 = getns();
     printf("init : cost %lf second\n", (t2 - t1) / 1e9);
@@ -381,6 +383,9 @@ void bench_double_single_impl(int i)
         if (i == 13)
             for (int j = 0; j < N; ++j)
                 len_sum += d2e_xjb_f64_to_str(data[j], buffer) - buffer;
+        if (i == 14)
+            for (int j = 0; j < N; ++j)
+                len_sum += uscalec_f64_to_str(data[j], buffer) - buffer;
 
         len_sum_final = len_sum;
     }

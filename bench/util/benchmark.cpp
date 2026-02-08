@@ -862,11 +862,12 @@ static void dtoa_func_register_all(void) {
     dtoa_func_register(yy_double)
     dtoa_func_register(yyjson)
     dtoa_func_register(xjb64)
-    dtoa_func_register(xjb64_comp)
+    //dtoa_func_register(xjb64_comp)
     //dtoa_func_register(schubfach_vitaut)
     dtoa_func_register(zmij)
     dtoa_func_register(jnum)
     dtoa_func_register(d2e_xjb)
+    dtoa_func_register(uscalec)
 
 
 
