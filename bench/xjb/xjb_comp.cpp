@@ -9,10 +9,12 @@ typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
 
-#include "dec_to_ascii.cpp"
+
 
 namespace xjb_comp
 {
+    #include "dec_to_ascii.cpp"
+
     static inline u64 calc_pow5_rlz(unsigned int pow5_offset)
     {
         // require 0 <= pow5_offset <= 27; max_u64 = (2**64)-1 > 5**27

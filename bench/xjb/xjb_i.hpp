@@ -5,7 +5,7 @@
 //#include "xjb.cpp"
 //#include "ftoa.cpp"
 
-#define USE_xjb_comp 0
+#define USE_xjb_comp 1
 
 #include "ftoa_json.cpp"
 
