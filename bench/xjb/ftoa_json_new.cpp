@@ -1229,7 +1229,7 @@ namespace xjb
 		if (ieee_exponent == 0) [[unlikely]]
 		{
 			// some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-			// if (buf[0] == '0')
+			//if (buf[0] == '0')
 			if (m < (u64)1e14)
 			{
 				u64 lz = 0;
