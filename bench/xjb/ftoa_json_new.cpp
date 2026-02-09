@@ -464,6 +464,18 @@ static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value, 
 	return false_value;
 #endif
 }
+static inline uint64_t cmov_if_less(uint64_t lhs, uint64_t rhs, uint64_t true_value, uint64_t false_value)
+{
+#if !is_real_gcc || !defined(__amd64__)
+	return lhs < rhs ? true_value : false_value;
+#else
+	asm volatile("cmp %3, %2\n\t"
+				 "cmovb %1, %0\n\t"
+				 : "+r"(false_value) : "r"(true_value),
+									   "r"(lhs), "r"(rhs) : "cc");
+	return false_value;
+#endif
+}
 
 static inline uint64_t compute_double_dec_sig_len(uint64_t up_down, int tz, uint64_t D17)
 {
@@ -1199,7 +1211,7 @@ namespace xjb
 		}
 		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction
 			one = 2;
-		//one |= ZERO_DIGIT;
+		// one |= ZERO_DIGIT;
 		u64 D17 = m > (u64)cv->c3; // (m >= (u64)1e15);
 		u64 mr = D17 ? m : m * 10;
 		memcpy(buf, "00000000", 8);
@@ -1229,7 +1241,7 @@ namespace xjb
 		if (ieee_exponent == 0) [[unlikely]]
 		{
 			// some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-			//if (buf[0] == '0')
+			// if (buf[0] == '0')
 			if (m < (u64)1e14)
 			{
 				u64 lz = 0;
@@ -1285,11 +1297,9 @@ namespace xjb
 			h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
 		}
 		u64 pow10_hi = t->pow10_float_reverse[45 + k];
-		u64 even = (sig + 1) & 1; // or (sig_bin + 1) & 1
 		u64 cb = sig_bin << h37_precalc;
-		// u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64;
 		u64 sig_hi = umul128_hi64_xjb_json(cb, pow10_hi);
-		u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + even;
+		u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + ((sig + 1) & 1);
 		u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1);
 #ifdef __amd64__
 		u64 up = (half_ulp + dot_one_36bit) >> BIT;
@@ -1299,23 +1309,23 @@ namespace xjb
 		u64 down = (half_ulp >> irregular) > dot_one_36bit;
 		u64 up_down = up + down;
 		u64 m = (sig_hi >> BIT) + up;
-		// memcpy(buf, "0000", 4);
 		memcpy(buf, "00000000", 8);
+		memcpy(buf + 8, "00000000", 8);
+		memcpy(buf + 16, "00000000", 8);
 		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
-		// u64 lz = (m < c->e6) + (m < c->e7);
+		//u64 lz = (m < c->e6) + (m < c->e7);
 		u64 lz = (m < c->e6) ? 2 : (m < c->e7); // branch instruction ， maybe faster than branchless cmov
 		shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
 		i64 e10 = k + (8 - lz);
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
-		const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"
+		//const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"
 		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
 
 		u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
 		u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
-		one |= ZERO_DIGIT;
 
-		if (e10_UP >= t->max_dec_sig_len - 2 /* 20 >= 7 */)	 // constant expression
-			one = cmov_branchless(up_down, ZERO_DIGIT, one); // prevent gcc generate branch instruction
+		if (e10_UP >= t->max_dec_sig_len - 2 /* 20 >= 7 */) // constant expression
+			one = cmov_branchless(up_down, '0', one);		// prevent gcc generate branch instruction
 
 		if (irregular) [[unlikely]]
 		{
@@ -1323,9 +1333,12 @@ namespace xjb
 				++one;
 		}
 
-		u64 e10_3 = e10 + (-e10_DN);
-		u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
-		u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 3 + ((u64)e10 < (u64)-9);
+		const u64 range = e10_UP - e10_DN + 1;//27
+		u64 e10_offset = e10 + (-e10_DN);
+		u64 e10_data_ofs = e10_offset < range ? e10_offset : range;
+		// u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : ((u64)e10 < (u64)-9) ? 4 : 3;
+		u64 exp_len_2 = cmov_if_less(e10, -9, 4, 3);
+		u64 exp_len = cmov_if_less(e10_offset, range, 0, exp_len_2);// 0 or 3 or 4;
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
 		u64 move_pos = t->e10_variable_data[e10_data_ofs][9 + 2];
@@ -1333,8 +1346,8 @@ namespace xjb
 		char *buf_origin = (char *)buf;
 		buf += first_sig_pos;
 		memcpy(buf, &(s.ascii), 8);
-		memcpy(&buf[8 - lz], &one, 8);
-		memcpy(&buf[8 - lz + 8], &ZERO_DIGIT, 8);
+		memcpy(&buf[8 - lz], &one, 1);
+		// memcpy(&buf[8 - lz + 8], &ZERO_DIGIT, 8);
 		memmove(&buf[move_pos], &buf[dot_pos], 8);
 		buf_origin[dot_pos] = '.';
 #if defined(__aarch64__) // for arm64 processor , fewer instructions

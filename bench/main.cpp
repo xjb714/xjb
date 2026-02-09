@@ -1183,7 +1183,7 @@ int main()
     bench_float();
 
 #if BENCH_STR
-    //check_all_irregular_float_number_to_string();//fast
+    check_all_irregular_float_number_to_string();//fast
     
     //check_f2e_xjb();
     
