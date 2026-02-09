@@ -174,7 +174,7 @@ static inline uint64_t umul128_hi64_xjb_json(uint64_t a, uint64_t b)
 	uint64_t hi = __umulh(a, b);
 	return hi;
 #elif defined(__SIZEOF_INT128__)
-	return ((u128)a * b) >> 64;
+	return (a * (u128)b) >> 64;
 #else
 	uint64_t hi = umul128_hi64_fallback(a, b);
 	return hi;
@@ -263,6 +263,7 @@ struct const_value_float
 #else
 	int32_t m32_4[4];
 #endif
+	uint64_t mask36;
 };
 
 static const struct const_value_double constants_double = {
@@ -290,6 +291,7 @@ static const struct const_value_float constants_float = {
 	.e5 = 100000,
 	.m = (1ull << 32) - 10000,
 	.m32_4 = {0x147b000, -100 + 0x10000, 0xce0, -10 + 0x100},
+	.mask36 = (1ull << 36) - 1,
 };
 
 struct double_table_t
@@ -1154,7 +1156,7 @@ namespace xjb
 			c = ieee_significand;
 			q = 1 - 1075; // -1074
 		}
-#ifndef amd64_not_gcc // for arm64 processor , better performance
+#ifndef amd64_not_gcc
 		if (ieee_exponent == 2047) [[unlikely]]
 			return (char *)memcpy(buf, ieee_significand ? "nan" : "inf", 4) + 3;
 #endif
@@ -1165,7 +1167,13 @@ namespace xjb
 
 		const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"
 		u64 m, one, up_down;
-		k = (i64)((ieee_exponent - 1075) * 78913) >> 18;
+#if defined(__SIZEOF_INT128__)
+		// arm64 : smulh ; x64 : imul
+		k = ((i64)(ieee_exponent - 1075) * (u128)(78913ull << (64 - 18)) ) >> 64;
+#else
+		k = ((i64)(ieee_exponent - 1075) * 78913) >> 18;
+#endif
+
 #ifdef __amd64__
 		i64 get_e10 = -1 - k;
 		i64 h = q + ((get_e10 * 217707) >> 16);
@@ -1187,31 +1195,24 @@ namespace xjb
 		m = (u64)(hi64 >> offset) + up;
 		up_down = up + down;
 		one = (u128_madd_hi64(dot_one, 10, cv->c4));
-		// #ifdef __amd64__
-		// 		u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull << 63) + 6;
-		// 		one = (u128_madd_hi64(dot_one, 10, offset_num)) ;//| ZERO_DIGIT;
-		// #else
-		// 		one = (u128_madd_hi64(dot_one, 10, cv->c4)) ;//| ZERO_DIGIT;
-		// #endif
 		if (irregular) [[unlikely]]
 		{
 			// irregular case : c is 2**52 , exp range is [1,2046] , only 2046 values are possible.
 			k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
 			i64 h = q + ((k * -217707 - 217707) >> 16);
 			u64 pow10_hi = t->pow10_double[293 * 2 - 2 + k * -2];
-			u64 half_ulp = (pow10_hi >> (-h));
+			u64 half_ulp = pow10_hi >> (-h);
 			u64 dot_one = (pow10_hi << (53 + h));
-			u64 up = (half_ulp > (u64)~0 - dot_one);
+			u64 up = (half_ulp > ~0 - dot_one);
 			u64 down = ((half_ulp >> 1) > dot_one);
 			m = (pow10_hi >> (11 - h)) + up;
 			up_down = up + down;
-			one = ((dot_one >> (53 + h)) * 10 + (1 << (10 - h))) >> (11 - h);
+			one = ((dot_one >> (53 + h)) * 5 + (1 << (9 - h))) >> (10 - h);
 			if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
 				one = ((((dot_one >> 54) * 5) >> 9) + 1);
 		}
 		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction
 			one = 2;
-		// one |= ZERO_DIGIT;
 		u64 D17 = m > (u64)cv->c3; // (m >= (u64)1e15);
 		u64 mr = D17 ? m : m * 10;
 		memcpy(buf, "00000000", 8);
@@ -1290,7 +1291,14 @@ namespace xjb
 		unsigned char h37_precalc = t->h37[exp];
 		u64 irregular = sig == 0;
 		const int BIT = 36;
-		i64 k = (i64)(exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
+#if defined(__SIZEOF_INT128__) // for arm64 processor , fewer instructions
+		// arm64 : single smulh instruction can be used to calculate high 64 bits of multiplication
+		// x64 : gcc can not optimize this to a single imul instruction on x86_64 processor , but clang and icpx can optimize it
+		i64 k = ((i64)exp_bin * (u128)(1233ull << 52)) >> 64;// signed multiplication
+#else 
+		i64 k = (exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
+#endif
+		//i64 k = i64(umul128_hi64_xjb_json(exp_bin, 1233ull << 52)); // exp_bin range : [-149,104] ; k range : [-45,31]
 		if (irregular) [[unlikely]]
 		{
 			k = (i64)(exp_bin * 1233 - 512) >> 12;
@@ -1309,10 +1317,10 @@ namespace xjb
 		u64 down = (half_ulp >> irregular) > dot_one_36bit;
 		u64 up_down = up + down;
 		u64 m = (sig_hi >> BIT) + up;
-		memcpy(buf, "00000000", 8);
+		memcpy(buf + 0, "00000000", 8);
 		memcpy(buf + 8, "00000000", 8);
 		memcpy(buf + 16, "00000000", 8);
-		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
+		//u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
 		//u64 lz = (m < c->e6) + (m < c->e7);
 		u64 lz = (m < c->e6) ? 2 : (m < c->e7); // branch instruction ， maybe faster than branchless cmov
 		shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
