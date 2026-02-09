@@ -1,10 +1,8 @@
 #include <iostream>
 #include <cmath>
 
-//#include "bench/xjb/xjb_comp.cpp" // compress table
-//#include "bench/xjb/xjb.cpp" // full table
 
-#include "ftoa.c"
+#include "../bench/uscalec/uscalec_mod.cpp"
 
 
 int main()
@@ -81,9 +79,11 @@ int main()
     
     for(int i = 0; i < sizeof(v) / sizeof(double); i++)
     {
-        static char buf[64];
-        short1(buf, v[i]);
-        printf("i = %2d, buf : %25s  \n",i, buf);
+        static char buf[33];
+        
+        uscalec::dtoa(v[i],buf);
+
+        printf("i=%d buf: %s\n",i ,buf);
     }
     int i = 0;
     while(i++ < 30)
@@ -91,12 +91,11 @@ int main()
         static char buf[33];
         printf("input a real number:");
         double num;
-        //scanf("%le",&num);
         std::cin >> num;
 
-        int len = short1(buf, num);
-        
+        char* end_buf = uscalec::dtoa(num,buf);
+        int len = end_buf - buf;
 
-        printf("i = %d, buf : %s , len = %d\n",i, buf , len);
+        printf("buf : %10s write length = %2d\n",buf,len);
     }
 }

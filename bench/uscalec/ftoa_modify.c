@@ -127,16 +127,16 @@ static unrounded uscale(uint64_t x, Scalers c) {
 	//printf("uscale x=%#llx c=%#llx %#llx %d\n", x, c.pmHi, c.pmLo, c.s);
 	unsigned __int128 full = (unsigned __int128)x * c.pmHi;
 	uint64_t hi = full>>64;
-	uint64_t mid1 = full;
 	//printf("hi=%#llx mid1=%#llx\n", hi, mid1);
 	uint64_t sticky = 1;
-	if ((hi & ((1ULL<<c.s)-1)) == 0) {
+	if ((hi & (( 1ULL<< c.s ) - 1)) == 0) {
+		uint64_t mid1 = full;
 		uint64_t mid2 = ((unsigned __int128)x * c.pmLo) >> 64;
 		//printf("mid2=%#llx\n", mid2);
 		sticky = (mid1-mid2 > 1);
 		hi -= mid1 < mid2;
 	}
-	return (hi>>c.s) | sticky;
+	return (hi >> c.s) | sticky;
 }
 
 uint64_t uint64pow10[] = {
@@ -246,6 +246,87 @@ static void Short(double f, uint64_t *dp, int *pp) {
 		d = uround(uscale(m, pre));
 	*dp = d;
 	*pp = -p;
+}
+
+static void Short_opt(double f, uint64_t *dp, int *pp) {
+	// require f > 0 , not 0,inf,nan
+	uint64_t u = *(uint64_t*)&f;
+	uint64_t m = (u << 11) | (1ull<<63);
+	uint64_t exp = ((u>>52) & ((1<<11)-1));
+	uint64_t subnormal = exp == 0;
+	uint64_t irregular = m == 0;
+	int e = exp - 1086;
+	int p = -log10Pow2(e + 11);
+	uint64_t min = m - (1ULL << (11 - 1));
+	uint64_t max = m + (1ULL << (11 - 1));
+	if(subnormal)[[unlikely]]
+	{
+		e = -1085;
+		int s = __builtin_clzll(u << 11);
+		m <<= s;
+		e -= s;
+		int b = 11 + s;
+		p = -log10Pow2(e + b);
+		min = m - (1ULL << (b - 1));
+		max = m + (1ULL << (b - 1));
+	}else{
+		//m |= 1ULL<< 63;
+	}
+	if(irregular)[[unlikely]]
+	{
+		p = -skewed(e + 11);
+		min = m - (1ULL<<(11 - 2));
+	}else{
+		// p = -log10Pow2(e + b);
+		// min = m - (1ULL << (b - 1));
+	}
+	uint64_t odd = m & 1;
+	Scalers pre = prescale(e, p, log2Pow10(p));
+	uint64_t dmin = uceil(uscale(min, pre) + odd);
+	uint64_t dmax = ufloor(uscale(max, pre) - odd);
+	uint64_t ten = (dmax / 10) * 10;
+	uint64_t D17 = (dmax / 10) >= (uint64_t)1e15;
+	uint64_t up_down = ten >= dmin;
+	uint64_t one = up_down ? 0 : uround(uscale(m, pre)) - ten;
+	*dp = ten >= dmin ? ten : (dmin < dmax ? uround(uscale(m, pre)) : dmin);
+	*pp = -p;
+	printf("dp = %llu, pp = %d , ten = %llu, one = %llu\n",*dp,*pp,ten,one);
+	return ;
+
+	// int p;
+	// uint64_t min;
+	// int b = 11;
+	// if (m == 1ULL<<63 && e > -1085) //
+    // {
+	// 	p = -skewed(e + b);
+	// 	min = m - (1ULL<<(b-2));
+	// } else {
+	// 	if (e < -1085) {
+	// 		b = 11 + (-1085 - e);
+	// 	}
+	// 	p = -log10Pow2(e+b);
+	// 	min = m - (1ULL<<(b-1));
+	// }
+	// uint64_t max = m + (1ULL<<(b-1));
+
+	// int odd = (m>>b) & 1;
+	// Scalers pre = prescale(e, p, log2Pow10(p));
+	// uint64_t dmin = uceil(unudge(uscale(min, pre), +odd));
+	// uint64_t dmax = ufloor(unudge(uscale(max, pre), -odd));
+
+	// //printf("cshort f=%.17g m=%#llx e=%d p=%d b=%d odd=%d\nmin=%#llx max=%#llx dmin=%lld dmax=%lld d0=%lld\n",
+	// //	f, m, e, p, b, odd, min, max, dmin, dmax, d0);
+
+	// uint64_t d0 = dmax / 10 * 10;
+	// if (d0 >= dmin) {
+	// 	trimZeros(dmax/10, -(p-1), dp, pp);
+	// 	return;
+	// }
+	// uint64_t d = dmin;
+	// if (d < dmax)
+	// 	d = uround(uscale(m, pre));
+	// *dp = d;
+	// *pp = -p;
 }
 
 static const char i2a[] = "00010203040506070809"

@@ -1079,10 +1079,10 @@ void check_double()
 #endif
     check_special_value();
     check_irregular();
-    //check_subnormal();
+    check_subnormal();
     // check_float(); // not contain subnormal float  , time too long
-    //check_rand_double();  // random double
-    //check_rand_integer(); // random integer
+    check_rand_double();  // random double
+    check_rand_integer(); // random integer
     printf("check finish\n");
 }
 #if USE_YYBENCH && BENCH_STR

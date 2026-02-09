@@ -1120,20 +1120,11 @@ namespace xjb
 		const int offset = 6;
 		u64 regular = ieee_significand > 0;
 		u64 irregular = (ieee_significand == 0);
-#ifdef __amd64__
-		if (!irregular) [[likely]] // branch
-			k = (i64)((ieee_exponent - 1075) * 315653) >> 20;
-		else
-			k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
+#if defined(__SIZEOF_INT128__) && defined(__aarch64__)
+		// arm64 : smulh ; x64 : imul
+		k = ((i64)(ieee_exponent - 1075) * (u128)(78913ull << (64 - 18)) ) >> 64;
 #else
-		// k = (i64)(((i64)ieee_exponent - 1075) * 315653 - (irregular ? 131237 : 0)) >> 20;
-		// k = (i64)(((i64)ieee_exponent - 1075) * cv->c1 + (irregular ? cv->c5 : 0)) >> 20; // branch instruction , more efficient than cmov
-		if (!irregular) [[likely]] // branch
-			// k = int(((u64)(ieee_exponent - 1075) * (u128)0x4d10500000000000) >> 64);
-			// k = (i64)((ieee_exponent - 1075) * 315653) >> 20;
-			k = (i64)((ieee_exponent - 1075) * 78913) >> 18;
-		else
-			k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
+		k = ((i64)(ieee_exponent - 1075) * 78913) >> 18;
 #endif
 
 #ifdef __amd64__
@@ -1260,7 +1251,13 @@ namespace xjb
 		unsigned char h37_precalc = t->h37[exp];
 		u64 irregular = sig == 0;
 		const int BIT = 36;
-		i64 k = (i64)(exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
+#if defined(__SIZEOF_INT128__) // for arm64 processor , fewer instructions
+		// arm64 : single smulh instruction can be used to calculate high 64 bits of multiplication
+		// x64 : gcc can not optimize this to a single imul instruction on x86_64 processor , but clang and icpx can optimize it
+		i64 k = ((i64)exp_bin * (u128)(1233ull << 52)) >> 64;// signed multiplication
+#else 
+		i64 k = (exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
+#endif
 		if (irregular) [[unlikely]]
 		{
 			k = (i64)(exp_bin * 1233 - 512) >> 12;
