@@ -1167,7 +1167,7 @@ namespace xjb
 
 		const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"
 		u64 m, one, up_down;
-#if defined(__SIZEOF_INT128__)
+#if defined(__SIZEOF_INT128__) && defined(__aarch64__)
 		// arm64 : smulh ; x64 : imul
 		k = ((i64)(ieee_exponent - 1075) * (u128)(78913ull << (64 - 18)) ) >> 64;
 #else
