@@ -4,7 +4,7 @@
 //#include "bench/xjb/xjb_comp.cpp" // compress table
 //#include "bench/xjb/xjb.cpp" // full table
 
-#include "../src/ftoa_json.cpp"
+#include "../bench/xjb/ftoa_json_new.cpp"
 
 
 int main()
