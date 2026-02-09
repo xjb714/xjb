@@ -2892,12 +2892,12 @@ static inline char *FormatDigits(char *buffer, uint32_t digits, int32_t decimal_
     // static constexpr int32_t MinFixedDecimalPoint = -4;
     // static constexpr int32_t MaxFixedDecimalPoint = 9;
     
-    //static constexpr int32_t MinFixedDecimalPoint = -3 + 1;//for check;
-    //static constexpr int32_t MaxFixedDecimalPoint = 6 + 1;
+    static constexpr int32_t MinFixedDecimalPoint = -3 + 1;//for check;
+    static constexpr int32_t MaxFixedDecimalPoint = 6 + 1;
 
     //json format
-    static constexpr int32_t MinFixedDecimalPoint = -6 + 1;//for check;
-    static constexpr int32_t MaxFixedDecimalPoint = 20 + 1;
+    // static constexpr int32_t MinFixedDecimalPoint = -6 + 1;//for check;
+    // static constexpr int32_t MaxFixedDecimalPoint = 20 + 1;
 
     static_assert(MinFixedDecimalPoint <= -1, "internal error");
     static_assert(MaxFixedDecimalPoint >= 1, "internal error");
@@ -2997,20 +2997,20 @@ static inline char *FormatDigits(char *buffer, uint32_t digits, int32_t decimal_
 
         const uint32_t k = static_cast<uint32_t>(scientific_exponent < 0 ? -scientific_exponent : scientific_exponent);
         
-        //Utoa_2Digits(buffer, k); // example : 4 -> "04" , 23 -> "23"
-        //buffer += 2;
+        Utoa_2Digits(buffer, k); // example : 4 -> "04" , 23 -> "23"
+        buffer += 2;
         
-        if (k < 10)
-        {
-            *buffer++ = static_cast<char>('0' + k);
-            // Utoa_2Digits(buffer, k); // example : 4 -> "04"
-            // buffer += 2;
-        }
-        else
-        {
-            Utoa_2Digits(buffer, k);
-            buffer += 2;
-        }
+        // if (k < 10)
+        // {
+        //     *buffer++ = static_cast<char>('0' + k);
+        //     // Utoa_2Digits(buffer, k); // example : 4 -> "04"
+        //     // buffer += 2;
+        // }
+        // else
+        // {
+        //     Utoa_2Digits(buffer, k);
+        //     buffer += 2;
+        // }
     }
 
     return buffer;

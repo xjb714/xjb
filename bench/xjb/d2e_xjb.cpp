@@ -2,6 +2,7 @@
 #include <string.h>
 #include <stdio.h>
 
+namespace d2e_xjb {
 #define USE_NEON_SSE2 1
 
 
@@ -531,3 +532,4 @@ inline char *f2e_xjb(float v, char *buffer)
     memcpy(buffer, &exp_res, 8);
     return buffer + 4;
 }
+} // namespace d2e_xjb

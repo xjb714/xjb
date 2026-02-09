@@ -7,7 +7,7 @@
 
 #define USE_xjb_comp 1
 
-#include "ftoa_json.cpp"
+#include "ftoa.cpp"
 
 #if USE_xjb_comp
     #include "xjb_comp.cpp"
@@ -50,10 +50,10 @@ char* xjb32_comp_f32_to_str(float v,char* buf)
 
 char* d2e_xjb_f64_to_str(double v,char* buf)
 {
-    return d2e_xjb(v,buf);
+    return d2e_xjb::d2e_xjb(v,buf);
 }
 
 char* f2e_xjb_f32_to_str(float v,char* buf)
 {
-    return f2e_xjb(v,buf);
+    return d2e_xjb::f2e_xjb(v,buf);
 }
