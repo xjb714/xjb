@@ -8,7 +8,7 @@
 
 // todo : big-endian support, msvc support, optimize for performance, add comments, reduce code size, etc.
 
-#pragma once
+//#pragma once
 
 #include <stdint.h>
 #include <string.h>
@@ -487,7 +487,7 @@ static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint6
 	return cmov_branchless(up_down, 7 - tz, 8 - lz);
 }
 
-static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_down, const uint64_t D17, const struct const_value_double *cv)
+static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uint64_t up_down, const uint64_t D17, const struct const_value_double *cv)
 {
 	// m range : [1, 1e16 - 1] ; m = abcdefgh * 10^8 + ijklmnop
 	const uint64_t ZERO = 0x3030303030303030ull;
@@ -515,6 +515,7 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 	int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
 	int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 	int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+	vst1q_s8((int8_t *)buf, vdupq_n_s8('0'));
 	uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
 	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);// zeros != 0
 	int tz = u64_lz_bits(zeroes) >> 2;
@@ -603,6 +604,7 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 	int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
 	int tz = u64_lz_bits(mask);
 	__m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+	_mm_storeu_si128((__m128i*)buf, _mm_set1_epi8('0'));
 	return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
 #endif
 
@@ -621,6 +623,7 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 	uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
 	int tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
 	tz = tz / 8;
+	memcpy(buf, &ZERO, 8);
 	return {abcdefgh_bcd | ZERO, ijklmnop_bcd | ZERO, compute_double_dec_sig_len(up_down, tz, D17)};
 #endif
 }
@@ -1071,6 +1074,11 @@ static inline char *write_1_to_16_digit(u64 x, char *buf, const struct const_val
 
 namespace xjb
 {
+	// void get_pow10_128bit(i64 k,u64 *hi,u64 *lo)
+	// {
+	// 	// get 10**(-k-1);
+
+	// }
 	// static inline
 	char *xjb64(double v, char *buf)
 	{
@@ -1263,13 +1271,12 @@ namespace xjb
 			if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
 				one = ((((dot_one >> 54) * 5) >> 9) + 1);
 		}
+		// one = (u128_madd_hi64(dot_one, 10, cv->c4));
 		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction
 			one = 2;
-		//one |= ZERO_DIGIT;
 		u64 D17 = m > (u64)cv->c3; // (m >= (u64)1e15);
 		//u64 mr = D17 ? m : m * 10;
-		shortest_ascii16 s = to_ascii16(m, up_down, D17, cv);
-		memcpy(buf, "00000000", 8);
+		shortest_ascii16 s = to_ascii16(buf, m, up_down, D17, cv);
 		i64 e10 = k + (15 + D17);
 
 		const i64 e10_DN = t->e10_DN;
@@ -1284,11 +1291,11 @@ namespace xjb
 		buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
 		memcpy(buf, &(s.ascii16), 16);
-		memmove(buf, &buf[16 - (15 + D17)], 16);
 #else
 		memcpy(buf + 0, &(s.hi), 8);
 		memcpy(buf + 8, &(s.lo), 8);
 #endif
+		memmove(buf, &buf[16 - (15 + D17)], 16);
 		one |= ZERO_DIGIT;
 		memcpy(&buf[15 + D17], &one, 8);
 		memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
