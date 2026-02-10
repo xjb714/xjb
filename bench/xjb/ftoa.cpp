@@ -552,6 +552,7 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 	__m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
 	//__m128i little_endian_ascii = _mm512_castsi512_si128(ascii);
 	__m128i little_endian_ascii = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+	_mm_storeu_si128((__m128i*)buf, _mm_set1_epi8('0'));
 	int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm512_castsi512_si128(zero)));
 	int tz = u64_lz_bits(mask);
 	return {little_endian_ascii, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
