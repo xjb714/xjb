@@ -11,7 +11,7 @@
 #endif
 
 
-#include "../xjb.cpp"
+#include "../ftoa.cpp"
 //#include "../xjb_comp.cpp"
 // #include "xjb64.cpp"
 //  char *xjb64(double value, char *buffer);
