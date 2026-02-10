@@ -474,11 +474,13 @@ static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value, 
 
 static inline uint64_t compute_double_dec_sig_len(uint64_t up_down, int tz, uint64_t D17)
 {
-	return cmov_branchless(up_down, 15 - tz, 15 + D17);
+	//return (15 + D17) + cmov_branchless(up_down, -1 - tz, up_down);
+	return cmov_branchless(up_down, (14 + D17) - (tz), 15 + D17);
+	//return cmov_branchless(up_down, 15 - tz, 15 + D17);
 }
 static inline uint64_t compute_double_dec_sig_len_sse2(uint64_t up_down, int tz_add_48, uint64_t D17)
 {
-	return cmov_branchless(up_down, 15 + 48 - tz_add_48, 15 + D17);
+	return cmov_branchless(up_down, 14 + D17 + 48 - tz_add_48, 15 + D17);
 }
 static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint64_t lz)
 {
@@ -514,9 +516,10 @@ static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_do
 	int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 	int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
 	uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
-	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
+	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);// zeros != 0
 	int tz = u64_lz_bits(zeroes) >> 2;
-	return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
+	return {ascii16 , cmov_branchless(up_down, (14 + D17) - (tz) , 15 + D17)};
+	//return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
 #endif
 
 #if HAS_SSE2
@@ -1264,8 +1267,8 @@ namespace xjb
 			one = 2;
 		//one |= ZERO_DIGIT;
 		u64 D17 = m > (u64)cv->c3; // (m >= (u64)1e15);
-		u64 mr = D17 ? m : m * 10;
-		shortest_ascii16 s = to_ascii16(mr, up_down, D17, cv);
+		//u64 mr = D17 ? m : m * 10;
+		shortest_ascii16 s = to_ascii16(m, up_down, D17, cv);
 		memcpy(buf, "00000000", 8);
 		i64 e10 = k + (15 + D17);
 
@@ -1281,6 +1284,7 @@ namespace xjb
 		buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
 		memcpy(buf, &(s.ascii16), 16);
+		memmove(buf, &buf[16 - (15 + D17)], 16);
 #else
 		memcpy(buf + 0, &(s.hi), 8);
 		memcpy(buf + 8, &(s.lo), 8);
@@ -1292,7 +1296,7 @@ namespace xjb
 		if (ieee_exponent == 0) [[unlikely]]
 		{
 			// some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-			// if (buf[0] == '0')
+			//if (buf[0] == '0')
 			if (m < (u64)1e14)
 			{
 				u64 lz = 0;
