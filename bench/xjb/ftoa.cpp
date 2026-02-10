@@ -15,6 +15,10 @@
 
 #define USE_NEON_SSE2 1
 
+
+
+
+
 #if USE_NEON_SSE2
 
 #if defined(__aarch64__) && defined(__ARM_NEON__)
@@ -38,6 +42,12 @@
 #endif
 
 #endif // endif USE_NEON_SSE2
+
+#ifdef __aarch64__
+#  define XJB_AARCH64 1
+#else
+#  define XJB_AARCH64 0
+#endif
 
 #ifndef is_real_gcc
 #if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
@@ -475,12 +485,12 @@ static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value, 
 static inline uint64_t compute_double_dec_sig_len(uint64_t up_down, int tz, uint64_t D17)
 {
 	//return (15 + D17) + cmov_branchless(up_down, -1 - tz, up_down);
-	return cmov_branchless(up_down, (14 + D17) - (tz), 15 + D17);
+	return cmov_branchless(up_down, (XJB_AARCH64 ? 14 + D17 :  15) - (tz), 15 + D17);
 	//return cmov_branchless(up_down, 15 - tz, 15 + D17);
 }
 static inline uint64_t compute_double_dec_sig_len_sse2(uint64_t up_down, int tz_add_48, uint64_t D17)
 {
-	return cmov_branchless(up_down, 14 + D17 + 48 - tz_add_48, 15 + D17);
+	return cmov_branchless(up_down, (XJB_AARCH64 ? 14 + D17 :  15) + 48 - tz_add_48, 15 + D17);
 }
 static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint64_t lz)
 {
@@ -519,7 +529,7 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 	uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
 	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);// zeros != 0
 	int tz = u64_lz_bits(zeroes) >> 2;
-	return {ascii16 , cmov_branchless(up_down, (14 + D17) - (tz) , 15 + D17)};
+	return {ascii16 , cmov_branchless(up_down, XJB_AARCH64 ? (14 + D17) - (tz) : 15 - tz , 15 + D17)};
 	//return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
 #endif
 
@@ -1258,7 +1268,7 @@ namespace xjb
 		one = (u128_madd_hi64(dot_one, 10, cv->c4));
 		if (irregular) [[unlikely]]
 		{
-			// irregular case : c is 2**52 , exp range is [1,2046] , only 2046 values are possible.
+			// irregular case : c is 2**52 , exp range is [1,2046] , only 2046 values are possible. easy to compute
 			k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
 			i64 h = q + ((k * -217707 - 217707) >> 16);
 			u64 pow10_hi = t->pow10_double[293 * 2 - 2 + k * -2];
@@ -1272,12 +1282,14 @@ namespace xjb
 			if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
 				one = ((((dot_one >> 54) * 5) >> 9) + 1);
 		}
-		// one = (u128_madd_hi64(dot_one, 10, cv->c4));
 		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction
 			one = 2;
+		// D17 = 1 : has 17 digits
+		// D17 = 0 : has 16 digits
 		u64 D17 = m > (u64)cv->c3; // (m >= (u64)1e15);
-		//u64 mr = D17 ? m : m * 10;
-		shortest_ascii16 s = to_ascii16(buf, m, up_down, D17, cv);
+		u64 mr = D17 ? m : m * 10;
+		// if arm64 : not remove left zero , better performance, high ipc
+		shortest_ascii16 s = to_ascii16(buf, XJB_AARCH64 ? m : mr, up_down, D17, cv);
 		i64 e10 = k + (15 + D17);
 
 		const i64 e10_DN = t->e10_DN;
@@ -1296,8 +1308,11 @@ namespace xjb
 		memcpy(buf + 0, &(s.hi), 8);
 		memcpy(buf + 8, &(s.lo), 8);
 #endif
-		memmove(buf, &buf[16 - (15 + D17)], 16);
-		one |= ZERO_DIGIT;
+
+#if XJB_AARCH64
+		memmove(buf, &buf[16 - (15 + D17)], 16); // this is heavy instruction on x64;
+#endif
+		one |= 0x3030;
 		memcpy(&buf[15 + D17], &one, 8);
 		memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
 		buf_origin[dot_pos] = '.';
