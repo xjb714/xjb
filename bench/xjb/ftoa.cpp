@@ -1109,9 +1109,9 @@ namespace xjb
 		u64 c = ((1ull << 52) | ieee_significand);
 
 
-#define use_fast_path_for_integer 0
+#define use_fast_path_for_integer_xjb 0
 
-#if use_fast_path_for_integer
+#if use_fast_path_for_integer_xjb
 #if is_real_gcc
 		if (nq <= u64_tz_bits(c)) [[unlikely]] // use unlikely will generate jmp instruction
 #else

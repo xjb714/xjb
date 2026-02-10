@@ -1917,9 +1917,9 @@ static inline uint64_t uscale(uint64_t x, Scalers c) {
 		u64 nq = -q;
 		u64 c = ((1ull << 52) | ieee_significand);
 
-#define use_fast_path_for_integer 1
+#define use_fast_path_for_integer_uscalec 1
 
-#if use_fast_path_for_integer
+#if use_fast_path_for_integer_uscalec
 #if is_real_gcc
 		if (nq <= u64_tz_bits(c)) [[unlikely]] // use unlikely will generate jmp instruction
 #else
