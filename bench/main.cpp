@@ -152,6 +152,7 @@ void init_double()
         data[i] = gen_double_filter_NaN_Inf();
     }
     printf("generate random data finish\n");
+    fflush(stdout);
 
     memset(&dec[0], 0, N_double * sizeof(unsigned long long));
     memset(&e10[0], 0, N_double * sizeof(int));
@@ -191,6 +192,7 @@ void init_double()
 
     auto t2 = getns();
     printf("init : cost %lf second\n", (t2 - t1) / 1e9);
+    fflush(stdout);
 }
 void init_float()
 {
@@ -1179,7 +1181,7 @@ void bench_float()
 
 void print_cpu_info()
 {
-    printf("CPU Name: %s\n", getCPUName().c_str());
+    //printf("CPU Name: %s\n", getCPUName().c_str());
 
 #if defined(__amd64__)
     printf("CPU ARCH: x86_64\n");
