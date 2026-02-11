@@ -1304,15 +1304,16 @@ namespace xjb
 		buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
 		memcpy(buf, &(s.ascii16), 16);
-#if XJB_AARCH64
-		memmove(buf, &buf[16 - (15 + D17)], 16); // this is heavy instruction on x64;
-#endif
+
 
 #else
 		memcpy(buf + 0, &(s.hi), 8);
 		memcpy(buf + 8, &(s.lo), 8);
 #endif
 
+#if XJB_AARCH64
+		memmove(buf, &buf[16 - (15 + D17)], 16); // this is heavy instruction on x64;
+#endif
 
 		one |= 0x3030;
 		memcpy(&buf[15 + D17], &one, 8);
