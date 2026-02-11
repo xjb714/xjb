@@ -1192,7 +1192,9 @@ void print_cpu_info()
     printf("CPU ARCH: unknown\n");
 #endif
 
+#if USE_YYBENCH
     printf("Compiler: %s\n", yy_env_get_compiler_desc());
+#endif
 
 #if defined(__amd64__)
 
