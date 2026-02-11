@@ -640,9 +640,9 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
     return check_xjb64_and_schubfach_xjb_jsonformat(d);
 
     unsigned long long u = *(u64 *)&d;
-    char buf_xjb[33];
-    char buf_xjb_comp[33];
-    char buf_schubfach_xjb[33];
+    static char buf_xjb[33];
+    static char buf_xjb_comp[33];
+    static char buf_schubfach_xjb[33];
     memset(buf_xjb, 0, 33);
     memset(buf_xjb_comp, 0, 33);
     memset(buf_schubfach_xjb, 0, 33);
@@ -729,9 +729,9 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
 unsigned check_xjb32_and_schubfach32_xjb_string_jsonformat(float f)
 {
     u32 u = *(u32 *)&f;
-    char buf_xjb[32];
+    static char buf_xjb[32];
     //char buf_xjb_comp[32];
-    char buf_schubfach_xjb[32];
+    static char buf_schubfach_xjb[32];
     memset(buf_xjb, 0, 32);
     //memset(buf_xjb_comp, 0, 32);
     memset(buf_schubfach_xjb, 0, 32);
@@ -781,9 +781,9 @@ unsigned check_xjb32_and_schubfach32_xjb_string(float f)
     return check_xjb32_and_schubfach32_xjb_string_jsonformat(f);
 
     u32 u = *(u32 *)&f;
-    char buf_xjb[32];
-    char buf_xjb_comp[32];
-    char buf_schubfach_xjb[32];
+    static char buf_xjb[32];
+    static char buf_xjb_comp[32];
+    static char buf_schubfach_xjb[32];
     memset(buf_xjb, 0, 32);
     memset(buf_xjb_comp, 0, 32);
     memset(buf_schubfach_xjb, 0, 32);
@@ -897,7 +897,7 @@ void check_f2e_xjb()
         float f = *(float *)&i;
         // char buffer_printf[32];
         // sprintf(buffer_printf, "%.8e", f);
-        char buffer_xjb[32];
+        static char buffer_xjb[32];
         char* end_buf_xjb = f2e_xjb_f32_to_str(f, buffer_xjb);
         double f2 = atof(buffer_xjb);
         if (f != (float)f2)
