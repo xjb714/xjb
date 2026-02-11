@@ -8,16 +8,12 @@
 
 // todo : big-endian support, msvc support, optimize for performance, add comments, reduce code size, etc.
 
-//#pragma once
+#pragma once
 
 #include <stdint.h>
 #include <string.h>
 
 #define USE_NEON_SSE2 1
-
-
-
-
 
 #if USE_NEON_SSE2
 
@@ -42,12 +38,6 @@
 #endif
 
 #endif // endif USE_NEON_SSE2
-
-#ifdef __aarch64__
-#  define XJB_AARCH64 1
-#else
-#  define XJB_AARCH64 0
-#endif
 
 #ifndef is_real_gcc
 #if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
@@ -484,20 +474,18 @@ static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value, 
 
 static inline uint64_t compute_double_dec_sig_len(uint64_t up_down, int tz, uint64_t D17)
 {
-	//return (15 + D17) + cmov_branchless(up_down, -1 - tz, up_down);
-	return cmov_branchless(up_down, (XJB_AARCH64 ? 14 + D17 :  15) - (tz), 15 + D17);
-	//return cmov_branchless(up_down, 15 - tz, 15 + D17);
+	return cmov_branchless(up_down, 15 - tz, 15 + D17);
 }
 static inline uint64_t compute_double_dec_sig_len_sse2(uint64_t up_down, int tz_add_48, uint64_t D17)
 {
-	return cmov_branchless(up_down, (XJB_AARCH64 ? 14 + D17 :  15) + 48 - tz_add_48, 15 + D17);
+	return cmov_branchless(up_down, 15 + 48 - tz_add_48, 15 + D17);
 }
 static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint64_t lz)
 {
 	return cmov_branchless(up_down, 7 - tz, 8 - lz);
 }
 
-static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uint64_t up_down, const uint64_t D17, const struct const_value_double *cv)
+static inline shortest_ascii16 to_ascii16(const uint64_t m, const uint64_t up_down, const uint64_t D17, const struct const_value_double *cv)
 {
 	// m range : [1, 1e16 - 1] ; m = abcdefgh * 10^8 + ijklmnop
 	const uint64_t ZERO = 0x3030303030303030ull;
@@ -525,12 +513,10 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 	int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
 	int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 	int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-	vst1q_s8((int8_t *)buf, vdupq_n_s8('0'));
 	uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
-	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);// zeros != 0
+	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
 	int tz = u64_lz_bits(zeroes) >> 2;
-	return {ascii16 , cmov_branchless(up_down, XJB_AARCH64 ? (14 + D17) - (tz) : 15 - tz , 15 + D17)};
-	//return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
+	return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
 #endif
 
 #if HAS_SSE2
@@ -562,7 +548,6 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 	__m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
 	//__m128i little_endian_ascii = _mm512_castsi512_si128(ascii);
 	__m128i little_endian_ascii = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
-	_mm_storeu_si128((__m128i*)buf, _mm_set1_epi8('0'));
 	int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm512_castsi512_si128(zero)));
 	int tz = u64_lz_bits(mask);
 	return {little_endian_ascii, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
@@ -615,7 +600,6 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 	int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
 	int tz = u64_lz_bits(mask);
 	__m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
-	_mm_storeu_si128((__m128i*)buf, _mm_set1_epi8('0'));
 	return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
 #endif
 
@@ -634,7 +618,6 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 	uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
 	int tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
 	tz = tz / 8;
-	memcpy(buf, &ZERO, 8);
 	return {abcdefgh_bcd | ZERO, ijklmnop_bcd | ZERO, compute_double_dec_sig_len(up_down, tz, D17)};
 #endif
 }
@@ -648,8 +631,8 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 	int32x2_t tenthousands = vcreate_u64(m + c->m * ((m * (u128)c->div10000) >> 64));
 	// int32x2_t tenthousands = vcreate_u64(m + ((1ull << 32) - 10000) * ((m * (u128)c->div10000) >> 64));
 	int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->m32_4[0])), c->m32_4[1]);
-	//int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10 + 0x100);
-	int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])), c->m32_4[3]);//fewer instructions but slower,why?
+	int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10 + 0x100);
+	// int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])), c->m32_4[3]);//fewer instructions but slower,why?
 	u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0)); // big_endian to little_endian , reverse 8 bytes
 #endif
 
@@ -1085,11 +1068,6 @@ static inline char *write_1_to_16_digit(u64 x, char *buf, const struct const_val
 
 namespace xjb
 {
-	// void get_pow10_128bit(i64 k,u64 *hi,u64 *lo)
-	// {
-	// 	// get 10**(-k-1);
-
-	// }
 	// static inline
 	char *xjb64(double v, char *buf)
 	{
@@ -1131,9 +1109,9 @@ namespace xjb
 		u64 c = ((1ull << 52) | ieee_significand);
 
 
-#define use_fast_path_for_integer_xjb 0
+#define use_fast_path_for_integer 0
 
-#if use_fast_path_for_integer_xjb
+#if use_fast_path_for_integer
 #if is_real_gcc
 		if (nq <= u64_tz_bits(c)) [[unlikely]] // use unlikely will generate jmp instruction
 #else
@@ -1268,7 +1246,7 @@ namespace xjb
 		one = (u128_madd_hi64(dot_one, 10, cv->c4));
 		if (irregular) [[unlikely]]
 		{
-			// irregular case : c is 2**52 , exp range is [1,2046] , only 2046 values are possible. easy to compute
+			// irregular case : c is 2**52 , exp range is [1,2046] , only 2046 values are possible.
 			k = (i64)((ieee_exponent - 1075) * 315653 - 131072) >> 20;
 			i64 h = q + ((k * -217707 - 217707) >> 16);
 			u64 pow10_hi = t->pow10_double[293 * 2 - 2 + k * -2];
@@ -1284,12 +1262,11 @@ namespace xjb
 		}
 		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction
 			one = 2;
-		// D17 = 1 : has 17 digits
-		// D17 = 0 : has 16 digits
+		//one |= ZERO_DIGIT;
 		u64 D17 = m > (u64)cv->c3; // (m >= (u64)1e15);
 		u64 mr = D17 ? m : m * 10;
-		// if arm64 : not remove left zero , better performance, high ipc
-		shortest_ascii16 s = to_ascii16(buf, XJB_AARCH64 ? m : mr, up_down, D17, cv);
+		shortest_ascii16 s = to_ascii16(mr, up_down, D17, cv);
+		memcpy(buf, "00000000", 8);
 		i64 e10 = k + (15 + D17);
 
 		const i64 e10_DN = t->e10_DN;
@@ -1304,25 +1281,18 @@ namespace xjb
 		buf += first_sig_pos;
 #if HAS_NEON_OR_SSE2
 		memcpy(buf, &(s.ascii16), 16);
-
-
 #else
 		memcpy(buf + 0, &(s.hi), 8);
 		memcpy(buf + 8, &(s.lo), 8);
 #endif
-
-#if XJB_AARCH64
-		memmove(buf, &buf[16 - (15 + D17)], 16); // this is heavy instruction on x64;
-#endif
-
-		one |= 0x3030;
+		one |= ZERO_DIGIT;
 		memcpy(&buf[15 + D17], &one, 8);
 		memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
 		buf_origin[dot_pos] = '.';
 		if (ieee_exponent == 0) [[unlikely]]
 		{
 			// some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-			//if (buf[0] == '0')
+			// if (buf[0] == '0')
 			if (m < (u64)1e14)
 			{
 				u64 lz = 0;
@@ -1378,58 +1348,41 @@ namespace xjb
 #else
 		i64 k = (exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
 #endif
-		// if (irregular) [[unlikely]]
-		// {
-		// 	k = (i64)(exp_bin * 1233 - 512) >> 12;
-		// 	h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
-		// }
+		if (irregular) [[unlikely]]
+		{
+			k = (i64)(exp_bin * 1233 - 512) >> 12;
+			h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
+		}
 		u64 pow10_hi = t->pow10_float_reverse[45 + k];
 		u64 even = (sig + 1) & 1; // or (sig_bin + 1) & 1
 		u64 cb = sig_bin << h37_precalc;
 		// u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64;
 		u64 sig_hi = umul128_hi64_xjb(cb, pow10_hi);
-		memcpy(buf, "00000000", 8);
 		u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + even;
 		u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1);
 #ifdef __amd64__
 		u64 up = (half_ulp + dot_one_36bit) >> BIT;
 #else
-		//u64 up = half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit;
-		u64 up = dot_one_36bit > (((u64)1 << BIT) - 1) - half_ulp;
+		u64 up = half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit;
 #endif
-		u64 down = half_ulp > dot_one_36bit;
+		u64 down = (half_ulp >> irregular) > dot_one_36bit;
 		u64 up_down = up + down;
 		u64 m = (sig_hi >> BIT) + up;
+		memcpy(buf, "0000", 4);
+		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
+		// u64 lz = (m < c->e6) + (m < c->e7);
+		u64 lz = (m < c->e6) ? 2 : (m < c->e7); // branch instruction ， maybe faster than branchless cmov
+		shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
+		i64 e10 = k + (8 - lz);
+		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
 		u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
 		u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
+		// one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
 		if (irregular) [[unlikely]]
 		{
 			if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
 				++one;
-			u64 down = (half_ulp >> 1) > dot_one_36bit;
-			up_down = up + down;
-			if(exp_bin == 24 - 150)return (char*)memcpy(buf,"9.8607613e-32\0\0",16) + 13;
-			if(exp_bin == 57 - 150)return (char*)memcpy(buf,"8.4703295e-22\0\0",16) + 13;
-			if(exp_bin == 67 - 150)return (char*)memcpy(buf,"8.6736174e-19\0\0",16) + 13;
-			if(exp_bin == 220 - 150)return (char*)memcpy(buf,"9.9035203e+27\0\0",16) + 13;
 		}
-		
-		
-		
-		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
-		u64 lz = (m < c->e6) + (m < c->e7);
-		//u64 lz = (m < c->e6) ? 2 : (m < c->e7);
-		shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
-		i64 e10 = k + (8 - lz);
-		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
-		// u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
-		// u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
-		// // one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
-		// if (irregular) [[unlikely]]
-		// {
-		// 	if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
-		// 		++one;
-		// }
 
 		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
 		u64 e10_3 = e10 + (-e10_DN);
@@ -1448,7 +1401,7 @@ namespace xjb
 #if defined(__aarch64__) // for arm64 processor , fewer instructions
 		if (exp == 0) [[unlikely]]
 #endif
-			if (m < 100000) [[unlikely]] // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
+			if (m < 100000) [[unlikely]]
 			{
 				u64 lz = 0;
 				// while (buf[2 + lz] == '0')
