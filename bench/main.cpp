@@ -1176,8 +1176,64 @@ void bench_float()
 
 #endif
 }
+
+void print_cpu_info()
+{
+    printf("CPU Name: %s\n", getCPUName().c_str());
+
+#if defined(__amd64__)
+    printf("CPU ARCH: x86_64\n");
+#elif defined(__aarch64__)
+    printf("CPU ARCH: ARM64\n");
+#elif defined(__aarch64__)
+#else
+    printf("CPU ARCH: unknown\n");
+#endif
+
+    printf("Compiler: %s\n", yy_env_get_compiler_desc());
+
+#if defined(__amd64__)
+
+#if defined(__AVX512IFMA__) && defined(__AVX512VBMI__)
+    printf("CPU Feature: AVX512IFMA, AVX512VBMI\n");
+#elif defined(__AVX512__)
+    printf("CPU Feature: AVX512\n");
+#elif defined(__AVX2__)
+    printf("CPU Feature: AVX2\n");
+#elif defined(__AVX__)
+    printf("CPU Feature: AVX\n");
+#elif defined(__SSE4_2__)
+    printf("CPU Feature: SSE4.2\n");
+#elif defined(__SSE4_1__)
+    printf("CPU Feature: SSE4.1\n");
+#elif defined(__SSE3__)
+    printf("CPU Feature: SSE3\n");
+#elif defined(__SSE2__)
+    printf("CPU Feature: SSE2\n");
+#elif defined(__SSE__)
+    printf("CPU Feature: SSE\n");
+#else
+    printf("CPU Feature: none\n");
+#endif
+
+#elif defined(__aarch64__)
+
+#if defined(__ARM_NEON__)
+    printf("CPU Feature: ARM_NEON\n");
+#else
+    printf("CPU Feature: none\n");
+#endif
+
+#else
+    printf("CPU Feature: unknown\n");
+#endif
+
+}
+
 int main()
 {
+
+    print_cpu_info();
 
 #if BENCH_FLOAT
     bench_float();
