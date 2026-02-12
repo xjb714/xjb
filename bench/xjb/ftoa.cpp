@@ -512,6 +512,7 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 	//  src from : https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
 	//  bolg : https://dougallj.wordpress.com/2022/04/01/converting-integers-to-fixed-width-strings-faster-with-neon-simd-on-the-apple-m1/
 	//  author : https://github.com/dougallj
+
 	uint64x1_t hundredmillions = {abcdefgh | ((uint64_t)ijklmnop << 32)};
 	int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
 	int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
@@ -530,7 +531,28 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);// zeros != 0
 	int tz = u64_lz_bits(zeroes) >> 2;
 	return {ascii16 , cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO ? (14 + D17) - (tz) : 15 - tz , 15 + D17)};
+	//return {ascii16 , cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO ? (-1 ) - (tz) : 15 - tz , 0 ) + (15 + D17) };
+	//return {ascii16 , (15 + D17) - (up_down ? (tz+1) : up_down)};
 	//return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
+
+
+	//uint64_t abcd_efgh = abcdefgh + ((1ull << 32) - 10000) * ((abcdefgh * (__uint128_t)1844674407370956) >> 64); // (abcd << 32) + efgh
+	//uint64_t ijkl_mnop = ijklmnop + ((1ull << 32) - 10000) * ((ijklmnop * (__uint128_t)1844674407370956) >> 64); // (ijkl << 32) + mnop
+	// uint64_t abcd_efgh = abcdefgh + cv->div10000_m * ((abcdefgh * (__uint128_t)cv->div10000) >> 64); // (abcd << 32) + efgh
+	// uint64_t ijkl_mnop = ijklmnop + cv->div10000_m * ((ijklmnop * (__uint128_t)cv->div10000) >> 64); // (ijkl << 32) + mnop
+	// uint64x2_t merge4 = vcombine_u64(vcreate_u64(abcd_efgh), vcreate_u64(ijkl_mnop));
+	// //uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(0x147b000)), -100 + 0x10000);
+	// uint64x2_t merge2 = vmlaq_n_u32(merge4, vqdmulhq_s32(merge4, vdupq_n_s32(cv->multipliers32[2])), cv->multipliers32[3]);
+	// //uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(0xce0)), -10 + 0x100);
+	// uint64x2_t BCD_big_endian = vmlaq_n_u16(merge2, vqdmulhq_s16(merge2, vdupq_n_s16(cv->multipliers16[0])), cv->multipliers16[1]);
+	// uint64x2_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+	// int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+	// vst1q_s8((int8_t *)buf, vdupq_n_s8('0'));
+	// uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
+	// uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);// zeros != 0
+	// int tz = u64_lz_bits(zeroes) >> 2;
+	// return {ascii16 , cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO ? (14 + D17) - (tz) : 15 - tz , 15 + D17)};
+
 #endif
 
 #if HAS_SSE2
@@ -1311,13 +1333,13 @@ namespace xjb
 #endif
 
 #if NOT_REMOVE_FIRST_ZERO
-		memmove(buf, &buf[16 - (15 + D17)], 16); // this is heavy instruction on x64;
+		memmove(buf, &buf[16 - (15 + D17)], 16);
 #endif
 
 		one |= 0x3030;
 		memcpy(&buf[15 + D17], &one, 8);
-		if((u64(e10) < (u64)e10_DN))memmove(&buf[dot_pos + 1], &buf[dot_pos], 16);
-		//memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
+		//if((u64(e10) < (u64)e10_DN))memmove(&buf[dot_pos + 1], &buf[dot_pos], 16);
+		memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
 		buf_origin[dot_pos] = '.';
 		if (ieee_exponent == 0) [[unlikely]]
 		{
