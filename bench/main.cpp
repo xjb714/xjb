@@ -284,6 +284,8 @@ void bench_double_single_impl(int i)
     int *e10_p = &e10[0];
     printf("%2d. bench %16s : ", i, name.c_str());
 
+    char* buffer = (char*)malloc(128);
+    
     auto t1 = getns();
     auto c1 = get_cycle();
 
@@ -338,7 +340,8 @@ void bench_double_single_impl(int i)
     u64 len_sum_final;
     if (is_bench_double_to_string)
     {
-        char buffer[128];
+        //static char buffer[128];
+        
         u64 len_sum = 0; 
         if (i == 0)
             for (int j = 0; j < N; ++j)
