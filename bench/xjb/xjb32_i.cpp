@@ -4,6 +4,13 @@ typedef int64_t i64;
 typedef uint64_t u64;
 typedef uint32_t u32;
 typedef __uint128_t u128;
+
+// the latest version is xjb_v2_f32_to_dec()
+// date : 2026.02.14
+// author : xjb
+// https://github.com/xjb714/xjb
+
+
 static inline 
 void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
 {
