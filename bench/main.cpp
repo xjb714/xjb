@@ -32,9 +32,11 @@ const int is_bench_float_to_decimal = !BENCH_STR;
 const int is_bench_double_to_string = BENCH_STR;
 const int is_bench_float_to_string = BENCH_STR;
 
+const int CHECK_CORRECTNESS = 0;
+
 // double and float algorithm set
 #include "schubfach/schubfach_i.hpp"
-//#include "schubfach_vitaut/schubfach_vitaut_i.hpp"
+// #include "schubfach_vitaut/schubfach_vitaut_i.hpp"
 #include "schubfach_xjb/schubfach_xjb_i.hpp"
 #include "dragonbox/dragonbox_i.hpp"
 #include "ryu/ryu_i.hpp"
@@ -46,9 +48,9 @@ const int is_bench_float_to_string = BENCH_STR;
 #include "jnum/jnum_i.hpp" // not satisfy the Steele and White algorithm
 #include "uscalec/uscalec_i.hpp"
 
-const int N = (int)(1 << 24); // about 16M
-const int N_double = N;       // double data size
-const int N_float = N;        // float data size
+const u64 N = (1 << 24); // about 16M
+const u64 N_double = N;  // double data size
+const u64 N_float = N;   // float data size
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -78,7 +80,7 @@ std::mt19937_64 gen(rd());
 
 uint64_t get_cycle() // x86 , gcc
 {
-    uint64_t low, high , cycles;
+    uint64_t low, high, cycles;
 #if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
     __asm volatile("rdtsc" : "=a"(low), "=d"(high));
     return (high << 32) | low;
@@ -185,8 +187,8 @@ void init_double()
     double_to_string_algorithm_set.push_back(std::string("xjb64"));           // 9
     double_to_string_algorithm_set.push_back(std::string("xjb64_comp"));      // 10
     // double_to_string_algorithm_set.push_back(std::string("schubfach_vitaut"));// 11
-    double_to_string_algorithm_set.push_back(std::string("zmij")); // 12
-    double_to_string_algorithm_set.push_back(std::string("jnum")); // 13
+    double_to_string_algorithm_set.push_back(std::string("zmij"));    // 12
+    double_to_string_algorithm_set.push_back(std::string("jnum"));    // 13
     double_to_string_algorithm_set.push_back(std::string("d2e_xjb")); // 14
     double_to_string_algorithm_set.push_back(std::string("uscalec")); // 15
 
@@ -270,7 +272,7 @@ void free_float()
 }
 void bench_double_single_impl(int i)
 {
-    const int N = N_double;
+    const u64 N = N_double;
     std::string name;
     if (is_bench_double_to_decimal)
         name = double_to_decimal_algorithm_set[i].first;
@@ -284,8 +286,10 @@ void bench_double_single_impl(int i)
     int *e10_p = &e10[0];
     printf("%2d. bench %16s : ", i, name.c_str());
 
-    char* buffer = (char*)malloc(128);
-    
+    char *buffer = (char *)malloc(128);
+    u64 d;
+    int k;
+    u64 sum_final = 0;
     auto t1 = getns();
     auto c1 = get_cycle();
 
@@ -296,112 +300,140 @@ void bench_double_single_impl(int i)
 
     if (is_bench_double_to_decimal)
     {
+#define BENCH_DOUBLE_TO_DECIMAL(name)       \
+    for (u64 j = 0; j < N; ++j)             \
+    {                                       \
+        name##_f64_to_dec(data[j], &d, &k); \
+        sum_final += d;                     \
+    };
+
         if (i == 0)
-            for (int j = 0; j < N; ++j)
-                schubfach_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(schubfach)
         if (i == 1)
-            for (int j = 0; j < N; ++j)
-                schubfach_xjb_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(schubfach_xjb)
         if (i == 2)
-            for (int j = 0; j < N; ++j)
-                dragonbox_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(dragonbox)
         if (i == 3)
-            for (int j = 0; j < N; ++j)
-                ryu_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(ryu)
         if (i == 4)
-            for (int j = 0; j < N; ++j)
-                teju_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(teju)
         if (i == 5)
-            for (int j = 0; j < N; ++j)
-                yyjson_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(yyjson)
         if (i == 6)
-            for (int j = 0; j < N; ++j)
-                yy_double_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(yy_double)
         if (i == 7)
-            for (int j = 0; j < N; ++j)
-                yy_double_full_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(yy_double_full)
         if (i == 8)
-            for (int j = 0; j < N; ++j)
-                xjb64_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(xjb64_v2)
         if (i == 9)
-            for (int j = 0; j < N; ++j)
-                xjb64_comp_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
+            BENCH_DOUBLE_TO_DECIMAL(xjb64_comp)
         if (i == 10)
-            for (int j = 0; j < N; ++j)
-                zmij_f64_to_dec(data[j], &dec_p[j], &e10_p[j]);
-        for (int j = 0; j < N; ++j)
-        {
-            volatile unsigned int d = dec_p[j];
-            volatile int e = e10_p[j];
-            (void)d;
-            (void)e;
-        }
+            BENCH_DOUBLE_TO_DECIMAL(zmij)
+
+        // volatile u64 tmp = d+k;
+        // len_sum_final = d + k;
     }
-    u64 len_sum_final;
+
     if (is_bench_double_to_string)
     {
-        //static char buffer[128];
-        
-        u64 len_sum = 0; 
+#define BENCH_DOUBLE_TO_STRING(name)                              \
+    for (u64 j = 0; j < N; ++j)                                   \
+    {                                                             \
+        sum_final += name##_f64_to_str(data[j], buffer) - buffer; \
+    };
+
         if (i == 0)
-            for (int j = 0; j < N; ++j)
-                len_sum += ryu_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(ryu)
         if (i == 1)
-            for (int j = 0; j < N; ++j)
-                len_sum += schubfach_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(schubfach)
         if (i == 2)
-            for (int j = 0; j < N; ++j)
-                len_sum += schubfach_xjb_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(schubfach_xjb)
         if (i == 3)
-            for (int j = 0; j < N; ++j)
-                len_sum += yy_double_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(yy_double)
         if (i == 4)
-            for (int j = 0; j < N; ++j)
-                len_sum += yyjson_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(yyjson)
         if (i == 5)
-            for (int j = 0; j < N; ++j)
-                len_sum += dragonbox_comp_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(dragonbox_comp)
         if (i == 6)
-            for (int j = 0; j < N; ++j)
-                len_sum += dragonbox_full_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(dragonbox_full)
         if (i == 7)
-            for (int j = 0; j < N; ++j)
-                len_sum += fmt_comp_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(fmt_comp)
         if (i == 8)
-            for (int j = 0; j < N; ++j)
-                len_sum += fmt_full_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(fmt_full)
         if (i == 9)
-            for (int j = 0; j < N; ++j)
-                len_sum += xjb64_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(xjb64)
         if (i == 10)
-            for (int j = 0; j < N; ++j)
-                len_sum += xjb64_comp_f64_to_str(data[j], buffer) - buffer;
+            BENCH_DOUBLE_TO_STRING(xjb64_comp)
+        // if (i == 11)BENCH_DOUBLE_TO_STRING(schubfach_vitaut)
+        if (i == 11)
+            BENCH_DOUBLE_TO_STRING(zmij)
+        if (i == 12)
+            BENCH_DOUBLE_TO_STRING(jnum)
+        if (i == 13)
+            BENCH_DOUBLE_TO_STRING(d2e_xjb)
+        if (i == 14)
+            BENCH_DOUBLE_TO_STRING(uscalec)
+
+        // u64 len_sum = 0;
+        // if (i == 0)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += ryu_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 1)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += schubfach_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 2)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += schubfach_xjb_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 3)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += yy_double_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 4)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += yyjson_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 5)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += dragonbox_comp_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 6)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += dragonbox_full_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 7)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += fmt_comp_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 8)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += fmt_full_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 9)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += xjb64_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 10)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += xjb64_comp_f64_to_str(data[j], buffer) - buffer;
+        // // if (i == 11)
+        // //     for (int j = 0; j < N; ++j)
+        // //         schubfach_vitaut_f64_to_str(data[j], buffer);
         // if (i == 11)
         //     for (int j = 0; j < N; ++j)
-        //         schubfach_vitaut_f64_to_str(data[j], buffer);
-        if (i == 11)
-            for (int j = 0; j < N; ++j)
-                len_sum += zmij_f64_to_str(data[j], buffer) - buffer;
-        if (i == 12)
-            for (int j = 0; j < N; ++j)
-                len_sum += jnum_f64_to_str(data[j], buffer) - buffer;
-        if (i == 13)
-            for (int j = 0; j < N; ++j)
-                len_sum += d2e_xjb_f64_to_str(data[j], buffer) - buffer;
-        if (i == 14)
-            for (int j = 0; j < N; ++j)
-                len_sum += uscalec_f64_to_str(data[j], buffer) - buffer;
+        //         len_sum += zmij_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 12)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += jnum_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 13)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += d2e_xjb_f64_to_str(data[j], buffer) - buffer;
+        // if (i == 14)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += uscalec_f64_to_str(data[j], buffer) - buffer;
 
-        len_sum_final = len_sum;
+        // len_sum_final = len_sum;
     }
     auto c2 = get_cycle();
     auto t2 = getns();
     uint64_t cycle_sum = c2 - c1;
     double cycle_avg = (double)cycle_sum * (1.0 / N);
 #if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
-    printf("cost %5.4lf ms,every double cost %3.4lf ns ,%3.4lf cycle; write_length_sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, (unsigned long long)len_sum_final);
+    printf("cost %5.4lf ms,every double cost %3.4lf ns ,%3.4lf cycle; sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, (unsigned long long)sum_final);
 #else
-    printf("cost %5.4lf ms,every double cost %3.4lf ns ; write_length_sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), (unsigned long long)len_sum_final);
+    printf("cost %5.4lf ms,every double cost %3.4lf ns ; sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), (unsigned long long)sum_final);
 #endif
 }
 void bench_float_single_impl(int i)
@@ -419,6 +451,10 @@ void bench_float_single_impl(int i)
     int *e10_p = &e10_float[0];
     printf("%2d. bench %16s : ", i, name.c_str());
 
+    char *buffer = (char *)malloc(128);
+    u32 d;
+    int k;
+    u32 sum_final = 0; // prevent compiler optimization
     auto t1 = getns();
     auto c1 = get_cycle();
 
@@ -429,86 +465,113 @@ void bench_float_single_impl(int i)
 
     if (is_bench_float_to_decimal)
     {
+#define BENCH_FLOAT_TO_DECIMAL(name)              \
+    for (int j = 0; j < N; ++j)                   \
+    {                                             \
+        name##_f32_to_dec(data_float[j], &d, &k); \
+        sum_final += d;                           \
+    };
+
         if (i == 0)
-            for (int j = 0; j < N; ++j)
-                xjb_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
+            BENCH_FLOAT_TO_DECIMAL(xjb_v2)
         if (i == 1)
-            for (int j = 0; j < N; ++j)
-                xjb_comp_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
+            BENCH_FLOAT_TO_DECIMAL(xjb_comp)
         if (i == 2)
-            for (int j = 0; j < N; ++j)
-                schubfach_xjb_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
+            BENCH_FLOAT_TO_DECIMAL(schubfach_xjb)
         if (i == 3)
-            for (int j = 0; j < N; ++j)
-                schubfach_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
+            BENCH_FLOAT_TO_DECIMAL(schubfach)
         if (i == 4)
-            for (int j = 0; j < N; ++j)
-                ryu_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
+            BENCH_FLOAT_TO_DECIMAL(ryu)
         if (i == 5)
-            for (int j = 0; j < N; ++j)
-                teju_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
+            BENCH_FLOAT_TO_DECIMAL(teju)
         if (i == 6)
-            for (int j = 0; j < N; ++j)
-                yyjson_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
+            BENCH_FLOAT_TO_DECIMAL(yyjson)
         if (i == 7)
-            for (int j = 0; j < N; ++j)
-                dragonbox_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
+            BENCH_FLOAT_TO_DECIMAL(dragonbox)
         if (i == 8)
-            for (int j = 0; j < N; ++j)
-                zmij_f32_to_dec(data_float[j], &dec_p[j], &e10_p[j]);
-        for (int j = 0; j < N; ++j)
-        {
-            volatile unsigned int d = dec_p[j];
-            volatile int e = e10_p[j];
-            (void)d;
-            (void)e;
-        }
+            BENCH_FLOAT_TO_DECIMAL(zmij)
+
+        // volatile u32 tmp = d + k;
     }
-    u64 len_sum_final;
+    // u64 len_sum_final;
     if (is_bench_float_to_string)
     {
-        char buffer[128];
-        u64 len_sum = 0;
+        // char buffer[128];
+
+#define BENCH_FLOAT_TO_STRING(name)                                     \
+    for (int j = 0; j < N; ++j)                                         \
+    {                                                                   \
+        sum_final += name##_f32_to_str(data_float[j], buffer) - buffer; \
+    };
+
         if (i == 0)
-            for (int j = 0; j < N; ++j)
-                len_sum += ryu_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(ryu)
         if (i == 1)
-            for (int j = 0; j < N; ++j)
-                len_sum += schubfach_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(schubfach)
         if (i == 2)
-            for (int j = 0; j < N; ++j)
-                len_sum += schubfach_xjb_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(schubfach_xjb)
         if (i == 3)
-            for (int j = 0; j < N; ++j)
-                len_sum += xjb32_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(xjb32)
         if (i == 4)
-            for (int j = 0; j < N; ++j)
-                len_sum += xjb32_comp_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(xjb32_comp)
         if (i == 5)
-            for (int j = 0; j < N; ++j)
-                len_sum += yyjson_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(yyjson)
         if (i == 6)
-            for (int j = 0; j < N; ++j)
-                len_sum += dragonbox_comp_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(dragonbox_comp)
         if (i == 7)
-            for (int j = 0; j < N; ++j)
-                len_sum += dragonbox_full_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(dragonbox_full)
         if (i == 8)
-            for (int j = 0; j < N; ++j)
-                len_sum += fmt_comp_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(fmt_comp)
         if (i == 9)
-            for (int j = 0; j < N; ++j)
-                len_sum += fmt_full_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(fmt_full)
         if (i == 10)
-            for (int j = 0; j < N; ++j)
-                len_sum += zmij_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(zmij)
         if (i == 11)
-            for (int j = 0; j < N; ++j)
-                len_sum += jnum_f32_to_str(data_float[j], buffer) - buffer;
+            BENCH_FLOAT_TO_STRING(jnum)
         if (i == 12)
-            for (int j = 0; j < N; ++j)
-                len_sum += f2e_xjb_f32_to_str(data_float[j], buffer) - buffer;
-        len_sum_final = len_sum;
+            BENCH_FLOAT_TO_STRING(f2e_xjb)
+
+        // u64 len_sum = 0;
+        // if (i == 0)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += ryu_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 1)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += schubfach_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 2)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += schubfach_xjb_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 3)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += xjb32_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 4)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += xjb32_comp_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 5)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += yyjson_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 6)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += dragonbox_comp_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 7)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += dragonbox_full_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 8)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += fmt_comp_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 9)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += fmt_full_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 10)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += zmij_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 11)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += jnum_f32_to_str(data_float[j], buffer) - buffer;
+        // if (i == 12)
+        //     for (int j = 0; j < N; ++j)
+        //         len_sum += f2e_xjb_f32_to_str(data_float[j], buffer) - buffer;
+        // len_sum_final = len_sum;
     }
     auto c2 = get_cycle();
     auto t2 = getns();
@@ -516,9 +579,9 @@ void bench_float_single_impl(int i)
     uint64_t cycle_sum = c2 - c1;
     double cycle_avg = (double)cycle_sum * (1.0 / N);
 #if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
-    printf("cost %5.4lf ms,every float cost %3.4lf ns ,%3.4lf cycle; write_length_sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, (unsigned long long)len_sum_final);
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ,%3.4lf cycle; sum_filnal = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, (unsigned long long)sum_final);
 #else
-    printf("cost %5.4lf ms,every float cost %3.4lf ns ; write_length_sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), (unsigned long long)len_sum_final);
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ; sum_final = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), (unsigned long long)sum_final);
 #endif
 }
 
@@ -570,18 +633,18 @@ unsigned check_xjb64_and_schubfach_xjb_jsonformat(double d)
 #if BENCH_STR
     unsigned long long u = *(u64 *)&d;
     static char buf_xjb[64];
-    //char buf_xjb_comp[33];
+    // char buf_xjb_comp[33];
     static char buf_schubfach_xjb[32];
-    //memset(buf_xjb, 0, 33);
-    //memset(buf_xjb_comp, 0, 33);
-    //memset(buf_schubfach_xjb, 0, 33);
+    // memset(buf_xjb, 0, 33);
+    // memset(buf_xjb_comp, 0, 33);
+    // memset(buf_schubfach_xjb, 0, 33);
     char *end_buf_xjb = xjb64_f64_to_str(d, buf_xjb);
-    //char *end_buf_xjb_comp = xjb64_comp_f64_to_str(d, buf_xjb_comp);
+    // char *end_buf_xjb_comp = xjb64_comp_f64_to_str(d, buf_xjb_comp);
     char *end_buf_schubfach_xjb = schubfach_xjb_f64_to_str(d, buf_schubfach_xjb);
     int len_xjb = end_buf_xjb - buf_xjb;
-    //int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
+    // int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
     int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
-    //if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
+    // if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
     if (len_xjb != len_schubfach_xjb)
     {
         // printf("f = %.8le, u = %x, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
@@ -590,12 +653,12 @@ unsigned check_xjb64_and_schubfach_xjb_jsonformat(double d)
         //  schubfach_xjb_f32_to_dec(f, &dec, &e10);
         //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
-        //printf("f = %.16le, u = %llx, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_xjb_comp, len_schubfach_xjb, buf_xjb, buf_xjb_comp, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
+        // printf("f = %.16le, u = %llx, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_xjb_comp, len_schubfach_xjb, buf_xjb, buf_xjb_comp, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
         printf("f = %.16le, u = %llx, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_schubfach_xjb, buf_xjb, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
         //  exit(0);
         return 1;
     }
-    //if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    // if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     {
         // if three string equal return OK;
@@ -610,7 +673,7 @@ unsigned check_xjb64_and_schubfach_xjb_jsonformat(double d)
         //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
 
-        //printf("f = %.16le, u = %llx, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n", d, u, buf_xjb, buf_xjb_comp, buf_schubfach_xjb);
+        // printf("f = %.16le, u = %llx, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n", d, u, buf_xjb, buf_xjb_comp, buf_schubfach_xjb);
         printf("f = %.16le, u = %llx, buf_xjb=%s, buf_schubfach_xjb=%s \n", d, u, buf_xjb, buf_schubfach_xjb);
         //  exit(0);
     }
@@ -724,7 +787,7 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
     }
     else
     {
-        // printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
+        printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n", f, dec, e10, dec_xjb, e10_xjb);
         // exit(0);
     }
     return 1;
@@ -733,18 +796,18 @@ unsigned check_xjb32_and_schubfach32_xjb_string_jsonformat(float f)
 {
     u32 u = *(u32 *)&f;
     static char buf_xjb[32];
-    //char buf_xjb_comp[32];
+    // char buf_xjb_comp[32];
     static char buf_schubfach_xjb[32];
     memset(buf_xjb, 0, 32);
-    //memset(buf_xjb_comp, 0, 32);
+    // memset(buf_xjb_comp, 0, 32);
     memset(buf_schubfach_xjb, 0, 32);
     char *end_buf_xjb = xjb32_f32_to_str(f, buf_xjb);
-    //char *end_buf_xjb_comp = xjb32_comp_f32_to_str(f, buf_xjb_comp);
+    // char *end_buf_xjb_comp = xjb32_comp_f32_to_str(f, buf_xjb_comp);
     char *end_buf_schubfach_xjb = schubfach_xjb_f32_to_str(f, buf_schubfach_xjb);
     int len_xjb = end_buf_xjb - buf_xjb;
-    //int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
+    // int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
     int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
-    //if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
+    // if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
     if (len_xjb != len_schubfach_xjb)
     {
         // printf("f = %.8le, u = %x, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n",f,u,len_xjb,len_schubfach_xjb,buf_xjb,buf_schubfach_xjb , (u>>23) ? "normal" : "subnormal");
@@ -753,12 +816,12 @@ unsigned check_xjb32_and_schubfach32_xjb_string_jsonformat(float f)
         //  schubfach_xjb_f32_to_dec(f, &dec, &e10);
         //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
-        //printf("f = %.8le, u = %x, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n", f, u, len_xjb, len_xjb_comp, len_schubfach_xjb, buf_xjb, buf_xjb_comp, buf_schubfach_xjb, (u >> 23) ? "normal" : "subnormal");
+        // printf("f = %.8le, u = %x, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n", f, u, len_xjb, len_xjb_comp, len_schubfach_xjb, buf_xjb, buf_xjb_comp, buf_schubfach_xjb, (u >> 23) ? "normal" : "subnormal");
         printf("f = %.8le, u = %x, len_xjb=%d  , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n", f, u, len_xjb, len_schubfach_xjb, buf_xjb, buf_schubfach_xjb, (u >> 23) ? "normal" : "subnormal");
         // exit(0);
         return 1;
     }
-    //if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
+    // if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     {
         // if three string equal return OK;
@@ -773,7 +836,7 @@ unsigned check_xjb32_and_schubfach32_xjb_string_jsonformat(float f)
         //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
 
-        //printf("f = %.8e, u = %x, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n", f, u, buf_xjb, buf_xjb_comp, buf_schubfach_xjb);
+        // printf("f = %.8e, u = %x, buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s \n", f, u, buf_xjb, buf_xjb_comp, buf_schubfach_xjb);
         printf("f = %.8e, u = %x, buf_xjb=%s, buf_schubfach_xjb=%s \n", f, u, buf_xjb, buf_schubfach_xjb);
         // exit(0);
     }
@@ -847,6 +910,35 @@ void check_subnormal()
         printf("check_subnormal fail error sum = %u\n", error_sum);
     }
 }
+void check_all_irregular_float_number_to_decimal()
+{
+    printf("check xjb32 algorithm ; check all irregular float number start\n");
+    u64 error_sum = 0;
+    auto t1 = getns();
+    for (u32 i = 1; i <= 254; ++i)
+    {
+        u32 u = i << 23;
+        float f = *(float *)&u;
+        u32 error = check_xjb32_and_schubfach32_xjb(f);
+        // if( (i & ((1u<<26) - 1)) == 0) {
+        //     printf("check float number progress : %.3lf %% \r", (double)i * (100.0 / (double)0x7F7FFFFF)  );
+        // }
+        error_sum += error;
+        if (error)
+        {
+            printf("i=%u, i=%x, f=%.8e, error=%u\n", i, i, f, error);
+        }
+    }
+    auto t2 = getns();
+    if (error_sum == 0)
+    {
+        printf("check_all_irregular_float ok, cost %.3lf second\n", (t2 - t1) / 1e9);
+    }
+    else
+    {
+        printf("check_all_irregular_float fail error sum = %llu , cost %.3lf second\n", (unsigned long long)error_sum, (double)(t2 - t1) / 1e9);
+    }
+}
 void check_all_float_number_to_decimal()
 {
     printf("check xjb32 algorithm ; about one minute, check all float number start\n");
@@ -875,8 +967,8 @@ void check_all_float_number_to_string()
     printf("check xjb32 algorithm ; about one minute, check all float number start\n");
     u64 error_sum = 0;
     auto t1 = getns();
-    //for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)//not contain 0,nan,inf
-    for (u32 i = 0x00000000u; i <= 0x7F7FFFFFu + 2; ++i)//contain 0,nan,inf
+    // for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)//not contain 0,nan,inf
+    for (u32 i = 0x00000000u; i <= 0x7F7FFFFFu + 2; ++i) // contain 0,nan,inf
     {
         float f = *(float *)&i;
         error_sum += check_xjb32_and_schubfach32_xjb_string(f); // about 80 second on apple M1 ; 60 second on AMD R7 7840H
@@ -895,30 +987,30 @@ void check_f2e_xjb()
 {
     printf("check f2e_xjb algorithm ; about one minute, check all float number start\n");
     auto t1 = getns();
-    for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i)//contain 0,nan,inf
+    for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i) // contain 0,nan,inf
     {
         float f = *(float *)&i;
         // char buffer_printf[32];
         // sprintf(buffer_printf, "%.8e", f);
         static char buffer_xjb[32];
-        char* end_buf_xjb = f2e_xjb_f32_to_str(f, buffer_xjb);
+        char *end_buf_xjb = f2e_xjb_f32_to_str(f, buffer_xjb);
         double f2 = atof(buffer_xjb);
         if (f != (float)f2)
         {
             printf("i=%u, i=%x, f=%.8e, f2=%.8e, buffer_xjb=%s, f2=%.8e\n", i, i, f, (float)f2, buffer_xjb, f2);
         }
-        //int len = end_buf_xjb - buffer_xjb;
-        // if (len != strlen(buffer_printf))
-        // {
-        //     printf("f = %.8e, buffer_printf=%s, buffer_xjb=%s\n", f, buffer_printf, buffer_xjb);
-        //     break;
-        // }
-        // if (memcmp(buffer_printf, buffer_xjb, len) != 0)
-        // {
-        //     if( abs(buffer_xjb[9] - buffer_printf[9]) > 1 && abs(buffer_xjb[9] - buffer_printf[9])!=9 )
-        //     printf("i = %u , f = %.8e, buffer_printf=%s, buffer_xjb=%s\n",i, f, buffer_printf, buffer_xjb);
-        //     //break;
-        // }
+        // int len = end_buf_xjb - buffer_xjb;
+        //  if (len != strlen(buffer_printf))
+        //  {
+        //      printf("f = %.8e, buffer_printf=%s, buffer_xjb=%s\n", f, buffer_printf, buffer_xjb);
+        //      break;
+        //  }
+        //  if (memcmp(buffer_printf, buffer_xjb, len) != 0)
+        //  {
+        //      if( abs(buffer_xjb[9] - buffer_printf[9]) > 1 && abs(buffer_xjb[9] - buffer_printf[9])!=9 )
+        //      printf("i = %u , f = %.8e, buffer_printf=%s, buffer_xjb=%s\n",i, f, buffer_printf, buffer_xjb);
+        //      //break;
+        //  }
     }
     auto t2 = getns();
     printf("check_all_float ok, cost %.3lf second\n", (t2 - t1) / 1e9);
@@ -928,13 +1020,14 @@ void check_all_irregular_float_number_to_string()
     printf("check xjb32 algorithm ; about one minute, check all float number start\n");
     u64 error_sum = 0;
     auto t1 = getns();
-    for (u32 i = 0; i <= 246; ++i)//contain 0
+    for (u32 i = 0; i <= 246; ++i) // contain 0
     {
-        u32 u = i<<23;
+        u32 u = i << 23;
         float f = *(float *)&u;
         int is_error = check_xjb32_and_schubfach32_xjb_string(f);
-        if(is_error)printf("exp=%d\n", (int)i);
-        error_sum += is_error; 
+        if (is_error)
+            printf("exp=%d\n", (int)i);
+        error_sum += is_error;
     }
     auto t2 = getns();
     if (error_sum == 0)
@@ -1184,7 +1277,7 @@ void bench_float()
 
 void print_cpu_info()
 {
-    //printf("CPU Name: %s\n", getCPUName().c_str());
+    // printf("CPU Name: %s\n", getCPUName().c_str());
 
 #if defined(__amd64__)
     printf("CPU ARCH: x86_64\n");
@@ -1234,33 +1327,39 @@ void print_cpu_info()
 #else
     printf("CPU Feature: unknown\n");
 #endif
-
 }
 
 int main()
 {
-
     print_cpu_info();
 
 #if BENCH_FLOAT
     bench_float();
 
+    if (CHECK_CORRECTNESS) // check xjb algoriothm correctness , use schubfach for correct result
+    {
+
 #if BENCH_STR
-    check_all_irregular_float_number_to_string();//fast
-    
-    //check_f2e_xjb();
-    
-    check_all_float_number_to_string(); // check all float number , may cost long time , about one minute;
+        check_all_irregular_float_number_to_string(); // fast
+
+        // check_f2e_xjb();
+
+        check_all_float_number_to_string(); // check all float number , may cost long time , about one minute;
 #else
-    // check_all_float_number_to_decimal(); // check all float number , may cost long time
+        check_all_irregular_float_number_to_decimal(); // fast
+
+        check_all_float_number_to_decimal();           // check all float number , may cost long time
 #endif
+
+    }
 
 #endif
 
 #if BENCH_DOUBLE
     bench_double();
 
-    check_double(); // check double correctness , may cost long time
+    if (CHECK_CORRECTNESS)// check xjb algoriothm correctness , use schubfach for correct result
+        check_double(); // check double correctness , may cost long time
 #endif
 
     return 0;

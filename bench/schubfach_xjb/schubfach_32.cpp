@@ -538,6 +538,52 @@ static inline FloatingDecimal32 ToDecimal32_xjb(uint32_t ieee_significand, uint3
         d = sp10 + 10; // s/10*10+10
     return {d, k};
 }
+static inline void ToDecimal32_xjb_v2(uint32_t ieee_significand, uint32_t ieee_exponent,u32* dec,int* e10)
+{
+    uint32_t c;
+    int32_t q;
+    if (ieee_exponent != 0) [[likely]]
+    {
+        c = Single::HiddenBit | ieee_significand;
+        q = static_cast<int32_t>(ieee_exponent) - Single::ExponentBias;
+    }
+    else
+    {
+        c = ieee_significand;
+        q = 1 - Single::ExponentBias;
+    }
+    const bool lower_boundary_is_closer = (ieee_significand == 0);
+    const uint32_t cbl = 4 * c - 2 + lower_boundary_is_closer;
+    const uint32_t cb = 4 * c;
+    const uint32_t cbr = 4 * c + 2;
+    int32_t k;
+    if (lower_boundary_is_closer) [[unlikely]]
+        k = (q * 1262611 - 524031) >> 22;
+    else
+        k = (q * 1262611) >> 22;
+    const int32_t h = q + FloorLog2Pow10(-k) + 1;
+    const uint64_t pow10 = ComputePow10_Single(-k);
+    const uint32_t vbl = RoundToOdd(pow10, cbl << h); // y1 | (y0 > 1);  if(y0 > 1) y1 += 1; or if(y0 > 0) y1++;
+    const uint32_t vb = RoundToOdd(pow10, cb << h);
+    const uint32_t vbr = RoundToOdd(pow10, cbr << h);
+    const uint32_t lower = vbl + (c & 1);
+    const uint32_t upper = vbr - (c & 1);
+    const uint32_t s = vb / 4; // NB: 4 * s == vb & ~3 == vb & -4
+    uint32_t sp10 = ((s * (uint64_t)1717986919) >> 34) * 10;
+    uint32_t d = s + (((0b11001000 >> (vb & 7)) & 1)); // s or s+1
+    if (lower_boundary_is_closer) [[unlikely]]
+    {
+        d += ieee_exponent == 31 | ieee_exponent == 214 | ieee_exponent == 217;
+    }
+    // uint32_t d = s + (((vb & -4) < (lower < (upper - 3) ? lower : (upper - 3))) | ((0b11001000 >> (vb & 7)) & 1)); // s or s+1
+    if (lower <= sp10 * 4) // vbl + (c & 1) <= (s/10) * 10 * 4
+        d = sp10;          // s/10*10
+    if ((sp10 * 4 + 40 - 3) <= (upper - 3))
+        d = sp10 + 10; // s/10*10+10
+    //return {d, k};
+    *dec = d;
+    *e10 = k;
+}
 #if 0
 static inline FloatingDecimal32 ToDecimal32_xjb_m(uint32_t ieee_significand, uint32_t ieee_exponent)
 {

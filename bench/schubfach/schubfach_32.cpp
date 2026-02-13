@@ -494,6 +494,95 @@ static inline FloatingDecimal32 ToDecimal32(uint32_t ieee_significand, uint32_t 
 
     return {s + round_up, k};
 }
+static inline void ToDecimal32_v2(uint32_t ieee_significand, uint32_t ieee_exponent,u32* dec, int* e10)
+{
+    uint32_t c;
+    int32_t q;
+    if (ieee_exponent != 0)
+    {
+        c = Single::HiddenBit | ieee_significand;
+        q = static_cast<int32_t>(ieee_exponent) - Single::ExponentBias;
+
+        // if (0 <= -q && -q < Single::SignificandSize && MultipleOfPow2(c, -q))
+        // {
+        //     return {c >> -q, 0};
+        // }
+    }
+    else
+    {
+        c = ieee_significand;
+        q = 1 - Single::ExponentBias;
+    }
+
+    const bool is_even = (c % 2 == 0);
+    const bool accept_lower = is_even;
+    const bool accept_upper = is_even;
+
+    const bool lower_boundary_is_closer = (ieee_significand == 0 && ieee_exponent > 1);
+
+    //  const int32_t qb = q - 2;
+    const uint32_t cbl = 4 * c - 2 + lower_boundary_is_closer;
+    const uint32_t cb = 4 * c;
+    const uint32_t cbr = 4 * c + 2;
+
+    // (q * 1262611         ) >> 22 == floor(log_10(    2^q))
+    // (q * 1262611 - 524031) >> 22 == floor(log_10(3/4 2^q))
+    //SF_ASSERT(q >= -1500);
+    //SF_ASSERT(q <= 1500);
+    const int32_t k = FloorDivPow2(q * 1262611 - (lower_boundary_is_closer ? 524031 : 0), 22);
+
+    const int32_t h = q + FloorLog2Pow10(-k) + 1;
+    //SF_ASSERT(h >= 1);
+    //SF_ASSERT(h <= 4);
+
+    const uint64_t pow10 = ComputePow10_Single(-k);
+    const uint32_t vbl = RoundToOdd(pow10, cbl << h);
+    const uint32_t vb = RoundToOdd(pow10, cb << h);
+    const uint32_t vbr = RoundToOdd(pow10, cbr << h);
+
+    const uint32_t lower = vbl + !accept_lower;
+    const uint32_t upper = vbr - !accept_upper;
+
+    // See Figure 4 in [1].
+    // And the modifications in Figure 6.
+
+    const uint32_t s = vb / 4; // NB: 4 * s == vb & ~3 == vb & -4
+
+    if (s >= 10) // vb >= 40
+    {
+        const uint32_t sp = s / 10; // = vb / 40
+        const bool up_inside = lower <= 40 * sp;
+        const bool wp_inside = 40 * sp + 40 <= upper;
+        //      if (up_inside || wp_inside) // NB: At most one of u' and w' is in R_v.
+        if (up_inside != wp_inside)
+        {
+            // return {sp + wp_inside, k + 1};
+            //return {(sp + wp_inside) * 10, k};
+            *dec = (sp + wp_inside) * 10;
+            *e10 = k;
+            return;
+        }
+    }
+
+    const bool u_inside = lower <= 4 * s;
+    const bool w_inside = 4 * s + 4 <= upper;
+    if (u_inside != w_inside)
+    {
+        //return {s + w_inside, k};
+        *dec = s + w_inside;
+        *e10 = k;
+        return;
+    }
+
+    // NB: s & 1 == vb & 0x4
+    const uint32_t mid = 4 * s + 2; // = 2(s + t)
+    const bool round_up = vb > mid || (vb == mid && (s & 1) != 0);
+
+    //return {s + round_up, k};
+    *dec = s + round_up;
+    *e10 = k;
+    return;
+}
 #if 0
 static inline FloatingDecimal32 ToDecimal32_xjb(uint32_t ieee_significand, uint32_t ieee_exponent)
 {

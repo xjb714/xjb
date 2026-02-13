@@ -1,15 +1,17 @@
 #include "schubfach_64.cc"
 #include "schubfach_32.cpp"
 
-void schubfach_xjb_f64_to_dec(double v,unsigned long long* dec,int *e10)
+static inline void schubfach_xjb_f64_to_dec(double v,unsigned long long* dec,int *e10)
 {
-    unsigned long  vi = *(unsigned  long*)&v;
-    unsigned long  sig = vi & ((1ull<<52) - 1);
-    unsigned long  exp = (vi & ((1ull<<63) - 1))>>52;
+    unsigned long long vi = *(unsigned  long long*)&v;
+    unsigned long long sig = vi & ((1ull<<52) - 1);
+    unsigned long long exp = (vi & ((1ull<<63) - 1))>>52;
 
-    schubfach_xjb64::FloatingDecimal64 res = schubfach_xjb64::ToDecimal64(sig, exp);
-    *dec = res.digits;
-    *e10 = res.exponent;
+    // schubfach_xjb64::FloatingDecimal64 res = schubfach_xjb64::ToDecimal64(sig, exp);
+    // *dec = res.digits;
+    // *e10 = res.exponent;
+
+    schubfach_xjb64::ToDecimal64_v2(sig, exp, dec,e10);
 }
 
 // void schubfach_xjb_126_f64_to_dec(double v,unsigned long long* dec,int *e10)
@@ -24,14 +26,16 @@ void schubfach_xjb_f64_to_dec(double v,unsigned long long* dec,int *e10)
 // }
 
 
-void schubfach_xjb_f32_to_dec(float v,unsigned int* dec,int* e10){
+static inline  void schubfach_xjb_f32_to_dec(float v,unsigned int* dec,int* e10){
     unsigned int  vi = *(unsigned  int*)&v;
     unsigned int  sig = vi & ((1ull<<23) - 1);
     unsigned int  exp = (vi & ((1ull<<31) - 1))>>23;
 
-    schubfach_xjb32::FloatingDecimal32 res = schubfach_xjb32::ToDecimal32_xjb(sig, exp);
-    *dec = res.digits;
-    *e10 = res.exponent;
+    // schubfach_xjb32::FloatingDecimal32 res = schubfach_xjb32::ToDecimal32_xjb(sig, exp);
+    // *dec = res.digits;
+    // *e10 = res.exponent;
+
+    schubfach_xjb32::ToDecimal32_xjb_v2(sig, exp, dec, e10);
 }
 
 char* schubfach_xjb_f64_to_str(double v,char* buffer){

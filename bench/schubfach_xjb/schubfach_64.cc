@@ -950,6 +950,60 @@ namespace schubfach_xjb64
         if ((sp10 * 4 + 40 - 3) <= (upper - 3))d = sp10 + 10; // s/10*10+10
         return {d, k};
     }
+    static inline void ToDecimal64_v2(uint64_t ieee_significand, uint64_t ieee_exponent,u64* dec,int* e10)
+    {
+        uint64_t c;
+        int32_t q;
+        if ( __builtin_expect(ieee_exponent != 0 , 1))
+        {
+            c = Double64::HiddenBit | ieee_significand;
+            q = static_cast<int32_t>(ieee_exponent) - Double64::ExponentBias;
+            // if (0 <= -q && -q < Double64::SignificandSize && MultipleOfPow2(c, -q))
+            // {
+            //     return {c >> -q, 0};
+            // }
+        }
+        else
+        {
+            c = ieee_significand;
+            q = 1 - Double64::ExponentBias; //-1074
+        }
+        bool lower_boundary_is_closer = (ieee_significand == 0);
+        uint64_t cbl = 4 * c - 2 + lower_boundary_is_closer;//(c-0.5)*4 or (c-0.25)*4
+        uint64_t cb = 4 * c; // c*4
+        uint64_t cbr = 4 * c + 2;//(c+0.5)*4
+        int32_t k;
+        if(__builtin_expect(lower_boundary_is_closer,0))
+            k = FloorDivPow2(q * 1262611 - 524031, 22);
+        else
+            k = FloorDivPow2(q * 1262611 , 22);
+        int32_t h = q + FloorLog2Pow10(-k) + 1; //[1,4]
+        uint64x2 pow10 = ComputePow10_Double64(-k);
+        uint64_t vbl= RoundToOdd(pow10, cbl << h);//if(y1&1==0 && y0>1)y1++;
+        uint64_t vb = RoundToOdd(pow10, cb << h); // c * 2 ^ (2 + h)
+        uint64_t vbr= RoundToOdd(pow10, cbr << h);
+        uint64_t lower = vbl + (c & 1);
+        uint64_t upper = vbr - (c & 1); // vb
+        uint64_t s = vb / 4;            // NB: 4 * s == vb & ~3 == vb & -4
+        // s/10 *10 ,s,s+1,s/10*10+10;
+        // uint64_t sp10 = (s / 10) * 10;
+        uint64_t sp10 = ((s * (__uint128_t)1844674407370955162) >> 64) * 10;
+        uint64_t d = s + (((0b11001000 >> (vb & 7)) & 1));//s or s+1
+        if(__builtin_expect(lower_boundary_is_closer,0)){
+            static const short special_exp[]={
+                -1069,-1059,-1009,-843,-840,-830,-747,-541,-418,-348,-192,-149,-129,37,130,223,253,293,326,346,353,429,522,542,811,924
+            };
+            for(int i=0;i<26;++i){
+                d+=(*(short*)&q==special_exp[i]);
+            }
+        }
+        //uint64_t d = s + (((vb & -4) < (lower < (upper - 3) ? lower : (upper - 3))) | ((0b11001000 >> (vb & 7)) & 1)); // s or s+1
+        if (lower <= sp10 * 4)d = sp10; // s/10*10
+        if ((sp10 * 4 + 40 - 3) <= (upper - 3))d = sp10 + 10; // s/10*10+10
+        //return {d, k};
+        *dec = d;
+        *e10 = k;
+    }
     static inline FloatingDecimal64 ToDecimal64_126bit(uint64_t ieee_significand, uint64_t ieee_exponent)
     {
         uint64_t c;

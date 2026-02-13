@@ -8,7 +8,7 @@ namespace yyjson {
 }
 #endif
 
-void yy_double_f64_to_dec(double v, unsigned long long *dec, int *e10)
+static inline void yy_double_f64_to_dec(double v, unsigned long long *dec, int *e10)
 {
     // src from yy_double.c
     unsigned long long vi = *(unsigned long long *)&v;
@@ -30,7 +30,7 @@ void yy_double_f64_to_dec(double v, unsigned long long *dec, int *e10)
 
     yy_double::yy_double_f64_bin_to_dec(sig_bin, exp_bin, (uint64_t *)dec, e10);
 }
-void yy_double_full_f64_to_dec(double v, unsigned long long *dec, int *e10)
+static inline void yy_double_full_f64_to_dec(double v, unsigned long long *dec, int *e10)
 {
     // src from yy_double.c
     unsigned long long vi = *(unsigned long long *)&v;
@@ -53,7 +53,7 @@ void yy_double_full_f64_to_dec(double v, unsigned long long *dec, int *e10)
     yy_double::yy_double_full_f64_bin_to_dec(sig_bin, exp_bin, (uint64_t *)dec, e10);
 }
 
-void yyjson_f64_to_dec(double v, unsigned long long *dec, int *e10)
+static inline void yyjson_f64_to_dec(double v, unsigned long long *dec, int *e10)
 {
     // src from yyjson.c
     unsigned long long vi = *(unsigned long long *)&v;
@@ -76,7 +76,7 @@ void yyjson_f64_to_dec(double v, unsigned long long *dec, int *e10)
     yyjson::f64_bin_to_dec(sig, exp, sig_bin, exp_bin, (uint64_t *)dec, e10);
 #endif
 }
-void yyjson_f32_to_dec(float v, unsigned int *dec, int *e10)
+static inline void yyjson_f32_to_dec(float v, unsigned int *dec, int *e10)
 {
     // src from yyjson.c
     unsigned int vi = *(unsigned int *)&v;

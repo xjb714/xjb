@@ -16,8 +16,8 @@
 #include "d2e_xjb.cpp"
 
 //float/double to decimal
-#include "xjb32_i.hpp" // contain xjb_f32_to_dec xjb xjb_comp_f32_to_dec
-#include "xjb64_i.hpp" // conatin xjb_f64_to_dec xjb xjb_comp_f64_to_dec
+#include "xjb32_i.cpp" // contain xjb_f32_to_dec xjb xjb_comp_f32_to_dec
+#include "xjb64_i.cpp" // conatin xjb_f64_to_dec xjb xjb_comp_f64_to_dec
 
 char* xjb64_f64_to_str(double v,char* buf)
 {
