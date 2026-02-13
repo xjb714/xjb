@@ -287,7 +287,7 @@ void bench_double_single_impl(int i)
     printf("%2d. bench %16s : ", i, name.c_str());
 
     char *buffer = (char *)malloc(128);
-    u64 d;
+    unsigned long long d;
     int k;
     u64 sum_final = 0;
     auto t1 = getns();
