@@ -140,8 +140,8 @@ void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
     }
     // if (!irregular)
     {
-        u64 h37_precalc = h37[exp];
-        i64 k = ((i64)q * (u128)(1233ull << 52)) >> 64; // equal to k = (q * 1233) >> 12;
+        u64 h37_precalc = h37[exp]; // precalc h + 37;
+        i64 k = ((i64)q * (u128)(1233ull << 52)) >> 64; // equal to k = (q * 1233) >> 12; arm64 emit smulh instruction,x64 emit imulq instruction.
         // i64 h = q + ((k * -1701 - 1701) >> 9);
         u64 pow10_hi = pow10_reverse[k]; // get 10^(-k-1)
         // u64 cb = c << (h + 1 + BIT);
@@ -153,9 +153,14 @@ void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
         u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + ((sig + 1) & 1);
         u64 offset_num = ((1ULL << (BIT - 2)) - 7) + (dot_one_36bit >> (BIT - 4));
         u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
-        one = (half_ulp > dot_one_36bit) ? 0 : one;
-        one = (half_ulp > ((1ULL << BIT) - 1) - dot_one_36bit) ? 10 : one;
-        *dec = ten + one;
+        // select from {ten,ten+one,ten+10};
+        // cmov is more efficient than branch instruction.
+        u64 d = (half_ulp > dot_one_36bit) ? ten : ten + one;
+        d = (half_ulp > ((1ULL << BIT) - 1) - dot_one_36bit) ? ten + 10 : d;
+        *dec = (u32)d;
+        // one = (half_ulp > dot_one_36bit) ? 0 : one;
+        // one = (half_ulp > ((1ULL << BIT) - 1) - dot_one_36bit) ? 10 : one;
+        // *dec = ten + one;
         *e10 = k;
     }
     if (irregular)

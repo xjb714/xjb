@@ -59,7 +59,7 @@ static inline void zmij_f32_to_dec(float v, unsigned int *dec_return, int *e10_r
 
     to_decimal_result dec;
     constexpr uint64_t threshold = uint64_t(traits::num_bits == 64 ? 1e16 : 1e8);
-    if (bin_exp == 0 || bin_exp == traits::exp_mask) [[ZMIJ_UNLIKELY]]
+    if (bin_exp == 0 ) [[ZMIJ_UNLIKELY]]
     {
         // if (bin_exp != 0) {
         //   memcpy(buffer, bin_sig == 0 ? "inf" : "nan", 4);
@@ -69,18 +69,26 @@ static inline void zmij_f32_to_dec(float v, unsigned int *dec_return, int *e10_r
         //   memcpy(buffer, "0", 2);
         //   return buffer + 1;
         // }
-        dec = to_decimal_schubfach(bin_sig, 1 - traits::exp_offset, true);
-        while (dec.sig < threshold)
-        {
-            dec.sig *= 10;
-            --dec.exp;
-        }
+        //dec = to_decimal_schubfach(bin_sig, 1 - traits::exp_offset, true);
+        dec = to_decimal_fast<float>(bin_sig ,  1 , bin_sig != 0);
+        // while (dec.sig < threshold)
+        // {
+        //     dec.sig *= 10;
+        //     --dec.exp;
+        // }
+        //bin_exp = 1 - traits::exp_offset;
+        //bin_exp = 1;
     }
     else
     {
-        dec = to_decimal_fast<float>(bin_sig | traits::implicit_bit, bin_exp,
-                                     bin_sig != 0);
+        dec = to_decimal_fast<float>(bin_sig | traits::implicit_bit, bin_exp, bin_sig != 0);
+        //bin_sig |= traits::implicit_bit;
+        //bin_exp -= traits::exp_offset;
     }
+
+    //dec = to_decimal_fast<float>(bin_sig, bin_exp, bin_sig != 0);
+    // dec = to_decimal_fast<float>(bin_sig | traits::implicit_bit, bin_exp,
+    //     bin_sig != 0);
 
     *dec_return = dec.sig;
     *e10_return = dec.exp;

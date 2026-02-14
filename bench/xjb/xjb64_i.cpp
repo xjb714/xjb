@@ -2542,17 +2542,18 @@ static inline void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e
 #if defined(__aarch64__)
         i64 k = ((i64)(exp - 1075) * (u128)(78913ull << (64 - 18))) >> 64; // arm64 emit smulh instruction.
 #else
-        i64 k = ((i64)(exp - 1075) * 78913) >> 18;
+        i64 k = ((i64)(exp - 1075) * 78913) >> 18; // equal to  (q * 78913) >> 18;
 #endif
 
-#if defined(__aarch64__)
+#if defined(__aarch64__) // we use lookup table to get h + 37;
         const int use_h7_table = 1;
         i64 h;//not used
         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
         u64 *p10 = (u64 *)&pow10_ptr[k * -2];
 #else
-        i64 get_e10 = -1 - k;
+        i64 get_e10 = -1 - k; // equal to ~k; x64 : emit neg instruction. arm64 : emit mvn instruction.
         i64 h = q + ((get_e10 * 217707) >> 16);
+        // or : i64 h = q + ((k * -217707 - 217707) >> 16);
         const int use_h7_table = 0;
         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
         u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
@@ -2562,10 +2563,12 @@ static inline void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e
         u64 dot_one = hi128 >> offset;
         u64 half_ulp = (p10[0] >> (use_h7_table ? 7 - h7_precalc : -h)) + ((sig + 1) & 1);
         u64 ten = (hi128 >> (offset + 64)) * 10;
+
+        // we has three method to calculate one.
         // u64 one = (dot_one * (u128)10 + ( (1ull << 63) + 6)) >> 64; if(dot_one == (1ull << 62)) one = 2;
 #if defined(__amd64__)
         u64 one = (dot_one * (u128)10 + (dot_one == (1ull << 62) ? 0 : (1ull << 63) + 6)) >> 64;
-#else
+#else // arm64
         u64 one = ((dot_one * (u128)10) >> 64) + ((dot_one * 10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull));
 #endif
 
@@ -2604,127 +2607,6 @@ static inline void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e
         *dec = ten + one;
         *e10 = k;
     }
-
-    // #ifdef __amd64__
-    //     c = (1ull<<52) | ieee_significand;// 53 bit
-    //     q = ieee_exponent - 1075;
-    //     if(ieee_exponent == 0 )[[unlikely]]
-    //     {
-    //         c = ieee_significand;
-    //         q = 1 - 1075; // -1074
-    //     }
-    //     // if (ieee_exponent > 0) [[likely]] // branch
-    //     // {
-    //     //     c = (1ull<<52) | ieee_significand;// 53 bit
-    //     //     q = ieee_exponent - 1075;
-    //     // }
-    //     // else
-    //     // {
-    //     //     c = ieee_significand;
-    //     //     q = 1 - 1075; // -1074
-    //     // }
-    // #else
-    //     // c = (ieee_exponent > 0) ? ( (1ull<<52) | ieee_significand) : ieee_significand;
-    //     // q = (ieee_exponent > 0) ? (ieee_exponent - 1075) : 1-1075;
-    // #endif
-
-    //     // v = c * 2**q
-    //     // c * 2**q * 10**(-k-1) = m + n
-    //     // m = floor( c * 2**q * 10**(-k-1) )
-    //     // n = fractional part
-    //     // convert c * 2**q  to d * 10**k
-    //     // ten = 10m
-    //     // select  from  {ten + 0, ten + floor(10n) , ten + floor(10n) + 1 , ten + 10}
-
-    //     int k;
-    //     const int offset = 6; // [5,10] ; 5 + 64 >= 69    6+64=70 >=69
-    //     // u64 regular = ieee_significand > 0;
-    //     // u64 irregular = (ieee_significand == 0);
-    //     static const uint64_t bitarray_irregular[32] = {
-    //     0x0000000000010040, 0x0000000000000004, 0x0000000000000000, 0x0020090000000000,
-    //     0x0000000000000000, 0x0000000000000100, 0x0000000000000000, 0x0000000000000000,
-    //     0x0000000000400000, 0x0000000000000000, 0x0000000000020000, 0x0000000000800000,
-    //     0x0000000000000000, 0x0008000000000000, 0x0004000040000000, 0x0000000000000000,
-    //     0x0000000000000000, 0x0000000001000000, 0x0020000000000000, 0x0000000000000000,
-    //     0x0001000000040000, 0x0200000001000000, 0x0000000000102000, 0x0000000100000000,
-    //     0x2000000000000000, 0x0000000000020000, 0x0000000000000000, 0x0000000000000000,
-    //     0x0000000000000000, 0x0000000040000000, 0x0000000000000000, 0x0000000000008000};
-
-    //     {
-    // #ifdef __amd64__
-    //         if (regular) [[likely]] // branch
-    //             k = ((ieee_exponent - 1075) * 315653) >> 20;
-    //         else
-    //             k = ((ieee_exponent - 1075) * 315653 - 131237) >> 20;
-    // #else
-    //         // use this branchless code for apple M1, better performance
-    //         // when ieee_exponent == 1 or 0 ; k=-324
-    //         // so we can use (ieee_exponent - 1075) to replace q
-    //         k = ((ieee_exponent - 1075) * 315653 - (regular ? 0 : 131237 ))>>20;
-    // #endif
-    //         int h = q + (((-k - 1) * 217707) >> 16); // -k-1 == ~k
-    //         u64 *p10 = (u64 *)&pow10_ptr[(-k - 1) * 2];
-    //         u128 cb = c << (h + 1 + offset);
-    //         u128 hi128 = (cb * p10[0] + ((cb * p10[1]) >> 64)); // p10[0] : high 64bit ; p10[1] : low 64bit
-    //         u64 dot_one = hi128 >> offset;   // == floor(2**64*n)    ; slow instruction
-    //         u64 half_ulp = (p10[0] >> (-h)) + (( ~c ) & 1) ;   // -h ---> range [0,4]  ; 2**(q-1) * 10^(-k-1) + even
-    //         u64 ten = (hi128 >> (offset + 64)) * 10; // == 10*m
-
-    // #ifdef __amd64__
-    //         // (dot_one == (1ull << 62)) equal to (n==0.25)
-    //         u64 offset_num = (dot_one == (1ull << 62)) ? 0 : (1ull<<63) + 6 ;
-    //         u64 one = (dot_one * (u128)10 + offset_num ) >> 64 ;
-    //         if(regular) [[likely]]
-    //         {
-    //             one = (half_ulp > dot_one) ? 0 : one;
-    //         }
-    //         else
-    //         {
-    //             // 10n - floor(10n) > 2**(q-2) * 10^(-k-1) * 10
-
-    //             // old version:
-    //             // if (((((dot_one >> 4) * 10) << 4) >> 4) > (((half_ulp >> 4) * 5)))
-    //             //     one = (((dot_one >> 4) * 10) >> 60) + 1;
-    //             // if ( (((dot_one >> 4) * 5) & ( (1ull << 59 ) - 1)) > (((half_ulp >> 5) * 5)))
-    //             //     one = (((dot_one >> 4) * 5) >> 59) + 1;
-
-    //             // new version 1:
-    //             if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (((half_ulp >> 55) * 5)))
-    //                 one = (((dot_one >> 54) * 5) >> 9) + 1;
-    //             // new version 2:
-    //             // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > (ten >> 45))// Fewer instructions but slower than new version 1 ???
-    //             //     one = (((dot_one >> 54) * 5) >> 9) + 1;
-    //             // new version 2 is better than new version 1 ? not sure
-
-    //             one = ((half_ulp >> 1) > dot_one) ? 0 : one;
-    //         }
-    //         one = (half_ulp  > ~0 - dot_one) ? 10 : one;
-    // #else
-    //         u64 one = ((dot_one * (u128)10) >> 64)  + ( (u64)(dot_one * (u128)10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull) ) ;
-    //         //one = ((half_ulp>> (1-regular)) > dot_one) ? 0 : one;
-    //         if(regular)[[likely]] {
-    //             one = (half_ulp > dot_one) ? 0 : one;
-    //         }else{
-    //             one = ((half_ulp >> 1) > dot_one) ? 0 : one;
-
-    // // only 26 double number error
-    // // exp=6,16,66,232,235,245,328,534,657,727,883,926,946,1112,1205,1298,1328,1368,1401,1421,1428,1504,1597,1617,1886,1999
-    //             one += (bitarray_irregular[exp/64]>>(exp%64)) & 1;
-
-    //             // const int BIT = 50;
-    //             // if ( (((dot_one >> (4+BIT)) * 5) & ( (1ull << (59-BIT) ) - 1)) > (((half_ulp >> (5+BIT)) * 5)))
-    //             //     one = (((dot_one >> (4+BIT)) * 5) >> (59-BIT)) + 1;
-
-    //             // why this code is slow on M1, maybe the branch instruction is not generated ?
-    //             // u64 right = (ten >> 45);
-    //             // if ( (((dot_one >> 54) * 5) & ( (1 << 9 ) - 1)) > right)
-    //             //     one = (((dot_one >> 54) * 5) >> 9) + 1;
-    //         }
-    //         one = (half_ulp  > ~0 - dot_one) ? 10 : one;
-    // #endif
-    //         *dec = ten + one;
-    //         *e10 = k;
-    //     }
 }
 
 static inline void xjb64_f64_to_dec(double v, unsigned long long *dec, int *e10)
