@@ -9,7 +9,7 @@
 #if USE_NEON_SSE2
 
 
-#if defined(__aarch64__) && defined(__ARM_NEON__)
+#if defined(__aarch64__) && (defined(__ARM_NEON__) || defined(__ARM_NEON))
 #include <arm_neon.h>
 #ifndef HAS_NEON_OR_SSE2
 #define HAS_NEON_OR_SSE2 1

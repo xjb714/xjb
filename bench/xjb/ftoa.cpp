@@ -21,7 +21,7 @@
 
 #if USE_NEON_SSE2
 
-#if defined(__aarch64__) && defined(__ARM_NEON__)
+#if defined(__aarch64__) && (defined(__ARM_NEON__) || defined(__ARM_NEON))
 #include <arm_neon.h>
 #ifndef HAS_NEON_OR_SSE2
 #define HAS_NEON_OR_SSE2 1
@@ -1365,7 +1365,7 @@ namespace xjb
 		u64 exp_len = exp_result >> 56;
 		return buf + exp_len;
 	}
-	// static inline
+	static inline
 	char *xjb32(float v, char *buf)
 	{
 		const struct const_value_float *c = &constants_float;
