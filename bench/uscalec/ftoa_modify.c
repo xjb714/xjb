@@ -249,9 +249,10 @@ static void Short(double f, uint64_t *dp, int *pp) {
 }
 
 static void Short_opt(double f, uint64_t *dp, int *pp) {
-	// require f > 0 , not 0,inf,nan
-	uint64_t u = *(uint64_t*)&f;
-	uint64_t m = (u << 11) | (1ull<<63);
+	// require f > 0 ; not 0,inf,nan
+	uint64_t u;
+	memcpy(&u, &f, sizeof(uint64_t));
+	uint64_t m = (u << 11) | (1ULL<<63);
 	uint64_t exp = ((u>>52) & ((1<<11)-1));
 	uint64_t subnormal = exp == 0;
 	uint64_t irregular = m == 0;
@@ -261,24 +262,18 @@ static void Short_opt(double f, uint64_t *dp, int *pp) {
 	uint64_t max = m + (1ULL << (11 - 1));
 	if(subnormal)[[unlikely]]
 	{
-		e = -1085;
 		int s = __builtin_clzll(u << 11);
 		m <<= s;
-		e -= s;
+		e = -1085 - s;
 		int b = 11 + s;
 		p = -log10Pow2(e + b);
 		min = m - (1ULL << (b - 1));
 		max = m + (1ULL << (b - 1));
-	}else{
-		//m |= 1ULL<< 63;
 	}
 	if(irregular)[[unlikely]]
 	{
 		p = -skewed(e + 11);
 		min = m - (1ULL<<(11 - 2));
-	}else{
-		// p = -log10Pow2(e + b);
-		// min = m - (1ULL << (b - 1));
 	}
 	uint64_t odd = m & 1;
 	Scalers pre = prescale(e, p, log2Pow10(p));

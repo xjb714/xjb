@@ -4,7 +4,7 @@
 //#include "bench/xjb/xjb_comp.cpp" // compress table
 //#include "bench/xjb/xjb.cpp" // full table
 
-#include "ftoa.c"
+#include "uscale.c"
 
 
 int main()
@@ -82,7 +82,8 @@ int main()
     for(int i = 0; i < sizeof(v) / sizeof(double); i++)
     {
         static char buf[64];
-        short1(buf, v[i]);
+        //short1(buf, v[i]);
+        uscale_short(v[i], buf);
         printf("i = %2d, buf : %25s  \n",i, buf);
     }
     int i = 0;
@@ -94,8 +95,9 @@ int main()
         //scanf("%le",&num);
         std::cin >> num;
 
-        int len = short1(buf, num);
-        
+        //int len = short1(buf, num);
+        char *buf_end = uscale_short(num, buf);
+        int len = buf_end - buf;
 
         printf("i = %d, buf : %s , len = %d\n",i, buf , len);
     }

@@ -448,7 +448,7 @@ struct f32_exp_result_table
 };
 alignas(64) constexpr f32_exp_result_table f32_exp_result;
 alignas(64) constexpr exp_result_table exp_result;
-inline char *d2e_xjb(double v, char *buffer)
+static inline char *d2e_xjb(double v, char *buffer)
 {
     // equal to printf("%.16le\n", v); not shortest
     const int Precision = 16;
@@ -491,7 +491,7 @@ inline char *d2e_xjb(double v, char *buffer)
     memcpy(buffer, &exp_ptr[e10], 8);
     return buffer + (exp_ptr[e10] >> 56);
 }
-inline char *f2e_xjb(float v, char *buffer)
+static inline char *f2e_xjb(float v, char *buffer)
 {
     // equal to printf("%.8e\n", v); not shortest
     const int Precision = 8;
