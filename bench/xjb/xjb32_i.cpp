@@ -11,7 +11,7 @@ typedef __uint128_t u128;
 // https://github.com/xjb714/xjb
 
 
-static inline 
+//static inline 
 void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
 {
     // this function converts v to shortest decimal : dec * 10**e10
