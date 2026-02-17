@@ -32,7 +32,7 @@ const int is_bench_float_to_decimal = !BENCH_STR;
 const int is_bench_double_to_string = BENCH_STR;
 const int is_bench_float_to_string = BENCH_STR;
 
-const int CHECK_CORRECTNESS = 0;
+const int CHECK_CORRECTNESS = 1;
 
 // double and float algorithm set
 #include "schubfach/schubfach_i.hpp"
@@ -1318,7 +1318,7 @@ void print_cpu_info()
 
 #elif defined(__aarch64__)
 
-#if defined(__ARM_NEON__)
+#if defined(__ARM_NEON__) || defined(__ARM_NEON)
     printf("CPU Feature: ARM_NEON\n");
 #else
     printf("CPU Feature: none\n");

@@ -49,6 +49,12 @@
 #  define NOT_REMOVE_FIRST_ZERO 0
 #endif
 
+#ifdef __aarch64__
+#  define NOT_REMOVE_F32_FIRST_ZERO 0
+#else
+#  define NOT_REMOVE_F32_FIRST_ZERO 0
+#endif
+
 #ifndef is_real_gcc
 #if defined(__GNUC__) && defined(__GNUC_MINOR__) && \
 	!defined(__clang__) && !defined(__llvm__) &&    \
@@ -494,7 +500,7 @@ static inline uint64_t compute_double_dec_sig_len_sse2(uint64_t up_down, int tz_
 }
 static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint64_t lz)
 {
-	return cmov_branchless(up_down, 7 - tz, 8 - lz);
+	return cmov_branchless(up_down, (7 - lz) - tz, 8 - lz);
 }
 
 static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uint64_t up_down, const uint64_t D17, const struct const_value_double *cv)
@@ -752,10 +758,13 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 	u64 abcdefgh_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
 #endif
 
-	abcdefgh_BCD = abcdefgh_BCD >> (lz << 3);
+
+	abcdefgh_BCD = abcdefgh_BCD >> (NOT_REMOVE_F32_FIRST_ZERO ? 0 : (lz << 3));
+	
 	int tz = u64_lz_bits(abcdefgh_BCD) / 8;
 	abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64(abcdefgh_BCD);
-	return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, lz)};
+	//return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, lz)};
+	return {abcdefgh_BCD | ZERO, cmov_branchless(up_down, NOT_REMOVE_F32_FIRST_ZERO ? (7 - lz) - tz : 7 - tz, 8 - lz)};
 }
 
 #if HAS_SSE2
@@ -1390,7 +1399,7 @@ namespace xjb
 		}
 		if (exp == 255) [[unlikely]]
 			return (char *)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
-		unsigned char h37_precalc = t->h37[exp];
+		u64 h37_precalc = t->h37[exp];
 		u64 irregular = sig == 0;
 		const int BIT = 36;
 #if defined(__SIZEOF_INT128__) // for arm64 processor , fewer instructions
@@ -1415,32 +1424,49 @@ namespace xjb
 		u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1);
 #ifdef __amd64__
 		u64 up = (half_ulp + dot_one_36bit) >> BIT;
-#else
-		//u64 up = half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit;
-		u64 up = dot_one_36bit > (((u64)1 << BIT) - 1) - half_ulp;
+#else // for arm64 
+		//u64 up = (half_ulp + dot_one_36bit) >> BIT;
+		u64 up = half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit;
+		//u64 up = dot_one_36bit > (((u64)1 << BIT) - 1) - half_ulp;
 #endif
 		u64 down = half_ulp > dot_one_36bit;
-		u64 up_down = up + down;
-		u64 m = (sig_hi >> BIT) + up;
+
+		// two method to calculate up_down :
+		//u64 up_down = up + down;
+		//u64 up_down = ((sig_hi + half_ulp) >> BIT) > ((sig_hi - half_ulp) >> BIT);
+
+		// two method to calculate m :
+		// u64 m = (sig_hi >> BIT) + up;
+		u64 m = (sig_hi + half_ulp) >> BIT;
+
+		//u64 offset_num = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
 		u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
 		u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
+		//u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 3) + ((sig_hi >> 34) & 3) ) >> BIT;
+		//u64 one = longer - m * 10;
+
 		if (irregular) [[unlikely]]
 		{
 			if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
 				++one;
-			u64 down = (half_ulp >> 1) > dot_one_36bit;
-			up_down = up + down;
+			//u64 up = half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit;
+			down = (half_ulp >> 1) > dot_one_36bit;
+			//m = (sig_hi >> BIT) + up;
+			//up_down = up + down;
+			//up_down = ((sig_hi + half_ulp) >> BIT) > ((sig_hi - (half_ulp>>1) ) >> BIT);
 			if(exp_bin == 24 - 150)return (char*)memcpy(buf,"9.8607613e-32\0\0",16) + 13;
 			if(exp_bin == 57 - 150)return (char*)memcpy(buf,"8.4703295e-22\0\0",16) + 13;
 			if(exp_bin == 67 - 150)return (char*)memcpy(buf,"8.6736174e-19\0\0",16) + 13;
 			if(exp_bin == 220 - 150)return (char*)memcpy(buf,"9.9035203e+27\0\0",16) + 13;
 		}
+		u64 up_down = up + down;
 		
 		
 		
-		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
+		//u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
 		u64 lz = (m < c->e6) + (m < c->e7);
 		//u64 lz = (m < c->e6) ? 2 : (m < c->e7);
+		//u64 lz = (m < (u32)1e6) ? 2 : (m < (u32)1e7);
 		shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
 		i64 e10 = k + (8 - lz);
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
@@ -1465,6 +1491,11 @@ namespace xjb
 		buf += first_sig_pos;
 		memcpy(buf, &(s.ascii), 8);
 		memcpy(&buf[8 - lz], &one, 8);
+
+#if NOT_REMOVE_F32_FIRST_ZERO
+		memmove(&buf[0], &buf[lz], 16);
+#endif
+
 		memmove(&buf[move_pos], &buf[dot_pos], 8);
 		buf_origin[dot_pos] = '.';
 #if defined(__aarch64__) // for arm64 processor , fewer instructions
@@ -1486,9 +1517,9 @@ namespace xjb
 				exp_pos = exp_pos - lz + (exp_pos - lz != 1);
 			}
 		u32 exp_result_u32 = t->exp_result_float[45 + e10];
-		if (!is_little_endian())
-			exp_result_u32 = ((exp_result_u32 & 0xff000000) >> 24) | ((exp_result_u32 & 0x00ff0000) >> 8) |
-							 ((exp_result_u32 & 0x0000ff00) << 8) | ((exp_result_u32 & 0x000000ff) << 24);
+		// if (!is_little_endian())
+		// 	exp_result_u32 = ((exp_result_u32 & 0xff000000) >> 24) | ((exp_result_u32 & 0x00ff0000) >> 8) |
+		// 					 ((exp_result_u32 & 0x0000ff00) << 8) | ((exp_result_u32 & 0x000000ff) << 24);
 		u64 exp_result_u64 = is_little_endian() ? exp_result_u32 : (u64)exp_result_u32 << 32;
 		buf += exp_pos;
 		memcpy(buf, &exp_result_u64, 8);
