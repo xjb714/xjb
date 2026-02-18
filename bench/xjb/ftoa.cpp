@@ -529,7 +529,7 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
 	int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 	int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-	vst1q_s8((int8_t *)buf, vdupq_n_s8('0'));
+	vst1_s8((int8_t *)buf, vdup_n_s8('0'));
 	uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
 	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0); // zeros != 0
 	int tz = u64_lz_bits(zeroes) >> 2;
@@ -1335,18 +1335,17 @@ namespace xjb
 		memmove(buf, &buf[16 - (15 + D17)], 16);
 #endif
 
-		one |= 0x3030;
+		one |= 0x30303030;
 		memcpy(&buf[15 + D17], &one, 8);
 		//if((u64(e10) < (u64)e10_DN))memmove(&buf[dot_pos + 1], &buf[dot_pos], 16);
 		memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
 		buf_origin[dot_pos] = '.';
-		//if(0)
 #if defined(__aarch64__)
 		if (ieee_exponent == 0) [[unlikely]]
 #endif
 		{
 			// some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-			// if (buf[0] == '0')
+			//if (buf[0] == '0')
 			if (m < (u64)1e14) [[unlikely]]
 			{
 				u64 lz = 0;
@@ -1355,7 +1354,6 @@ namespace xjb
 				lz += 2;
 				e10 -= lz - 1;
 				buf[0] = buf[lz];
-				// byte_move_16(&buf[2], &buf[lz + 1]);
 				memmove(&buf[2], &buf[lz + 1], 16);
 				exp_pos = exp_pos - lz + (exp_pos - lz != 1);
 			}
