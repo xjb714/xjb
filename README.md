@@ -27,7 +27,7 @@ Test all positive single-precision floating-point numbers. The running time only
 &emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `bench/xjb/xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
 
 (2)float/double to string algorithm  
-&emsp;&emsp;   full lookup table : `bench/xjb/xjb.cpp` 
+&emsp;&emsp;   full lookup table : `bench/xjb/ftoa.cpp` 
 &emsp;&emsp;   compress lookup table : `bench/xjb/xjb_comp.cpp`
 
 lookup table size:
