@@ -298,7 +298,8 @@ static const struct const_value_double constants_double = {
 	.multipliers16 = {0xce0, -10 + 0x100, '0' + '0' * 256},
 };
 static const struct const_value_float constants_float = {
-	.c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
+	//.c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
+	.c1 = (((u64)('0' + '0' * 256) << (36)) + (((u64)1 << (36 - 1)) - 7)),
 	.div10000 = 1844674407370956,
 	.e7 = 10000000,
 	.e6 = 1000000,
@@ -1438,8 +1439,9 @@ namespace xjb
 		
 		// three method to calculate one:
 		// method 1 :
-		u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
-		u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
+		// u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
+		// u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
+		u64 one = (dot_one_36bit * 10 + c->c1 + (dot_one_36bit >> (BIT - 4)) ) >> (BIT );//arm64 : madd instruction faster.
 		// method 2 :
 		//u64 one = ((dot_one_36bit | (dot_one_36bit >> 32)) + (dot_one_36bit << 2) + c->c1) >> (BIT - 1);
 		// method 3 :
@@ -1503,10 +1505,9 @@ namespace xjb
 		// u64 up_down = up + down;
 		
 		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
-		u64 lz = (m < c->e6) + (m < c->e7);
+		u64 lz = (m < c->e7) + (m < c->e6);
 		// u64 lz = (m < c->e6) ? 2 : (m < c->e7);
 		// u64 lz = (m < (u32)1e6) ? 2 : (m < (u32)1e7);
-		
 		shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
 		i64 e10 = k + (8 - lz);
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
@@ -1518,15 +1519,27 @@ namespace xjb
 		// 	if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
 		// 		++one;
 		// }
-
 		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
+		// i64 e10_ofs = (i64)e10 * 12 + 36;
+		// u64 e10_data_ofs = (u64)e10_ofs < (u64)10*12 ? (u64)e10_ofs : (u64)10*12;
+		// const unsigned char* base_ptr1 = &(t->e10_variable_data[0][0]);
+		// unsigned char* base_ptr = (unsigned char*)base_ptr1 + e10_data_ofs;
+		// u64 first_sig_pos = base_ptr[9 + 0];
+		// u64 dot_pos = base_ptr[9 + 1];
+		// u64 move_pos = base_ptr[9 + 2];
+		// u64 exp_pos = base_ptr[s.dec_sig_len];
+
 		u64 e10_3 = e10 + (-e10_DN);
 		u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
-		// u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
 		u64 move_pos = t->e10_variable_data[e10_data_ofs][9 + 2];
+		// uint8x8_t ofs_data = vld1_u8(&t->e10_variable_data[e10_data_ofs][12-8]);
+		// u64 first_sig_pos = vget_lane_u8(ofs_data, 5);
+		// u64 dot_pos = vget_lane_u8(ofs_data, 6);
+		// u64 move_pos = vget_lane_u8(ofs_data, 7);
 		u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
+
 		char *buf_origin = (char *)buf;
 		buf += first_sig_pos;
 		memcpy(buf, &(s.ascii), 8);
