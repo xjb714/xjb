@@ -121,7 +121,7 @@ This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and g
 ## benchmark:
 The benchmark test is in the `bench` directory. just run `make` to build the benchmark program.
 you can run `bench/main.cpp` to test the performance of the algorithm.  
-The latest benchmark results on Apple M1 and amd R7-7840h CPU:
+The latest benchmark results on Apple M1 and amd R7-7840H CPU(2026.2.18):
 <!-- ![ramdom float apple M1](bench_result/random_float_m1.svg)
 ![ramdom double apple M1](bench_result/random_double_m1.svg)
 ![ramdom float amd 7840h](bench_result/random_float_7840h.svg)

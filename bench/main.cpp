@@ -32,7 +32,7 @@ const int is_bench_float_to_decimal = !BENCH_STR;
 const int is_bench_double_to_string = BENCH_STR;
 const int is_bench_float_to_string = BENCH_STR;
 
-const int CHECK_CORRECTNESS = 1;
+const int CHECK_CORRECTNESS = 0;
 
 // double and float algorithm set
 #include "schubfach/schubfach_i.hpp"

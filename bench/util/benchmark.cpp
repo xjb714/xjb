@@ -419,7 +419,7 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                     for (int r = 0; r < meansure_count; r++) {
                         f64* data = (f64*)&all_vals[all_vals_begin_pos + (len - 1) * num_per_case];
                         u64 t1 = yy_time_get_ticks();
-                        for (int v = 0; v < num_per_case; v++) {
+                        for (u64 v = 0; v < num_per_case; v++) {
                             //f64 val = vals[v];
                             //f64 val = all_vals[v + all_vals_begin_pos + (len - 1) * num_per_case];
                             f64 val = data[v];
@@ -471,7 +471,7 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                 for (int r = 0; r < meansure_count; r++) {
                     f64* data = (f64*)&all_vals[all_vals_begin_pos];
                     u64 t1 = yy_time_get_ticks();
-                    for (int v = 0; v < num_per_case; v++) {
+                    for (u64 v = 0; v < num_per_case; v++) {
                         //f64 val = vals[v];
                         //f64 val = all_vals[v + all_vals_begin_pos];
                         f64 val = data[v];
@@ -793,7 +793,7 @@ static void ftoa_func_benchmark_all(const char *output_path) {
                 u64 ticks_min = UINT64_MAX;
                 for (int r = 0; r < meansure_count; r++) {
                     u64 t1 = yy_time_get_ticks();
-                    for (int v = 0; v < num_per_case; v++) {
+                    for (u64 v = 0; v < num_per_case; v++) {
                         f32 val = vals[v];
                         func(val, buf);
                     }
@@ -866,7 +866,7 @@ static void dtoa_func_register_all(void) {
     //dtoa_func_register(schubfach_vitaut)
     dtoa_func_register(zmij)
     dtoa_func_register(jnum)
-    dtoa_func_register(d2e_xjb)
+    //dtoa_func_register(d2e_xjb)
     dtoa_func_register(uscalec)
 
 
@@ -925,7 +925,7 @@ static void ftoa_func_register_all(void) {
         ftoa_func_register(fmt_full)
         ftoa_func_register(zmij)
         ftoa_func_register(jnum)
-        ftoa_func_register(f2e_xjb)
+        //ftoa_func_register(f2e_xjb)
 
     }
 

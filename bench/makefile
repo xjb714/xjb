@@ -1,3 +1,4 @@
+.PHONY: all_result_x64 all_result_arm64 clean
 
 BENCH_DOUBLE = 1 # 0 : float, 1 : double
 

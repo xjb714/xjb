@@ -5,7 +5,8 @@
 // author : xjb
 // https://github.com/xjb714/xjb
 
-static inline void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
+static inline 
+void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
 {
     // this function converts v to shortest decimal : dec * 10**e10
     // not contain inf,NaN. 

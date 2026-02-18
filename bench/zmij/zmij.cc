@@ -117,7 +117,15 @@ static_assert(!ZMIJ_USE_SSE4_1 || ZMIJ_USE_SSE);
 #  define ZMIJ_MAYBE_UNUSED
 #endif
 
-#if ZMIJ_HAS_ATTRIBUTE(always_inline)
+#ifdef ZMIJ_OPTIMIZE_SIZE
+// Use the provided definition
+#elif defined(__OPTIMIZE_SIZE__)
+#  define ZMIJ_OPTIMIZE_SIZE 1
+#else
+#  define ZMIJ_OPTIMIZE_SIZE 0
+#endif
+
+#if ZMIJ_HAS_ATTRIBUTE(always_inline) && !ZMIJ_OPTIMIZE_SIZE
 #  define ZMIJ_INLINE __attribute__((always_inline)) inline
 #elif ZMIJ_MSC_VER
 #  define ZMIJ_INLINE __forceinline
@@ -329,17 +337,94 @@ template <typename Float> struct float_traits : std::numeric_limits<Float> {
   }
 };
 
+constexpr auto floor_log2_pow10(int e) noexcept -> int {
+  return e * 1741647 >> 19;
+}
+
+constexpr uint64_t pow10s[] = {
+    0x8000000000000000, 0xa000000000000000, 0xc800000000000000,
+    0xfa00000000000000, 0x9c40000000000000, 0xc350000000000000,
+    0xf424000000000000, 0x9896800000000000, 0xbebc200000000000,
+    0xee6b280000000000, 0x9502f90000000000, 0xba43b74000000000,
+    0xe8d4a51000000000, 0x9184e72a00000000, 0xb5e620f480000000,
+    0xe35fa931a0000000, 0x8e1bc9bf04000000, 0xb1a2bc2ec5000000,
+    0xde0b6b3a76400000, 0x8ac7230489e80000, 0xad78ebc5ac620000,
+    0xd8d726b7177a8000, 0x878678326eac9000, 0xa968163f0a57b400,
+    0xd3c21bcecceda100, 0x84595161401484a0, 0xa56fa5b99019a5c8,
+    0xcecb8f27f4200f3a,
+};
+constexpr uint128 high_parts[] = {
+    {0xaf8e5410288e1b6f, 0x07ecf0ae5ee44dda},
+    {0xb1442798f49ffb4a, 0x99cd11cfdf41779d},
+    {0xb2fe3f0b8599ef07, 0x861fa7e6dcb4aa15},
+    {0xb4bca50b065abe63, 0x0fed077a756b53aa},
+    {0xb67f6455292cbf08, 0x1a3bc84c17b1d543},
+    {0xb84687c269ef3bfb, 0x3d5d514f40eea742},
+    {0xba121a4650e4ddeb, 0x92f34d62616ce413},
+    {0xbbe226efb628afea, 0x890489f70a55368c},
+    {0xbdb6b8e905cb600f, 0x5400e987bbc1c921},
+    {0xbf8fdb78849a5f96, 0xde98520472bdd034},
+    {0xc16d9a0095928a27, 0x75b7053c0f178294},
+    {0xc350000000000000, 0x0000000000000000},
+    {0xc5371912364ce305, 0x6c28000000000000},
+    {0xc722f0ef9d80aad6, 0x424d3ad2b7b97ef6},
+    {0xc913936dd571c84c, 0x03bc3a19cd1e38ea},
+    {0xcb090c8001ab551c, 0x5cadf5bfd3072cc6},
+    {0xcd036837130890a1, 0x36dba887c37a8c10},
+    {0xcf02b2c21207ef2e, 0x94f967e45e03f4bc},
+    {0xd106f86e69d785c7, 0xe13336d701beba52},
+    {0xd31045a8341ca07c, 0x1ede48111209a051},
+    {0xd51ea6fa85785631, 0x552a74227f3ea566},
+    {0xd732290fbacaf133, 0xa97c177947ad4096},
+    {0xd94ad8b1c7380874, 0x18375281ae7822bc},
+};
+constexpr uint32_t fixups[] = {0x05271b1f, 0x00000c20, 0x00003200, 0x12100020,
+                               0x00000000, 0x06000000, 0xc16409c0, 0xaf26700f,
+                               0xeb987b07, 0x0000000d, 0x00000000, 0x66fbfffe,
+                               0xb74100ec, 0xa0669fe8, 0xedb21280, 0x00000686,
+                               0x0a021200, 0x29b89c20, 0x08bc0eda, 0x00000000};
+
 // 128-bit significands of powers of 10 rounded down.
-// Generated using 192-bit arithmetic method by Dougall Johnson.
 struct pow10_significands_table {
-  static constexpr bool compress = false;
-  static constexpr bool split_tables = ZMIJ_AARCH64 != 0;
+  static constexpr bool compress = ZMIJ_OPTIMIZE_SIZE != 0;
+  static constexpr bool split_tables = !compress && ZMIJ_AARCH64 != 0;
   static constexpr int num_pow10 = 617;
-  static constexpr int compression_ratio = compress ? 27 : 1;
-  uint64_t data[(num_pow10 / compression_ratio + compress) * 2] = {};
+  uint64_t data[compress ? 1 : num_pow10 * 2] = {};
+
+  // Computes the 128-bit significand of 10**i using method by Dougall Johnson.
+  static constexpr auto compute(unsigned i) noexcept -> uint128 {
+    uint64_t m = pow10s[(i + 11) % 28];
+    uint128 h = high_parts[(i + 11) / 28];
+
+    uint64_t h1 = umul128_hi64(h.lo, m);
+
+    uint64_t c0 = h.lo * m;
+    uint64_t c1 = h1 + h.hi * m;
+    uint64_t c2 = (c1 < h1) + umul128_hi64(h.hi, m);
+
+    uint128 result = (c2 >> 63) != 0
+                         ? uint128{c2, c1}
+                         : uint128{c2 << 1 | c1 >> 63, c1 << 1 | c0 >> 63};
+    result.lo -= (fixups[i >> 5] >> (i & 31)) & 1;
+    return result;
+  }
+
+  constexpr pow10_significands_table() {
+    for (int i = 0; i < num_pow10 && !compress; ++i) {
+      uint128 result = compute(i);
+      if (split_tables) {
+        data[num_pow10 - i - 1] = result.hi;
+        data[num_pow10 * 2 - i - 1] = result.lo;
+      } else {
+        data[i * 2] = result.hi;
+        data[i * 2 + 1] = result.lo;
+      }
+    }
+  }
 
   ZMIJ_CONSTEXPR auto operator[](int dec_exp) const noexcept -> uint128 {
     constexpr int dec_exp_min = -292;
+    if (compress) return compute(dec_exp - dec_exp_min);
     if (!split_tables) {
       int index = (dec_exp - dec_exp_min) * 2;
       return {data[index], data[index + 1]};
@@ -351,44 +436,6 @@ struct pow10_significands_table {
     // Force indexed loads.
     if (!is_constant_evaluated()) ZMIJ_ASM(volatile("" : "+r"(hi), "+r"(lo)));
     return {hi[-dec_exp], lo[-dec_exp]};
-  }
-
-  constexpr pow10_significands_table() {
-    struct uint192 {
-      uint64_t w0, w1, w2;  // w0 = least significant, w2 = most significant
-    };
-
-    // First element, rounded up to cancel out rounding down in the
-    // multiplication, and minimize significant bits.
-    uint192 current = {0xe000000000000000, 0x25e8e89c13bb0f7a,
-                       0xff77b1fcbebcdc4f};
-    uint64_t ten = 0xa000000000000000;
-    constexpr int table_size = sizeof(data) / (sizeof(*data) * 2);
-    for (int i = 0; i < num_pow10; ++i) {
-      if (i % compression_ratio == 0) {
-        int index = i / compression_ratio;
-        if (split_tables) {
-          data[table_size - index - 1] = current.w2;
-          data[table_size * 2 - index - 1] = current.w1;
-        } else {
-          data[index * 2] = current.w2;
-          data[index * 2 + 1] = current.w1;
-        }
-      }
-
-      uint64_t h0 = umul128_hi64(current.w0, ten);
-      uint64_t h1 = umul128_hi64(current.w1, ten);
-
-      uint64_t c0 = h0 + current.w1 * ten;
-      uint64_t c1 = (c0 < h0) + h1 + current.w2 * ten;
-      uint64_t c2 = (c1 < h1) + umul128_hi64(current.w2, ten);  // dodgy carry
-
-      // normalise
-      if (c2 >> 63)
-        current = {c0, c1, c2};
-      else
-        current = {c0 << 1, c1 << 1 | c0 >> 63, c2 << 1 | c1 >> 63};
-    }
   }
 };
 alignas(64) constexpr pow10_significands_table pow10_significands;
@@ -419,7 +466,7 @@ constexpr ZMIJ_INLINE auto do_compute_exp_shift(int bin_exp,
 }
 
 struct exp_shift_table {
-  static constexpr bool enable = true;
+  static constexpr bool enable = ZMIJ_OPTIMIZE_SIZE == 0;
   unsigned char data[enable ? float_traits<double>::exp_mask + 1 : 1] = {};
 
   constexpr exp_shift_table() {
