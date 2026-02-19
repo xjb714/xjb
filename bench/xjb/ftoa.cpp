@@ -66,6 +66,7 @@ typedef __uint128_t u128; // msvc not support
 typedef uint64_t u64;
 typedef int64_t i64;
 typedef uint32_t u32;
+typedef int32_t i32;
 
 static inline constexpr uint64_t umul128_hi64_fallback(uint64_t x, uint64_t y)
 {
@@ -658,7 +659,7 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 #endif
 }
 
-static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down, uint64_t lz, const struct const_value_float *c = nullptr)
+static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down, uint32_t& lz, const struct const_value_float *c = nullptr)
 {
 	// m range : [0, 1e8 - 1] ; m = abcdefgh
 	const uint64_t ZERO = 0x3030303030303030;
@@ -669,6 +670,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 	int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->m32_4[0])), c->m32_4[1]);
 	// int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10 + 0x100);
 	int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])), c->m32_4[3]); // fewer instructions but slower,why?
+	u64 hgfedcba_BCD = vget_lane_u64(BCD_big_endian, 0);
 	u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0));											  // big_endian to little_endian , reverse 8 bytes
 #endif
 
@@ -749,13 +751,14 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 	i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull << 16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
 	u64 abcdefgh_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
 #endif
-
-	abcdefgh_BCD = abcdefgh_BCD >> (NOT_REMOVE_F32_FIRST_ZERO ? 0 : (lz << 3));
-
+	//*lz = u64_lz_bits(hgfedcba_BCD) >> 3;
 	int tz = u64_lz_bits(abcdefgh_BCD) >> 3;
+	abcdefgh_BCD = abcdefgh_BCD >> (lz << 3);
+	//abcdefgh_BCD = abcdefgh_BCD >> (u64_lz_bits(hgfedcba_BCD) & 0b1111000);
+
 	abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64(abcdefgh_BCD);
 	// return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, lz)};
-	return {abcdefgh_BCD | ZERO, cmov_branchless(up_down, NOT_REMOVE_F32_FIRST_ZERO ? (7 - lz) - tz : 7 - tz, 8 - lz)};
+	return {abcdefgh_BCD | ZERO, cmov_branchless(up_down, 7 - lz - tz, 8 - lz)};
 }
 
 #if HAS_SSE2
@@ -1387,7 +1390,7 @@ namespace xjb
 		if (exp == 255) [[unlikely]]
 			return (char *)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
 		u64 h37_precalc = t->h37[exp];
-		u64 irregular = sig == 0;
+		u32 irregular = sig == 0;
 		const int BIT = 36;
 #if defined(__SIZEOF_INT128__) && defined(__aarch64__) // for arm64 processor , fewer instructions
 		// arm64 : single smulh instruction can be used to calculate high 64 bits of multiplication
@@ -1435,9 +1438,9 @@ namespace xjb
 		// three method to calculate one:
 		// method 1 :
 #if defined(__aarch64__)
-		u64 one = (dot_one_36bit * 10 + c->c1 + (dot_one_36bit >> (BIT - 4)) ) >> (BIT );//for arm64 : madd instruction faster.
+		u32 one = (dot_one_36bit * 10 + c->c1 + (dot_one_36bit >> (BIT - 4)) ) >> (BIT);//for arm64 : madd instruction faster.
 #else
-		u64 one = (dot_one_36bit * 5 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT - 1);//for x64.
+		u32 one = (dot_one_36bit * 5 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT - 1);//for x64.
 #endif
 		// method 2 :
 		//u64 one = ((dot_one_36bit | (dot_one_36bit >> 32)) + (dot_one_36bit << 2) + c->c1) >> (BIT - 1);
@@ -1502,7 +1505,8 @@ namespace xjb
 		// u64 up_down = up + down;
 		
 		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
-		u64 lz = (m < c->e7) + (m < c->e6);
+		u32 lz = (m < c->e7) + (m < c->e6);
+		//u32 lz;
 		// u64 lz = (m < c->e6) ? 2 : (m < c->e7);
 		//u64 lz = (m < (u64)1e6) ? 2 : (m < (u64)1e7);
 		memcpy(buf, "00000000", 8);
@@ -1538,11 +1542,11 @@ namespace xjb
 		char *buf_origin = (char *)buf;
 		buf += first_sig_pos;
 		memcpy(buf, &(s.ascii), 8);
-		memcpy(&buf[8 - lz], &one, 8);
+		memcpy(&buf[8 - lz], &one, 4);
 
-#if NOT_REMOVE_F32_FIRST_ZERO
-		memmove(&buf[0], &buf[lz], 16);
-#endif
+// #if NOT_REMOVE_F32_FIRST_ZERO
+// 		memmove(&buf[0], &buf[lz], 16);
+// #endif
 
 		memmove(&buf[move_pos], &buf[dot_pos], 8);
 		buf_origin[dot_pos] = '.';

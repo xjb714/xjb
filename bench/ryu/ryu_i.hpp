@@ -1,7 +1,7 @@
 #include "d2s.c"
 #include "f2s.c"
 
-void ryu_f64_to_dec(double v,unsigned long long* dec,int *e10)
+static inline void ryu_f64_to_dec(double v,unsigned long long* dec,int *e10)
 {
     unsigned long  vi = *(unsigned  long*)&v;
     unsigned long  sig = vi & ((1ull<<52) - 1);
@@ -12,7 +12,7 @@ void ryu_f64_to_dec(double v,unsigned long long* dec,int *e10)
     *dec = res.mantissa;
     *e10 = res.exponent;
 }
-void ryu_f32_to_dec(float v,unsigned int* dec,int *e10)
+static inline void ryu_f32_to_dec(float v,unsigned int* dec,int *e10)
 {
     unsigned int  vi = *(unsigned  int*)&v;
     unsigned int  sig = vi & ((1ull<<23) - 1);

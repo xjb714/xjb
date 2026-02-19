@@ -21,7 +21,6 @@
 
 char* xjb64_f64_to_str(double v,char* buf)
 {
-    //return buf;
     return xjb::xjb64(v,buf);
 }
 

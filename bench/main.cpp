@@ -9,6 +9,12 @@
 
 // #include "util/check_float_multi_thread.cpp" // use multi-thread to check float algorithm
 
+typedef uint64_t u64;
+typedef uint32_t u32;
+typedef uint16_t u16;
+typedef uint8_t u8;
+
+
 #define USE_YYBENCH 1
 
 #if USE_YYBENCH
@@ -34,6 +40,8 @@ const int is_bench_float_to_string = BENCH_STR;
 
 const int CHECK_CORRECTNESS = 0;
 
+const u64 LOOP_UNROLL = 2;
+
 // double and float algorithm set
 #include "schubfach/schubfach_i.hpp"
 // #include "schubfach_vitaut/schubfach_vitaut_i.hpp"
@@ -52,10 +60,7 @@ const u64 N = (1 << 24); // about 16M
 const u64 N_double = N;  // double data size
 const u64 N_float = N;   // float data size
 
-typedef uint64_t u64;
-typedef uint32_t u32;
-typedef uint16_t u16;
-typedef uint8_t u8;
+
 
 // double
 double *data;
@@ -287,6 +292,7 @@ void bench_double_single_impl(int i)
     printf("%2d. bench %16s : ", i, name.c_str());
 
     char *buffer = (char *)malloc(128);
+    memset(buffer, 0, 128);
     unsigned long long d;
     int k;
     u64 sum_final = 0;
@@ -301,10 +307,9 @@ void bench_double_single_impl(int i)
     if (is_bench_double_to_decimal)
     {
 #define BENCH_DOUBLE_TO_DECIMAL(name)       \
-    for (u64 j = 0; j < N; ++j)             \
+    for (u64 j = 0; j < N; j+=LOOP_UNROLL)  \
     {                                       \
-        name##_f64_to_dec(data[j], &d, &k); \
-        sum_final += d;                     \
+        for(u64 u=0;u<LOOP_UNROLL;u++){name##_f64_to_dec(data[j+u], &d, &k);sum_final += d;}\
     };
 
         if (i == 0)
@@ -329,17 +334,14 @@ void bench_double_single_impl(int i)
             BENCH_DOUBLE_TO_DECIMAL(xjb64_comp)
         if (i == 10)
             BENCH_DOUBLE_TO_DECIMAL(zmij)
-
-        // volatile u64 tmp = d+k;
-        // len_sum_final = d + k;
     }
 
     if (is_bench_double_to_string)
     {
 #define BENCH_DOUBLE_TO_STRING(name)                              \
-    for (u64 j = 0; j < N; ++j)                                   \
+    for (u64 j = 0; j < N; j+=LOOP_UNROLL)                        \
     {                                                             \
-        sum_final += name##_f64_to_str(data[j], buffer) - buffer; \
+        for(u64 u=0;u<LOOP_UNROLL;u++){sum_final += name##_f64_to_str(data[j+u], buffer) - buffer;} \
     };
 
         if (i == 0)
@@ -364,7 +366,6 @@ void bench_double_single_impl(int i)
             BENCH_DOUBLE_TO_STRING(xjb64)
         if (i == 10)
             BENCH_DOUBLE_TO_STRING(xjb64_comp)
-        // if (i == 11)BENCH_DOUBLE_TO_STRING(schubfach_vitaut)
         if (i == 11)
             BENCH_DOUBLE_TO_STRING(zmij)
         if (i == 12)
@@ -373,67 +374,15 @@ void bench_double_single_impl(int i)
             BENCH_DOUBLE_TO_STRING(d2e_xjb)
         if (i == 14)
             BENCH_DOUBLE_TO_STRING(uscalec)
-
-        // u64 len_sum = 0;
-        // if (i == 0)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += ryu_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 1)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += schubfach_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 2)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += schubfach_xjb_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 3)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += yy_double_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 4)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += yyjson_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 5)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += dragonbox_comp_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 6)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += dragonbox_full_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 7)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += fmt_comp_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 8)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += fmt_full_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 9)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += xjb64_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 10)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += xjb64_comp_f64_to_str(data[j], buffer) - buffer;
-        // // if (i == 11)
-        // //     for (int j = 0; j < N; ++j)
-        // //         schubfach_vitaut_f64_to_str(data[j], buffer);
-        // if (i == 11)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += zmij_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 12)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += jnum_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 13)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += d2e_xjb_f64_to_str(data[j], buffer) - buffer;
-        // if (i == 14)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += uscalec_f64_to_str(data[j], buffer) - buffer;
-
-        // len_sum_final = len_sum;
     }
     auto c2 = get_cycle();
     auto t2 = getns();
     uint64_t cycle_sum = c2 - c1;
     double cycle_avg = (double)cycle_sum * (1.0 / N);
 #if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
-    printf("cost %5.4lf ms,every double cost %3.4lf ns ,%3.4lf cycle; sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, (unsigned long long)sum_final);
+    printf("cost %5.4lf ms,every double cost %3.4lf ns ,%3.4lf cycle; buffer=%s, sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, buffer,(unsigned long long)sum_final);
 #else
-    printf("cost %5.4lf ms,every double cost %3.4lf ns ; sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), (unsigned long long)sum_final);
+    printf("cost %5.4lf ms,every double cost %3.4lf ns ; buffer=%s, sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N),buffer, (unsigned long long)sum_final);
 #endif
 }
 void bench_float_single_impl(int i)
@@ -452,8 +401,9 @@ void bench_float_single_impl(int i)
     printf("%2d. bench %16s : ", i, name.c_str());
 
     char *buffer = (char *)malloc(128);
-    u32 d;
-    int k;
+    memset(buffer, 0, 128);
+    //u32 d;
+    //int k;
     u32 sum_final = 0; // prevent compiler optimization
     auto t1 = getns();
     auto c1 = get_cycle();
@@ -466,10 +416,9 @@ void bench_float_single_impl(int i)
     if (is_bench_float_to_decimal)
     {
 #define BENCH_FLOAT_TO_DECIMAL(name)              \
-    for (int j = 0; j < N; ++j)                   \
+    for (u64 j = 0; j < N; j+=LOOP_UNROLL)                   \
     {                                             \
-        name##_f32_to_dec(data_float[j], &d, &k); \
-        sum_final += d;                           \
+        for(u64 u=0;u<LOOP_UNROLL;u++){u32 d;int k;name##_f32_to_dec(data_float[j+u], &d, &k);sum_final += d;}\
     };
 
         if (i == 0)
@@ -490,18 +439,13 @@ void bench_float_single_impl(int i)
             BENCH_FLOAT_TO_DECIMAL(dragonbox)
         if (i == 8)
             BENCH_FLOAT_TO_DECIMAL(zmij)
-
-        // volatile u32 tmp = d + k;
     }
-    // u64 len_sum_final;
     if (is_bench_float_to_string)
     {
-        // char buffer[128];
-
 #define BENCH_FLOAT_TO_STRING(name)                                     \
-    for (int j = 0; j < N; ++j)                                         \
+    for (u64 j = 0; j < N; j+=LOOP_UNROLL)                              \
     {                                                                   \
-        sum_final += name##_f32_to_str(data_float[j], buffer) - buffer; \
+        for(u64 u=0;u<LOOP_UNROLL;u++){sum_final += name##_f32_to_str(data_float[j+u], buffer) - buffer;} \
     };
 
         if (i == 0)
@@ -530,48 +474,6 @@ void bench_float_single_impl(int i)
             BENCH_FLOAT_TO_STRING(jnum)
         if (i == 12)
             BENCH_FLOAT_TO_STRING(f2e_xjb)
-
-        // u64 len_sum = 0;
-        // if (i == 0)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += ryu_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 1)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += schubfach_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 2)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += schubfach_xjb_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 3)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += xjb32_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 4)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += xjb32_comp_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 5)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += yyjson_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 6)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += dragonbox_comp_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 7)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += dragonbox_full_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 8)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += fmt_comp_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 9)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += fmt_full_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 10)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += zmij_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 11)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += jnum_f32_to_str(data_float[j], buffer) - buffer;
-        // if (i == 12)
-        //     for (int j = 0; j < N; ++j)
-        //         len_sum += f2e_xjb_f32_to_str(data_float[j], buffer) - buffer;
-        // len_sum_final = len_sum;
     }
     auto c2 = get_cycle();
     auto t2 = getns();
@@ -579,9 +481,9 @@ void bench_float_single_impl(int i)
     uint64_t cycle_sum = c2 - c1;
     double cycle_avg = (double)cycle_sum * (1.0 / N);
 #if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
-    printf("cost %5.4lf ms,every float cost %3.4lf ns ,%3.4lf cycle; sum_filnal = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, (unsigned long long)sum_final);
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ,%3.4lf cycle; buffer=%s,sum_filnal = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg,buffer, (unsigned long long)sum_final);
 #else
-    printf("cost %5.4lf ms,every float cost %3.4lf ns ; sum_final = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), (unsigned long long)sum_final);
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ; buffer=%s,sum_final = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N),buffer, (unsigned long long)sum_final);
 #endif
 }
 

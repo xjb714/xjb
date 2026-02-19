@@ -7,7 +7,7 @@
 #define DOUBLE 1
 
 #ifndef PERF_DOUBLE_OR_FLOAT  // 1 : double ; 0 : float
-    #define PERF_DOUBLE_OR_FLOAT 1
+    #define PERF_DOUBLE_OR_FLOAT 0
 #endif
 
 
@@ -128,8 +128,8 @@ int main()
 #if PERF_DOUBLE_OR_FLOAT == FLOAT
             float num = *(float*)&random_num;
             //float num = data[i];
-            //xjb::xjb32(num,buf);
-            xjb_comp::xjb32_comp(num, buf);
+            xjb::xjb32(num,buf);
+            //xjb_comp::xjb32_comp(num, buf);
 #else
             double num = *(double *)&random_num;
             xjb::xjb64(num, buf);

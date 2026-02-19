@@ -172,8 +172,8 @@ void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
         u64 shorter = ((sig_hi + half_ulp) >> BIT) * 10;
 #if defined(__aarch64__)
         // maybe madd instruction is more efficient;
-        u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 3) + ((sig_hi >> 34) & 3) ) >> BIT;
-        //u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 7) + ((sig_hi >> 32) & 15) ) >> BIT;
+        //u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 3) + ((sig_hi >> 34) & 3) ) >> BIT;
+        u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 7) + ((sig_hi >> 32) & 15) ) >> BIT;
 #else
         u64 longer = (sig_hi * 5 + ((1ULL << (BIT - 2)) - 7) + ((sig_hi >> 32) & 15) ) >> (BIT - 1);
 #endif

@@ -267,6 +267,8 @@ static void dtoa_func_benchmark_all(const char *output_path) {
     const int num_per_case = 1 << 17; // 131072
     const int meansure_count = 1;
 
+    const int loop_unroll = 2;
+
     //bool recovery_from_file = true;         // read from file or not
     //std::string file_path = std::string(BENCHMARK_DATA_PATH) + "/dtoa_func_benchmark.txt";
 
@@ -419,11 +421,13 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                     for (int r = 0; r < meansure_count; r++) {
                         f64* data = (f64*)&all_vals[all_vals_begin_pos + (len - 1) * num_per_case];
                         u64 t1 = yy_time_get_ticks();
-                        for (u64 v = 0; v < num_per_case; v++) {
+                        //const u64 loop_unroll = 4;
+                        for (int v = 0; v < num_per_case; v+=loop_unroll) {
                             //f64 val = vals[v];
                             //f64 val = all_vals[v + all_vals_begin_pos + (len - 1) * num_per_case];
-                            f64 val = data[v];
-                            func(val, buf);
+                            // f64 val = data[v];
+                            // func(val, buf);
+                            for(int u=0;u<loop_unroll;u++)func(data[v+u], buf);
                         }
                         u64 t2 = yy_time_get_ticks();
                         u64 t = t2 - t1;
@@ -471,11 +475,13 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                 for (int r = 0; r < meansure_count; r++) {
                     f64* data = (f64*)&all_vals[all_vals_begin_pos];
                     u64 t1 = yy_time_get_ticks();
-                    for (u64 v = 0; v < num_per_case; v++) {
+                    //const u64 loop_unroll = 4;
+                    for (int v = 0; v < num_per_case; v+=loop_unroll) {
                         //f64 val = vals[v];
                         //f64 val = all_vals[v + all_vals_begin_pos];
-                        f64 val = data[v];
-                        func(val, buf);
+                        // f64 val = data[v];
+                        // func(val, buf);
+                        for(int u=0;u<loop_unroll;u++)func(data[v+u], buf);
                     }
                     u64 t2 = yy_time_get_ticks();
                     u64 t = t2 - t1;
@@ -633,7 +639,7 @@ static void ftoa_func_benchmark_all(const char *output_path) {
     yy_cpu_measure_freq();
 
 
-    int num_per_case = (1<<17); //131072
+    int num_per_case = (1<<18); //131072
     int meansure_count = 2;
 
     typedef struct {
@@ -793,9 +799,13 @@ static void ftoa_func_benchmark_all(const char *output_path) {
                 u64 ticks_min = UINT64_MAX;
                 for (int r = 0; r < meansure_count; r++) {
                     u64 t1 = yy_time_get_ticks();
-                    for (u64 v = 0; v < num_per_case; v++) {
-                        f32 val = vals[v];
-                        func(val, buf);
+                    const u64 loop_unroll = 2;
+                    for (u64 v = 0; v < num_per_case; v+=loop_unroll) {
+                        for( u64 u = 0; u < loop_unroll; u++)
+                        {
+                            //f32 val = vals[v+u];
+                            func(vals[v+u], buf);
+                        }
                     }
                     u64 t2 = yy_time_get_ticks();
                     u64 t = t2 - t1;
