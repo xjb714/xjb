@@ -5,6 +5,21 @@
 // author : xjb
 // https://github.com/xjb714/xjb
 
+// this function src from https://github.com/vitaut/zmij/blob/main/zmij.cc
+// Returns true_value if lhs < rhs, else false_value, without branching.
+static inline uint64_t select_if_less_xjb64(uint64_t lhs, uint64_t rhs, uint64_t true_value, uint64_t false_value)
+{
+#if (defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__))
+    asm volatile("cmp %3, %2\n\t"
+                 "cmovb %1, %0\n\t"
+                 : "+r"(false_value) : "r"(true_value),
+                                       "r"(lhs), "r"(rhs) : "cc");
+    return false_value;
+#else
+    return lhs < rhs ? true_value : false_value;
+#endif
+}
+
 static inline 
 void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
 {
@@ -2577,8 +2592,14 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
         // gcc may genarate branch instruction , may cause performance descend.
         // todo : use inline asm , force compiler not generate cmov instruction.
         // clang and icpx will generate cmov instruction.
-        one = (half_ulp > dot_one) ? 0 : one;       // down
-        one = (half_ulp > ~0 - dot_one) ? 10 : one; // up
+        
+        // one = (half_ulp > dot_one) ? 0 : one;       // down
+        // one = (half_ulp > ~0 - dot_one) ? 10 : one; // up
+
+        one = select_if_less_xjb64(dot_one, half_ulp, 0, one);//down
+        one = select_if_less_xjb64(~0 - dot_one, half_ulp, 10, one);//up
+
+
         //one = (dot_one + half_ulp < half_ulp) ? 0 :one;
         //one = (half_ulp > (u64)((hi128 >> offset) + half_ulp) ) ? 0 : one;
         //one = ((half_ulp > dot_one) + (half_ulp > (u64)((hi128 >> offset) + half_ulp) )) ? 0 : one;
