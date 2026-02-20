@@ -20,15 +20,36 @@ auto getns()
 
 std::random_device rd;
 std::mt19937_64 gen(rd());
+
+u64 f64_to_u64(double d)
+{
+    return *(u64 *)&d;
+}
+
+double u64_to_f64(u64 u)
+{
+    return *(double *)&u;
+}
+
+u32 f32_to_u32(float f)
+{
+    return *(u32 *)&f;
+}
+
+float u32_to_f32(u32 u)
+{
+    return *(float *)&u;
+}
+
 double gen_double_filter_NaN_Inf()
 {
-    unsigned long long rnd, rnd_abs;
+    u64 rnd, rnd_abs;
     do
     {
         rnd = gen();
         rnd_abs = rnd & ((1ull << 63) - 1);
     } while (rnd_abs >= (0x7ffull << 52)); // nan or inf
-    return *(double *)&rnd;
+    return u64_to_f64(rnd);
 }
 unsigned check_xjb64_and_schubfach_xjb_jsonformat(double d)
 {
@@ -181,7 +202,7 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
     unsigned int dec, dec_xjb, dec_xjb_comp;
     int e10, e10_xjb, e10_xjb_comp;
     schubfach_xjb_f32_to_dec(f, &dec, &e10);
-    xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
+    xjb_v2_f32_to_dec(f, &dec_xjb, &e10_xjb);
     xjb_comp_f32_to_dec(f, &dec_xjb_comp, &e10_xjb_comp);
     if ((dec == dec_xjb && e10 == e10_xjb && dec == dec_xjb_comp && e10 == e10_xjb_comp))
     {
@@ -190,7 +211,6 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
     else
     {
         printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n", f, dec, e10, dec_xjb, e10_xjb);
-        // exit(0);
     }
     return 1;
 }
@@ -350,9 +370,6 @@ void check_all_float_number_to_decimal()
     {
         float f = *(float *)&i;
         error_sum += check_xjb32_and_schubfach32_xjb(f);
-        // if( (i & ((1u<<26) - 1)) == 0) {
-        //     printf("check float number progress : %.3lf %% \r", (double)i * (100.0 / (double)0x7F7FFFFF)  );
-        // }
     }
     auto t2 = getns();
     if (error_sum == 0)
@@ -392,34 +409,41 @@ void check_f2e_xjb()
     for (u32 i = 0x00000001u; i <= 0x7F7FFFFFu; ++i) // contain 0,nan,inf
     {
         float f = *(float *)&i;
-        // char buffer_printf[32];
-        // sprintf(buffer_printf, "%.8e", f);
         static char buffer_xjb[32];
         char *end_buf_xjb = f2e_xjb_f32_to_str(f, buffer_xjb);
-        double f2 = atof(buffer_xjb);
-        if (f != (float)f2)
+        float f2 = atof(buffer_xjb);
+        if (i != *(u32 *)&f2)
         {
-            printf("i=%u, i=%x, f=%.8e, f2=%.8e, buffer_xjb=%s, f2=%.8e\n", i, i, f, (float)f2, buffer_xjb, f2);
+            printf("i=%u, i=%x, f=%.8e, f2=%.8e, buffer_xjb=%s\n", i, i, f, (float)f2, buffer_xjb);
         }
-        // int len = end_buf_xjb - buffer_xjb;
-        //  if (len != strlen(buffer_printf))
-        //  {
-        //      printf("f = %.8e, buffer_printf=%s, buffer_xjb=%s\n", f, buffer_printf, buffer_xjb);
-        //      break;
-        //  }
-        //  if (memcmp(buffer_printf, buffer_xjb, len) != 0)
-        //  {
-        //      if( abs(buffer_xjb[9] - buffer_printf[9]) > 1 && abs(buffer_xjb[9] - buffer_printf[9])!=9 )
-        //      printf("i = %u , f = %.8e, buffer_printf=%s, buffer_xjb=%s\n",i, f, buffer_printf, buffer_xjb);
-        //      //break;
-        //  }
     }
     auto t2 = getns();
-    printf("check_all_float ok, cost %.3lf second\n", (t2 - t1) / 1e9);
+    printf("check_f2e_xjb ok, cost %.3lf second\n", (t2 - t1) / 1e9);
+}
+void check_d2e_xjb()
+{
+    printf("check d2e_xjb algorithm start: n");
+    auto t1 = getns();
+    const u64 N = (u64)1e8;
+    for (u64 i = 1; i <= N; ++i)
+    {
+        double f = gen_double_filter_NaN_Inf();
+        static char buffer_xjb[64];
+        char *end_buf_xjb = d2e_xjb_f64_to_str(f, buffer_xjb);
+        double f2 = atof(buffer_xjb);
+        u64 u = *(u64 *)&f;
+        if (u != *(u64 *)&f2)
+        {
+            printf("u=%llu, u=%llx, f=%.16le, f2=%.16le, buffer_xjb=%s\n", u, u, f, f2, buffer_xjb);
+            break;
+        }
+    }
+    auto t2 = getns();
+    printf("check_d2e_xjb ok, cost %.3lf second\n", (t2 - t1) / 1e9);
 }
 void check_all_irregular_float_number_to_string()
 {
-    printf("check xjb32 algorithm ; about one minute, check all float number start\n");
+    printf("check xjb32 algorithm :\n");
     u64 error_sum = 0;
     auto t1 = getns();
     for (u32 i = 0; i <= 246; ++i) // contain 0
@@ -441,26 +465,6 @@ void check_all_irregular_float_number_to_string()
         printf("check_all_irregular_float fail error sum = %llu , cost %.3lf second\n", (unsigned long long)error_sum, (double)(t2 - t1) / 1e9);
     }
 }
-// void check_float()
-// {
-//     // not contain subnormal float
-//     // because subnormal float convert to double , it will be 0.
-//     unsigned error_sum = 0;
-//     for (u32 i = 0x00800000u; i <= 0x7F7FFFFFu; ++i) // 2**31
-//     {
-//         float f = *(float *)&i;
-//         double d = f; // convert float to double
-//         error_sum += check_xjb64_and_schubfach_xjb(d);
-//     }
-//     if (error_sum == 0)
-//     {
-//         printf("check_float ok\n");
-//     }
-//     else
-//     {
-//         printf("check_float fail error sum = %u\n", error_sum);
-//     }
-// }
 void check_irregular()
 {
     unsigned error_sum = 0;
@@ -556,7 +560,7 @@ void check_rand_integer()
     for (unsigned long i = 0; i < NUM; ++i)
     {
         u64 u = gen();
-        double d = *(double *)&u;
+        double d = double(u);
         error_sum += check_xjb64_and_schubfach_xjb(d);
     }
     if (error_sum == 0)
@@ -583,13 +587,22 @@ void check_double()
     check_subnormal();     // random subnormal double
     check_rand_double();   // random double
     check_rand_integer();  // random integer
+    check_d2e_xjb();       // 
     auto t2 = getns();
     printf("check finish, check_double cost %.3lf second\n", (t2 - t1) / 1e9);
 }
+void check_float()
+{
+    check_all_float_number_to_decimal();
 
+    check_all_float_number_to_string();
+
+    check_f2e_xjb();
+}
 int main()
 {
-    // check_float();
+    check_float();
 
     check_double();
+
 }
