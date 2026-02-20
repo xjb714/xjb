@@ -3,6 +3,7 @@
 #include <iostream>
 #include <random>
 #include <cstring>
+#include <chrono>
 
 typedef uint64_t u64;
 typedef uint32_t u32;
@@ -70,21 +71,25 @@ double gen_double_filter_NaN_Inf()
     } while (rnd_abs >= (0x7ffull << 52)); // nan or inf
     return u64_to_f64(rnd);
 }
+//static char buf_xjb[48];
+//static char buf_schubfach_xjb[32];
+static char* buf_xjb ;//= new char[48];
+static char* buf_schubfach_xjb ;//= new char[32];
 unsigned check_xjb64_and_schubfach_xjb_to_string(double d)
 {
-    unsigned long long u = f64_to_u64(d);;
-    static char buf_xjb[64];
+    unsigned long long u = f64_to_u64(d);
+    //static char buf_xjb[48];
     // char buf_xjb_comp[33];
-    static char buf_schubfach_xjb[32];
-    // memset(buf_xjb, 0, 33);
+    //static char buf_schubfach_xjb[32];
+    memset(buf_xjb, 0, 48);
     // memset(buf_xjb_comp, 0, 33);
-    // memset(buf_schubfach_xjb, 0, 33);
+    memset(buf_schubfach_xjb, 0, 32);
     char *end_buf_xjb = xjb64_f64_to_str(d, buf_xjb);
     // char *end_buf_xjb_comp = xjb64_comp_f64_to_str(d, buf_xjb_comp);
     char *end_buf_schubfach_xjb = schubfach_xjb_f64_to_str(d, buf_schubfach_xjb);
-    int len_xjb = end_buf_xjb - buf_xjb;
+    size_t len_xjb = end_buf_xjb - buf_xjb;
     // int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
-    int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
+    size_t len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
     // if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
     if (len_xjb != len_schubfach_xjb)
     {
@@ -95,14 +100,13 @@ unsigned check_xjb64_and_schubfach_xjb_to_string(double d)
         //  xjb_f32_to_dec(f, &dec_xjb, &e10_xjb);
         //  printf("f = %.8le, dec=%u,e10=%d , dec_xjb=%u,e10_xjb=%d\n",f,dec,e10,dec_xjb,e10_xjb);
         // printf("f = %.16le, u = %llx, len_xjb=%d , len_xjb_comp=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_xjb_comp=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_xjb_comp, len_schubfach_xjb, buf_xjb, buf_xjb_comp, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
-        printf("f = %.16le, u = %llx, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n", d, u, len_xjb, len_schubfach_xjb, buf_xjb, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
+        printf("f = %.16le, u = %llx, len_xjb=%d , len_schubfach_xjb=%d , buf_xjb=%s, buf_schubfach_xjb=%s , %s\n", d, u, (int)len_xjb, (int)len_schubfach_xjb, buf_xjb, buf_schubfach_xjb, (u & (2047ull << 52)) ? "normal" : "subnormal");
         //  exit(0);
         return 1;
     }
     // if (memcmp(buf_xjb_comp, buf_schubfach_xjb, len_xjb_comp) == 0 && memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     if (memcmp(buf_xjb, buf_schubfach_xjb, len_xjb) == 0)
     {
-        // if three string equal return OK;
         return 0;
     }
     else
@@ -127,7 +131,7 @@ unsigned check_xjb64_and_schubfach_xjb_to_decimal(double d)
     unsigned long long dec, dec_xjb, dec_xjb_comp;
     int e10, e10_xjb, e10_xjb_comp;
     schubfach_xjb_f64_to_dec(d, &dec, &e10);
-    xjb64_f64_to_dec(d, &dec_xjb, &e10_xjb);
+    xjb64_v2_f64_to_dec(d, &dec_xjb, &e10_xjb);
     xjb64_comp_f64_to_dec(d, &dec_xjb_comp, &e10_xjb_comp);
     if ((dec == dec_xjb && e10 == e10_xjb && dec == dec_xjb_comp && e10 == e10_xjb_comp))
     {
@@ -242,10 +246,10 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
 unsigned check_xjb32_and_schubfach32_xjb_string(float f)
 {
     u32 u = f32_to_u32(f);
-    static char buf_xjb[32];
+    //static char buf_xjb[32];
     // char buf_xjb_comp[32];
-    static char buf_schubfach_xjb[32];
-    memset(buf_xjb, 0, 32);
+    //static char buf_schubfach_xjb[32];
+    memset(buf_xjb, 0, 48);
     // memset(buf_xjb_comp, 0, 32);
     memset(buf_schubfach_xjb, 0, 32);
     char *end_buf_xjb = xjb32_f32_to_str(f, buf_xjb);
@@ -446,7 +450,7 @@ void check_d2e_xjb()
         u64 u = f64_to_u64(f);
         if (u != f64_to_u64(f2))
         {
-            printf("u=%llu, u=%llx, f=%.16le, f2=%.16le, buffer_xjb=%s\n", u, u, f, f2, buffer_xjb);
+            printf("u=%llu, u=%llx, f=%.16le, f2=%.16le, buffer_xjb=%s\n", (unsigned long long)u, (long long)u, f, f2, buffer_xjb);
             break;
         }
     }
@@ -666,7 +670,8 @@ int main()
 {
     auto t1 = getns();
     printf("check start, this program may cost long time, please wait:\n");
-
+    buf_xjb = new char[48];
+    buf_schubfach_xjb = new char[32];
     check_float();
 
     check_double();

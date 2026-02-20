@@ -1120,7 +1120,7 @@ namespace xjb
 #endif
 		u64 vi;
 		memcpy(&vi, &v, sizeof(v));
-		buf[0] = '-';
+		*buf = '-';
 		buf += vi >> 63;
 		u64 ieee_significand = vi & ((1ull << 52) - 1);
 		u64 ieee_exponent = (vi << 1) >> 53;
