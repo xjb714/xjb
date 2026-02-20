@@ -15,11 +15,10 @@ typedef __uint128_t u128;
 static inline uint64_t select_if_less(uint64_t lhs, uint64_t rhs, uint64_t true_value, uint64_t false_value)
 {
 #if (defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__))
-    asm(
-        volatile("cmp %3, %2\n\t"
+    asm volatile("cmp %3, %2\n\t"
                  "cmovb %1, %0\n\t"
                  : "+r"(false_value) : "r"(true_value),
-                                       "r"(lhs), "r"(rhs) : "cc"));
+                                       "r"(lhs), "r"(rhs) : "cc");
     return false_value;
 #else
     return lhs < rhs ? true_value : false_value;
@@ -194,7 +193,7 @@ static inline void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
         // u64 up_down = ((sig_hi + half_ulp) >> BIT) > ((sig_hi - half_ulp) >> BIT);
         // *dec = up_down ? shorter : longer; // cmov instruction is more efficient than branch instruction. gcc not generate cmov.
 
-        *dec = select_if_less(((sig_hi - half_ulp) >> BIT),((sig_hi + half_ulp) >> BIT),shorter,longer);
+        *dec = select_if_less(((sig_hi - half_ulp) >> BIT), ((sig_hi + half_ulp) >> BIT), shorter, longer);
         *e10 = k;
     }
     if (irregular)

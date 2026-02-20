@@ -751,7 +751,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 	i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull << 16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
 	u64 abcdefgh_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
 #endif
-	//*lz = u64_lz_bits(hgfedcba_BCD) >> 3;
+	//lz = u64_tz_bits(abcdefgh_BCD) >> 3;
 	int tz = u64_lz_bits(abcdefgh_BCD) >> 3;
 	abcdefgh_BCD = abcdefgh_BCD >> (lz << 3);
 	//abcdefgh_BCD = abcdefgh_BCD >> (u64_lz_bits(hgfedcba_BCD) & 0b1111000);
