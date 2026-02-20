@@ -10,9 +10,23 @@ typedef __uint128_t u128;
 // author : xjb
 // https://github.com/xjb714/xjb
 
+// this function src from https://github.com/vitaut/zmij/blob/main/zmij.cc
+// Returns true_value if lhs < rhs, else false_value, without branching.
+static inline uint64_t select_if_less(uint64_t lhs, uint64_t rhs, uint64_t true_value, uint64_t false_value)
+{
+#if (defined(__x86_64__) && defined(__GNUC__) && !defined(__clang__))
+    asm(
+        volatile("cmp %3, %2\n\t"
+                 "cmovb %1, %0\n\t"
+                 : "+r"(false_value) : "r"(true_value),
+                                       "r"(lhs), "r"(rhs) : "cc"));
+    return false_value;
+#else
+    return lhs < rhs ? true_value : false_value;
+#endif
+}
 
-static inline 
-void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
+static inline void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
 {
     // this function converts v to shortest decimal : dec * 10**e10
     // not contain inf,NaN. this function has passed all test cases.
@@ -102,8 +116,7 @@ void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
             0x81ceb32c4b43fcf5, // -31
             0xcfb11ead453994bb, // -32
         },
-        .h37 = {34, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34}
-    };
+        .h37 = {34, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34, 35, 36, 34, 35, 36, 34, 35, 36, 34, 35, 36, 33, 34}};
     const u64 *pow10_reverse = &(float_table_data.pow10_table_reverse[45]);
     const unsigned char *h37 = &(float_table_data.h37[0]);
 
@@ -113,13 +126,13 @@ void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
     u64 sig = vi & ((1u << 23) - 1);
     u64 exp = (vi << 1) >> 24;
 
-
     u64 irregular = (sig == 0);
     u64 c = sig | (1 << 23);
     i64 q = exp - 150;
     if (exp == 0) [[unlikely]]
     {
-        if(sig==0){
+        if (sig == 0)
+        {
             *dec = 0;
             *e10 = 0;
             return;
@@ -130,13 +143,13 @@ void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
         // this is subnormal number , branch instruction are more efficient than cmov. but some compilers still generate cmov.
         // such as apple clang 17.0.0, apple M1 generate cmov.
         // we use following code to prevent compiler optimization.
-//         const i64 q_min = -149;
-//         const i64* q_min_ptr = (i64 *)&q_min;
-// #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // prevent compiler optimization , generate branch instruction
-// 		asm("" : "+r"(q_min_ptr));
-// #endif
-//         q = *q_min_ptr; // equal to q = -149;
-//         c = sig;
+        //         const i64 q_min = -149;
+        //         const i64* q_min_ptr = (i64 *)&q_min;
+        // #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // prevent compiler optimization , generate branch instruction
+        // 		asm("" : "+r"(q_min_ptr));
+        // #endif
+        //         q = *q_min_ptr; // equal to q = -149;
+        //         c = sig;
     }
     // if (!irregular)
     // {
@@ -158,27 +171,30 @@ void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
 
     //     one = (half_ulp > dot_one_36bit) ? 0 : one;
     //     one = (half_ulp > ((1ULL << BIT) - 1) - dot_one_36bit) ? 0 : one;
-        
+
     //     *dec = ten + one;
     //     *e10 = k;
     // }
     {
-        u64 h37_precalc = h37[exp]; // precalc h + 37;
+        u64 h37_precalc = h37[exp];                     // precalc h + 37;
         i64 k = ((i64)q * (u128)(1233ull << 52)) >> 64; // equal to k = (q * 1233) >> 12; arm64 emit smulh instruction,x64 emit imulq instruction.
-        u64 pow10_hi = pow10_reverse[k]; // get 10^(-k-1)
+        u64 pow10_hi = pow10_reverse[k];                // get 10^(-k-1)
         u64 cb = c << h37_precalc;
         u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64;
         u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + ((sig + 1) & 1);
         u64 shorter = ((sig_hi + half_ulp) >> BIT) * 10;
 #if defined(__aarch64__)
         // maybe madd instruction is more efficient;
-        //u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 3) + ((sig_hi >> 34) & 3) ) >> BIT;
-        u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 7) + ((sig_hi >> 32) & 15) ) >> BIT;
+        // u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 3) + ((sig_hi >> 34) & 3) ) >> BIT;
+        u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 7) + ((sig_hi >> 32) & 15)) >> BIT;
 #else
-        u64 longer = (sig_hi * 5 + ((1ULL << (BIT - 2)) - 7) + ((sig_hi >> 32) & 15) ) >> (BIT - 1);
+        u64 longer = (sig_hi * 5 + ((1ULL << (BIT - 2)) - 7) + ((sig_hi >> 32) & 15)) >> (BIT - 1);
 #endif
-        u64 up_down = ((sig_hi + half_ulp) >> BIT) > ((sig_hi - half_ulp) >> BIT);
-        *dec = up_down ? shorter : longer;//cmov instruction is more efficient than branch instruction. gcc not generate cmov.
+
+        // u64 up_down = ((sig_hi + half_ulp) >> BIT) > ((sig_hi - half_ulp) >> BIT);
+        // *dec = up_down ? shorter : longer; // cmov instruction is more efficient than branch instruction. gcc not generate cmov.
+
+        *dec = select_if_less(((sig_hi - half_ulp) >> BIT),((sig_hi + half_ulp) >> BIT),shorter,longer);
         *e10 = k;
     }
     if (irregular)

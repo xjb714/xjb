@@ -145,7 +145,7 @@ unsigned check_xjb64_and_schubfach_xjb(double d)
 {
 
     if(M == DOUBLE_TO_DECIMAL)return check_xjb64_and_schubfach_xjb_to_decimal(d);
-    else return check_xjb64_and_schubfach_xjb_to_string(d);
+    if(M == DOUBLE_TO_STRING) return check_xjb64_and_schubfach_xjb_to_string(d);
 
 
 // #if BENCH_STR
@@ -239,7 +239,7 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
     }
     return 1;
 }
-unsigned check_xjb32_and_schubfach32_xjb_string_jsonformat(float f)
+unsigned check_xjb32_and_schubfach32_xjb_string(float f)
 {
     u32 u = f32_to_u32(f);
     static char buf_xjb[32];
@@ -289,10 +289,8 @@ unsigned check_xjb32_and_schubfach32_xjb_string_jsonformat(float f)
     }
     return 1;
 }
-unsigned check_xjb32_and_schubfach32_xjb_string(float f)
+unsigned check_xjb32_and_xjb32_comp_and_schubfach32_xjb_string(float f)
 {
-    return check_xjb32_and_schubfach32_xjb_string_jsonformat(f);
-
     u32 u = f32_to_u32(f);
     static char buf_xjb[32];
     static char buf_xjb_comp[32];
@@ -611,23 +609,6 @@ void check_rand_integer()
     }
 }
 
-// void check_double()
-// {
-//     auto t1 = getns();
-//     printf("\ncheck start , may cost long time , please wait\n");
-// #if BENCH_STR
-//     printf("<=== check xjb64(double to string) algorithm ; use schubfach_xjb for correct result ===>\n");
-// #else
-//     printf("<=== check xjb64(double to decimal) algorithm ; use schubfach_xjb for correct result ===>\n");
-// #endif
-//     check_special_value(); // ten special double value
-//     check_irregular();     // all irregular double.
-//     check_subnormal();     // random subnormal double
-//     check_rand_double();   // random double
-//     check_rand_integer();  // random integer
-//     auto t2 = getns();
-//     printf("check finish, check_double cost %.3lf second\n", (t2 - t1) / 1e9);
-// }
 
 void check_double_to_decimal()
 {
