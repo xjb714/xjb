@@ -152,6 +152,7 @@ schubfach_xjb  | It is improved by schubfach and has the same output result.
 [schubfach_vitaut](https://github.com/vitaut/schubfach) | Vitaut's algorithm. https://github.com/vitaut/schubfach
 [zmij](https://github.com/vitaut/zmij) | Vitaut's algorithm. https://github.com/vitaut/zmij
 [jnum](https://github.com/lengjingzju/json/blob/master/jnum.c) | Jing Leng's algorithm. https://github.com/lengjingzju/json/blob/master/jnum.c
+[uscale](https://github.com/rsc/fpfmt) | Russ Cox's algorithm. src: https://github.com/rsc/fpfmt commit 6255750 (19 Jan 2026). introduction: https://research.swtch.com/fp
 
 ## acknowledgement:
 Thanks to the following authors:
