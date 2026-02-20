@@ -1505,7 +1505,7 @@ namespace xjb
 		// u64 up_down = up + down;
 		
 		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
-		u32 lz = (m < c->e7) + (m < c->e6);
+		u32 lz = ((u32)m < (u32)c->e7) + ((u32)m < (u32)c->e6);
 		//u32 lz;
 		// u64 lz = (m < c->e6) ? 2 : (m < c->e7);
 		//u64 lz = (m < (u64)1e6) ? 2 : (m < (u64)1e7);

@@ -5,6 +5,8 @@ char* jnum_f64_to_str(double num, char *buffer){
     int len = jnum::jnum_dtoa(num, buffer);
     return buffer + len;
 }
+
+// not supprt float
 char* jnum_f32_to_str(float num, char *buffer){
     int len = jnum::jnum_dtoa(num, buffer);
     return buffer + len;

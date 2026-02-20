@@ -14,7 +14,6 @@ typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
 
-
 #define USE_YYBENCH 1
 
 #if USE_YYBENCH
@@ -59,8 +58,6 @@ const u64 LOOP_UNROLL = 2;
 const u64 N = (1 << 24); // about 16M
 const u64 N_double = N;  // double data size
 const u64 N_float = N;   // float data size
-
-
 
 // double
 double *data;
@@ -306,83 +303,66 @@ void bench_double_single_impl(int i)
 
     if (is_bench_double_to_decimal)
     {
-#define BENCH_DOUBLE_TO_DECIMAL(name)       \
-    for (u64 j = 0; j < N; j+=LOOP_UNROLL)  \
-    {                                       \
-        for(u64 u=0;u<LOOP_UNROLL;u++){name##_f64_to_dec(data[j+u], &d, &k);sum_final += d;}\
-    };
+#define BENCH_DOUBLE_TO_DECIMAL(n, name)                \
+    if (i == n)                                         \
+        for (u64 j = 0; j < N; j += LOOP_UNROLL)        \
+        {                                               \
+            for (u64 u = 0; u < LOOP_UNROLL; u++)       \
+            {                                           \
+                name##_f64_to_dec(data[j + u], &d, &k); \
+                sum_final += d;                         \
+            }                                           \
+        };
 
-        if (i == 0)
-            BENCH_DOUBLE_TO_DECIMAL(schubfach)
-        if (i == 1)
-            BENCH_DOUBLE_TO_DECIMAL(schubfach_xjb)
-        if (i == 2)
-            BENCH_DOUBLE_TO_DECIMAL(dragonbox)
-        if (i == 3)
-            BENCH_DOUBLE_TO_DECIMAL(ryu)
-        if (i == 4)
-            BENCH_DOUBLE_TO_DECIMAL(teju)
-        if (i == 5)
-            BENCH_DOUBLE_TO_DECIMAL(yyjson)
-        if (i == 6)
-            BENCH_DOUBLE_TO_DECIMAL(yy_double)
-        if (i == 7)
-            BENCH_DOUBLE_TO_DECIMAL(yy_double_full)
-        if (i == 8)
-            BENCH_DOUBLE_TO_DECIMAL(xjb64_v2)
-        if (i == 9)
-            BENCH_DOUBLE_TO_DECIMAL(xjb64_comp)
-        if (i == 10)
-            BENCH_DOUBLE_TO_DECIMAL(zmij)
+        BENCH_DOUBLE_TO_DECIMAL(0, schubfach)
+        BENCH_DOUBLE_TO_DECIMAL(1, schubfach_xjb)
+        BENCH_DOUBLE_TO_DECIMAL(2, dragonbox)
+        BENCH_DOUBLE_TO_DECIMAL(3, ryu)
+        BENCH_DOUBLE_TO_DECIMAL(4, teju)
+        BENCH_DOUBLE_TO_DECIMAL(5, yyjson)
+        BENCH_DOUBLE_TO_DECIMAL(6, yy_double)
+        BENCH_DOUBLE_TO_DECIMAL(7, yy_double_full)
+        BENCH_DOUBLE_TO_DECIMAL(8, xjb64_v2)
+        BENCH_DOUBLE_TO_DECIMAL(9, xjb64_comp)
+        BENCH_DOUBLE_TO_DECIMAL(10, zmij)
     }
 
     if (is_bench_double_to_string)
     {
-#define BENCH_DOUBLE_TO_STRING(name)                              \
-    for (u64 j = 0; j < N; j+=LOOP_UNROLL)                        \
-    {                                                             \
-        for(u64 u=0;u<LOOP_UNROLL;u++){sum_final += name##_f64_to_str(data[j+u], buffer) - buffer;} \
-    };
+#define BENCH_DOUBLE_TO_STRING(n, name)                                       \
+    if (i == n)                                                               \
+        for (u64 j = 0; j < N; j += LOOP_UNROLL)                              \
+        {                                                                     \
+            for (u64 u = 0; u < LOOP_UNROLL; u++)                             \
+            {                                                                 \
+                sum_final += name##_f64_to_str(data[j + u], buffer) - buffer; \
+            }                                                                 \
+        };
 
-        if (i == 0)
-            BENCH_DOUBLE_TO_STRING(ryu)
-        if (i == 1)
-            BENCH_DOUBLE_TO_STRING(schubfach)
-        if (i == 2)
-            BENCH_DOUBLE_TO_STRING(schubfach_xjb)
-        if (i == 3)
-            BENCH_DOUBLE_TO_STRING(yy_double)
-        if (i == 4)
-            BENCH_DOUBLE_TO_STRING(yyjson)
-        if (i == 5)
-            BENCH_DOUBLE_TO_STRING(dragonbox_comp)
-        if (i == 6)
-            BENCH_DOUBLE_TO_STRING(dragonbox_full)
-        if (i == 7)
-            BENCH_DOUBLE_TO_STRING(fmt_comp)
-        if (i == 8)
-            BENCH_DOUBLE_TO_STRING(fmt_full)
-        if (i == 9)
-            BENCH_DOUBLE_TO_STRING(xjb64)
-        if (i == 10)
-            BENCH_DOUBLE_TO_STRING(xjb64_comp)
-        if (i == 11)
-            BENCH_DOUBLE_TO_STRING(zmij)
-        if (i == 12)
-            BENCH_DOUBLE_TO_STRING(jnum)
-        if (i == 13)
-            BENCH_DOUBLE_TO_STRING(d2e_xjb)
-        if (i == 14)
-            BENCH_DOUBLE_TO_STRING(uscalec)
+        BENCH_DOUBLE_TO_STRING(0, ryu)
+        BENCH_DOUBLE_TO_STRING(1, schubfach)
+        BENCH_DOUBLE_TO_STRING(2, schubfach_xjb)
+        BENCH_DOUBLE_TO_STRING(3, yy_double)
+        BENCH_DOUBLE_TO_STRING(4, yyjson)
+        BENCH_DOUBLE_TO_STRING(5, dragonbox_comp)
+        BENCH_DOUBLE_TO_STRING(6, dragonbox_full)
+        BENCH_DOUBLE_TO_STRING(7, fmt_comp)
+        BENCH_DOUBLE_TO_STRING(8, fmt_full)
+        BENCH_DOUBLE_TO_STRING(9, xjb64)
+        BENCH_DOUBLE_TO_STRING(10, xjb64_comp)
+        BENCH_DOUBLE_TO_STRING(11, zmij)
+        BENCH_DOUBLE_TO_STRING(12, jnum)
+        BENCH_DOUBLE_TO_STRING(13, d2e_xjb)
+        BENCH_DOUBLE_TO_STRING(14, uscalec)
     }
     auto c2 = get_cycle();
     auto t2 = getns();
     uint64_t cycle_sum = c2 - c1;
     double cycle_avg = (double)cycle_sum * (1.0 / N);
 #if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
-    printf("cost %5.4lf ms,every double cost %3.4lf ns ,%3.4lf cycle; buffer=%s, sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, buffer,(unsigned long long)sum_final);
+    printf("cost %5.4lf ms,every double cost %3.4lf ns ,%3.4lf cycle; buffer=%s, sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, buffer, (unsigned long long)sum_final);
 #else
-    printf("cost %5.4lf ms,every double cost %3.4lf ns ; buffer=%s, sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N),buffer, (unsigned long long)sum_final);
+    printf("cost %5.4lf ms,every double cost %3.4lf ns ; buffer=%s, sum = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), buffer, (unsigned long long)sum_final);
 #endif
 }
 void bench_float_single_impl(int i)
@@ -402,8 +382,8 @@ void bench_float_single_impl(int i)
 
     char *buffer = (char *)malloc(128);
     memset(buffer, 0, 128);
-    //u32 d;
-    //int k;
+    // u32 d;
+    // int k;
     u32 sum_final = 0; // prevent compiler optimization
     auto t1 = getns();
     auto c1 = get_cycle();
@@ -415,65 +395,53 @@ void bench_float_single_impl(int i)
 
     if (is_bench_float_to_decimal)
     {
-#define BENCH_FLOAT_TO_DECIMAL(name)              \
-    for (u64 j = 0; j < N; j+=LOOP_UNROLL)                   \
-    {                                             \
-        for(u64 u=0;u<LOOP_UNROLL;u++){u32 d;int k;name##_f32_to_dec(data_float[j+u], &d, &k);sum_final += d;}\
-    };
+#define BENCH_FLOAT_TO_DECIMAL(n, name)                       \
+    if (i == n)                                               \
+        for (u64 j = 0; j < N; j += LOOP_UNROLL)              \
+        {                                                     \
+            for (u64 u = 0; u < LOOP_UNROLL; u++)             \
+            {                                                 \
+                u32 d;                                        \
+                int k;                                        \
+                name##_f32_to_dec(data_float[j + u], &d, &k); \
+                sum_final += d;                               \
+            }                                                 \
+        };
 
-        if (i == 0)
-            BENCH_FLOAT_TO_DECIMAL(xjb_v2)
-        if (i == 1)
-            BENCH_FLOAT_TO_DECIMAL(xjb_comp)
-        if (i == 2)
-            BENCH_FLOAT_TO_DECIMAL(schubfach_xjb)
-        if (i == 3)
-            BENCH_FLOAT_TO_DECIMAL(schubfach)
-        if (i == 4)
-            BENCH_FLOAT_TO_DECIMAL(ryu)
-        if (i == 5)
-            BENCH_FLOAT_TO_DECIMAL(teju)
-        if (i == 6)
-            BENCH_FLOAT_TO_DECIMAL(yyjson)
-        if (i == 7)
-            BENCH_FLOAT_TO_DECIMAL(dragonbox)
-        if (i == 8)
-            BENCH_FLOAT_TO_DECIMAL(zmij)
+        BENCH_FLOAT_TO_DECIMAL(0, xjb_v2)
+        BENCH_FLOAT_TO_DECIMAL(1, xjb_comp)
+        BENCH_FLOAT_TO_DECIMAL(2, schubfach_xjb)
+        BENCH_FLOAT_TO_DECIMAL(3, schubfach)
+        BENCH_FLOAT_TO_DECIMAL(4, ryu)
+        BENCH_FLOAT_TO_DECIMAL(5, teju)
+        BENCH_FLOAT_TO_DECIMAL(6, yyjson)
+        BENCH_FLOAT_TO_DECIMAL(7, dragonbox)
+        BENCH_FLOAT_TO_DECIMAL(8, zmij)
     }
     if (is_bench_float_to_string)
     {
-#define BENCH_FLOAT_TO_STRING(name)                                     \
-    for (u64 j = 0; j < N; j+=LOOP_UNROLL)                              \
-    {                                                                   \
-        for(u64 u=0;u<LOOP_UNROLL;u++){sum_final += name##_f32_to_str(data_float[j+u], buffer) - buffer;} \
-    };
-
-        if (i == 0)
-            BENCH_FLOAT_TO_STRING(ryu)
-        if (i == 1)
-            BENCH_FLOAT_TO_STRING(schubfach)
-        if (i == 2)
-            BENCH_FLOAT_TO_STRING(schubfach_xjb)
-        if (i == 3)
-            BENCH_FLOAT_TO_STRING(xjb32)
-        if (i == 4)
-            BENCH_FLOAT_TO_STRING(xjb32_comp)
-        if (i == 5)
-            BENCH_FLOAT_TO_STRING(yyjson)
-        if (i == 6)
-            BENCH_FLOAT_TO_STRING(dragonbox_comp)
-        if (i == 7)
-            BENCH_FLOAT_TO_STRING(dragonbox_full)
-        if (i == 8)
-            BENCH_FLOAT_TO_STRING(fmt_comp)
-        if (i == 9)
-            BENCH_FLOAT_TO_STRING(fmt_full)
-        if (i == 10)
-            BENCH_FLOAT_TO_STRING(zmij)
-        if (i == 11)
-            BENCH_FLOAT_TO_STRING(jnum)
-        if (i == 12)
-            BENCH_FLOAT_TO_STRING(f2e_xjb)
+#define BENCH_FLOAT_TO_STRING(n, name)                                              \
+    if (i == n)                                                                     \
+        for (u64 j = 0; j < N; j += LOOP_UNROLL)                                    \
+        {                                                                           \
+            for (u64 u = 0; u < LOOP_UNROLL; u++)                                   \
+            {                                                                       \
+                sum_final += name##_f32_to_str(data_float[j + u], buffer) - buffer; \
+            }                                                                       \
+        };
+        BENCH_FLOAT_TO_STRING(0, ryu)
+        BENCH_FLOAT_TO_STRING(1, schubfach)
+        BENCH_FLOAT_TO_STRING(2, schubfach_xjb)
+        BENCH_FLOAT_TO_STRING(3, xjb32)
+        BENCH_FLOAT_TO_STRING(4, xjb32_comp)
+        BENCH_FLOAT_TO_STRING(5, yyjson)
+        BENCH_FLOAT_TO_STRING(6, dragonbox_comp)
+        BENCH_FLOAT_TO_STRING(7, dragonbox_full)
+        BENCH_FLOAT_TO_STRING(8, fmt_comp)
+        BENCH_FLOAT_TO_STRING(9, fmt_full)
+        BENCH_FLOAT_TO_STRING(10, zmij)
+        BENCH_FLOAT_TO_STRING(11, jnum)
+        BENCH_FLOAT_TO_STRING(12, f2e_xjb)
     }
     auto c2 = get_cycle();
     auto t2 = getns();
@@ -481,9 +449,9 @@ void bench_float_single_impl(int i)
     uint64_t cycle_sum = c2 - c1;
     double cycle_avg = (double)cycle_sum * (1.0 / N);
 #if defined(__amd64__) && (defined(__GNUC__) || defined(__clang__))
-    printf("cost %5.4lf ms,every float cost %3.4lf ns ,%3.4lf cycle; buffer=%s,sum_filnal = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg,buffer, (unsigned long long)sum_final);
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ,%3.4lf cycle; buffer=%s,sum_filnal = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), cycle_avg, buffer, (unsigned long long)sum_final);
 #else
-    printf("cost %5.4lf ms,every float cost %3.4lf ns ; buffer=%s,sum_final = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N),buffer, (unsigned long long)sum_final);
+    printf("cost %5.4lf ms,every float cost %3.4lf ns ; buffer=%s,sum_final = %llu\n", (double)(t2 - t1) * 1e-6, (double)(t2 - t1) * (1.0 / N), buffer, (unsigned long long)sum_final);
 #endif
 }
 
@@ -1250,9 +1218,8 @@ int main()
 #else
         check_all_irregular_float_number_to_decimal(); // fast
 
-        check_all_float_number_to_decimal();           // check all float number , may cost long time
+        check_all_float_number_to_decimal(); // check all float number , may cost long time
 #endif
-
     }
 
 #endif
@@ -1260,8 +1227,8 @@ int main()
 #if BENCH_DOUBLE
     bench_double();
 
-    if (CHECK_CORRECTNESS)// check xjb algoriothm correctness , use schubfach for correct result
-        check_double(); // check double correctness , may cost long time
+    if (CHECK_CORRECTNESS) // check xjb algoriothm correctness , use schubfach for correct result
+        check_double();    // check double correctness , may cost long time
 #endif
 
     return 0;
