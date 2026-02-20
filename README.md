@@ -8,17 +8,14 @@ for json lib, satisfy  `RFC8259` or https://tc39.es/ecma262/#sec-numeric-types-n
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
 ## algorithm correctness proof:  
-xjb64、xjb64_comp:
-f64 to string/decimal : please run `bench/main.cpp/check_double_to_string();` to check the correctness of the algorithm.  
-The document explaining the working principle of the code is called `code_explain.ipynb`.The document is currently under preparation.  
-
-xjb32、xjb32_comp:  
-(1)f32 to string : please run `bench/main.cpp/check_all_float_number_to_string()` to check the correctness of the algorithm.  
-(2)f32 to decimal : please run `bench/main.cpp/check_all_float_number_to_decimal()` to check the correctness of the algorithm.  
-Test all positive single-precision floating-point numbers. The running time only takes about one minute.  
+Execute the following command to verify the correctness of the algorithm.
+```
+cd bench
+make check
+```
 
 ## todo:
-(1) little-endian support
+(1) big-endian support
 (2) f16, f128 and f256 support
 
 ## src files:
@@ -121,7 +118,7 @@ This algorithm is inspired by algorithms such as schubfach, yy, dragonbox, and g
 ## benchmark:
 The benchmark test is in the `bench` directory. just run `make` to build the benchmark program.
 you can run `bench/main.cpp` to test the performance of the algorithm.  
-The latest benchmark results on Apple M1 and amd R7-7840H CPU(date : 2026.2.18):
+The latest benchmark results on Apple M1 and AMD R7-7840H CPU(date : 2026.2.18):
 <!-- ![ramdom float apple M1](bench_result/random_float_m1.svg)
 ![ramdom double apple M1](bench_result/random_double_m1.svg)
 ![ramdom float amd 7840h](bench_result/random_float_7840h.svg)
