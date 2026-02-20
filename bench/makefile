@@ -1,4 +1,4 @@
-.PHONY: all_result_x64 all_result_arm64 clean
+.PHONY: all_result_x64 all_result_arm64 clean check
 
 BENCH_DOUBLE = 1 # 0 : float, 1 : double
 
@@ -70,6 +70,12 @@ all_result_arm64:
 	$(MAKE) g BENCH_DOUBLE=0 BENCH_F_TO_STR=1
 	$(MAKE) g BENCH_DOUBLE=1 BENCH_F_TO_STR=1
 
+
+
+
+check:
+	g++ -O3 -std=c++20 check.cpp -o check
+	./check
 
 # c1:#clang without AVX512, generate AVX2 code on x86-64 AMD zen4
 # 	clang++ -O3  -march=native main.cpp -mno-avx512f -DBENCH_DOUBLE=$(BENCH_DOUBLE) -o main_clang
