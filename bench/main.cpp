@@ -188,11 +188,10 @@ void init_double()
     double_to_string_algorithm_set.push_back(std::string("fmt_full"));        // 8
     double_to_string_algorithm_set.push_back(std::string("xjb64"));           // 9
     double_to_string_algorithm_set.push_back(std::string("xjb64_comp"));      // 10
-    // double_to_string_algorithm_set.push_back(std::string("schubfach_vitaut"));// 11
-    double_to_string_algorithm_set.push_back(std::string("zmij"));    // 12
-    double_to_string_algorithm_set.push_back(std::string("jnum"));    // 13
-    double_to_string_algorithm_set.push_back(std::string("d2e_xjb")); // 14
-    double_to_string_algorithm_set.push_back(std::string("uscalec")); // 15
+    double_to_string_algorithm_set.push_back(std::string("zmij"));            // 11
+    double_to_string_algorithm_set.push_back(std::string("jnum"));            // 12
+    double_to_string_algorithm_set.push_back(std::string("d2e_xjb"));         // 13
+    double_to_string_algorithm_set.push_back(std::string("uscalec"));         // 14
 
     auto t2 = getns();
     printf("init : cost %lf second\n", (t2 - t1) / 1e9);
