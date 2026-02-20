@@ -2,7 +2,7 @@
 
 BENCH_DOUBLE = 1 # 0 : float, 1 : double
 
-BENCH_F_TO_STR = 0 # 0 : float/double to decimal , 1 : float/double to string
+BENCH_F_TO_STR = 1 # 0 : float/double to decimal , 1 : float/double to string
 
 BENCH_FLOAT = 0 # 0 : float, 1 : double
 
