@@ -598,7 +598,6 @@ void print_cpu_info()
     printf("CPU ARCH: x86_64\n");
 #elif defined(__aarch64__)
     printf("CPU ARCH: ARM64\n");
-#elif defined(__aarch64__)
 #else
     printf("CPU ARCH: unknown\n");
 #endif

@@ -332,11 +332,13 @@ int Format(char *dst, uint64_t d, int p, int nd) {
 	return n+5;
 }
 
-static void fixed(char *dst, double f, int n) {
+static char* fixed(char *dst, double f, int n) {
 	uint64_t d;
 	int p;
 	FixedWidth(f, n, &d, &p);
-	Format(dst, d, p, n);
+	//printf("fixed f=%.17g d=%#lld p=%d\n", f, d, p);
+	int len = Format(dst, d, p, n);
+	return dst + len;
 }
 
 static int short1(char *dst, double f) {

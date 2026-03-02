@@ -243,7 +243,7 @@ unsigned check_xjb32_and_schubfach32_xjb(float f)
     }
     return 1;
 }
-unsigned check_xjb32_and_schubfach32_xjb_string(float f)
+static inline unsigned check_xjb32_and_schubfach32_xjb_string(float f)
 {
     u32 u = f32_to_u32(f);
     //static char buf_xjb[32];
@@ -668,10 +668,12 @@ void check_double()
 
 int main()
 {
-    auto t1 = getns();
     printf("check start, this program may cost long time, please wait:\n");
+    auto t1 = getns();
+    
     buf_xjb = new char[48];
     buf_schubfach_xjb = new char[32];
+    
     check_float();
 
     check_double();
