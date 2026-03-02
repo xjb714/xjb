@@ -207,7 +207,7 @@ static inline uint64_t u128_madd_hi64(uint64_t a, uint64_t b, uint64_t c)
 	return hi + ((lo + c) < c);
 #endif
 }
-static inline const uint64_t is_little_endian()
+static inline uint64_t is_little_endian()
 {
 	const int n = 1;
 	return *(const char *)(&n) == 1;
@@ -1311,7 +1311,7 @@ namespace xjb
 		const i64 e10_DN = t->e10_DN;
 		const i64 e10_UP = t->e10_UP;
 		u64 e10_3 = e10 + (-e10_DN);
-		u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1; // compute offset , min(e10_3,19)
+		u64 e10_data_ofs = e10_3 < (u64)e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1; // compute offset , min(e10_3,19)
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][17 + 1];
 		u64 move_pos = t->e10_variable_data[e10_data_ofs][17 + 2];
@@ -1528,7 +1528,7 @@ namespace xjb
 		// u64 exp_pos = base_ptr[s.dec_sig_len];
 
 		u64 e10_3 = e10 + (-e10_DN);
-		u64 e10_data_ofs = e10_3 < e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
+		u64 e10_data_ofs = e10_3 < (u64)e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
 		//u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
