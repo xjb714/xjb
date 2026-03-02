@@ -307,7 +307,7 @@ static const struct const_value_float constants_float = {
 
 struct double_table_t
 {
-	static const int e10_DN = -3;
+	static const int e10_DN = -4;
 	static const int e10_UP = 15;
 	static const int max_dec_sig_len = 17;
 	static const int num_pow10 = 323 - (-293) + 1;
