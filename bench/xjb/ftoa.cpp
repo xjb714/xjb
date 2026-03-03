@@ -1503,15 +1503,6 @@ namespace xjb
 		// 		++one;
 		// }
 		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
-		// i64 e10_ofs = (i64)e10 * 12 + 36;
-		// u64 e10_data_ofs = (u64)e10_ofs < (u64)10*12 ? (u64)e10_ofs : (u64)10*12;
-		// const unsigned char* base_ptr1 = &(t->e10_variable_data[0][0]);
-		// unsigned char* base_ptr = (unsigned char*)base_ptr1 + e10_data_ofs;
-		// u64 first_sig_pos = base_ptr[9 + 0];
-		// u64 dot_pos = base_ptr[9 + 1];
-		// u64 move_pos = base_ptr[9 + 2];
-		// u64 exp_pos = base_ptr[s.dec_sig_len];
-
 		u64 e10_3 = e10 + (-e10_DN);
 		u64 e10_data_ofs = e10_3 < (u64)e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
 		//u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
