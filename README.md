@@ -165,6 +165,14 @@ Thanks to the following authors:
 
 * Raffaello Giulietti ([@rgiulietti](https://github.com/rgiulietti)) - Author of the Schubfach algorithm, whose work forms a foundational basis for xjb.
 
+
+## who use this algorithm
+
+- [ssrJSON](https://github.com/Antares0982/ssrJSON) - A SIMD boosted high-performance and correct Python JSON parsing library, faster than the fastest.
+
+
+
+
 <!-- https://github.com/xjb714/f2dec_bench
 ![alt text](image-1.png)
 ![alt text](image-2.png) -->
