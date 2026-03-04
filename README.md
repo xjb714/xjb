@@ -87,7 +87,11 @@ Here are a few examples for double to string algorithm:
     </tr>
     <tr>
         <td>0.000123</td>
-        <td>"1.23e-04"</td>
+        <td>"0.000123"</td>
+    </tr>
+        <tr>
+        <td>1.2e-08</td>
+        <td>"1.2e-08"</td>
     </tr>
     <tr>
         <td>0</td>
@@ -170,95 +174,3 @@ Thanks to the following authors:
 
 - [ssrJSON](https://github.com/Antares0982/ssrJSON) - A SIMD boosted high-performance and correct Python JSON parsing library, faster than the fastest.
 - [jsoniter-scala](https://github.com/plokhotnyuk/jsoniter-scala) - Scala macros for compile-time generation of safe and ultra-fast JSON codecs + circe booster.
-
-
-
-
-<!-- https://github.com/xjb714/f2dec_bench
-![alt text](image-1.png)
-![alt text](image-2.png) -->
-
-
-<!-- 
-**Outdated experimental results.**
-
-https://github.com/xjb714/f2dec_bench benchmark result:  
-Generate 1e7 random numbers without 0, NaN and Inf. Measure the time spent converting a floating-point number to a decimal result. We conducted tests on the following two processors.  
-(1)x86-64  
-![alt text](result/amd7840h/image.png)  
-AMD R7 7840H(zen4) ; Ubuntu 24.04.3 LTS ; 24x2=48GB ddr5 5600MHZ;  
-clang++: clang 18.1.3  
-icpx : icpx 2025.0.4  
-g++ : gcc 13.3  
-
-**float:**  
-1. g++ -O3 -march=native  
-![alt text](result/amd7840h/image-1.png)  
-1. icpx -O3 -march=native  
-![alt text](result/amd7840h/image-2.png)  
-1. clang++ -O3  -march=native  
-![alt text](result/amd7840h/image-3.png)  
-Under this condition, the xjb32 algorithm will be compiled into AVX-512 code.  
-1. clang++ -O3  -march=native -mno-avx512f  
-![alt text](result/amd7840h/image-4.png)  
-Under this condition, the xjb32 algorithm will be compiled into AVX-2 code.  
-1. clang++ -O3  -march=native -mno-avx512f -mno-avx2  
-![alt text](result/amd7840h/image-5.png)  
-Under this condition, the xjb32 algorithm will be compiled into normal code.  
-
-**double:**  
-1. g++ -O3 -march=native  
-![alt text](result/amd7840h/image-6.png)  
-2. icpx -O3 -march=native  
-![alt text](result/amd7840h/image-7.png)  
-3. clang++ -O3  -march=native  
-![alt text](result/amd7840h/image-8.png)  
-Under this condition, the xjb64 algorithm will be compiled into AVX-512 code.  
-4. clang++ -O3  -march=native -mno-avx512f  
-![alt text](result/amd7840h/image-9.png)  
-Under this condition, the xjb64 algorithm will be compiled into AVX-2 code.  
-5. clang++ -O3  -march=native -mno-avx512f -mno-avx2  
-![alt text](result/amd7840h/image-10.png)  
-Under this condition, the xjb64 algorithm will be compiled into normal code.  
-
-(2)apple M1  
-![alt text](result/m1/mmexport1761290732997.jpg)  
-clang++ : Apple clang 17.0.0  
-**float:**  
-   clang++ -O3 -march=native  
-   ![alt text](result/m1/mmexport1761290101583.jpg)  
-**double:**  
-   clang++ -O3 -march=native  
-   ![alt text](result/m1/mmexport1761290105081.jpg)  
-    -->
-
-
-<!-- On a little-endian machine, the BCD code y of x, which ranges from 0 to 99, can be calculated as follows. On the big-endian machine, y should be equal to $a  \cdot  256 + b = x - 254 \cdot (x/10)$.
-$$
-\begin{aligned}
-a \cdot 10+b &= x\\
-a+b \cdot 256 &= y = a + (x - a \cdot 10)\cdot 256 = x \cdot 256 - (10 \cdot 256 - 1)  \cdot  (x/10)
-\end{aligned}
-$$
-
-
-abcdefgh = x
-y = a + b<<8 + c<<16 + d<<24 + e<<32 + f<<40 + g<<48 + h<<56
-
-$$
-\begin{aligned}
-x &= abcdefgh \\
-y &= a + (b<<8) + (c<<16) + (d<<24) + (e<<32) + (f<<40) + (g<<48) + (h<<56) \\
-y &= a + (b<<8) + (c<<16) + (d<<24) + ((e + (f<<8) + (g<<16) + (h<<24))<<32) \\ 
-y &= a + (b<<8) + ((c + (d<<8))<<16) + ((e + (f<<8) + ((g + (h<<8)) << 16))<<32) \\
-\end{aligned}
-$$
-
-`u64 aabb_ccdd_merge = (x << 32) - ((10000ull<<32) - 1) * ((x * 109951163) >> 40);`
-aabb_ccdd_merge = (efgh<<32)+abcd;
-
-`u64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) - ((100ull<<16) - 1) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));`
-aa_bb_cc_dd_merge = (((gh<<16)+ef)<<32) + ((cd<<16)+ab);
-
-`u64 aabbccdd_BCD = (aa_bb_cc_dd_merge << 8) - ((10ull<<8) - 1) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));`
-aabbccdd_BCD = y = a + (b<<8) + ((c + (d<<8))<<16) + ((e + (f<<8) + ((g + (h<<8)) << 16))<<32); -->
