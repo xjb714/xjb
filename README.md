@@ -31,7 +31,7 @@ lookup table size:
 <table border="1px">
     <tr>
         <td colspan="1"></td>
-        <td colspan="1">full table:xjb.cpp</td>
+        <td colspan="1">full table:ftoa.cpp</td>
         <td colspan="1">compress table:xjb_comp.cpp</td>
     </tr>
     <tr>
