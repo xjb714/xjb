@@ -1271,7 +1271,6 @@ namespace xjb
 		// const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"
 		// memcpy(buf, "00000000", 8);
 
-		u64 one, up_down;
 #if defined(__SIZEOF_INT128__) && defined(__aarch64__)
 		// arm64 : smulh ; x64 : imul
 		k = ((i64)(ieee_exponent - 1075) * (u128)(78913ull << (64 - 18))) >> 64;
@@ -1300,8 +1299,8 @@ namespace xjb
 		u64 up = half_ulp > ~0 - dot_one;
 		u64 down = half_ulp > dot_one;
 		u64 m_up = (u64)(hi64 >> offset) + up;//m + up
-		up_down = up + down;
-		one = (u128_madd_hi64(dot_one, 10, cv->c4));//round to nearest
+		u64 up_down = up + down;
+		u64 one = (u128_madd_hi64(dot_one, 10, cv->c4));//round to nearest
 		if (irregular) [[unlikely]]
 		{
 			// irregular case : c is 2**52 , exp range is [1,2046] , only 2046 values are possible. easy to compute
@@ -1329,8 +1328,10 @@ namespace xjb
 
 		const i64 e10_DN = t->e10_DN;
 		const i64 e10_UP = t->e10_UP;
+		const u64 interval = e10_UP - e10_DN + 1;
 		u64 e10_3 = e10 + (-e10_DN);
-		u64 e10_data_ofs = e10_3 < (u64)e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1; // compute offset , min(e10_3,19)
+		u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+		//u64 e10_data_ofs = (e10_DN <= e10 && e10 <= e10_UP) ? e10 - e10_DN : interval; // equal to this line
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][17 + 1];
 		u64 move_pos = t->e10_variable_data[e10_data_ofs][17 + 2];
