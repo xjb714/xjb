@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 
 // the latest version is xjb64_v2_f64_to_dec()
 // date : 2026.02.14
@@ -2526,7 +2527,8 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
     // const u64 *pow10_ptr = &(double_table_data.pow10_table[293 * 2 - 2]);
     // const unsigned char* h7 = &(double_table_data.h7[0]);
 
-    u64 vi = *(u64 *)&v;
+    u64 vi ;
+    memcpy(&vi,&v,sizeof(double));
     u64 sig = vi & ((1ull << 52) - 1);
     i64 exp = (vi << 1) >> 53;
     u64 irregular = sig == 0;
@@ -2543,17 +2545,13 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
         }
         q = -1074;
         c = sig;
-
-        //         const i64 q_min = -1074;
-        //         const i64* q_min_ptr = (i64 *)&q_min;
-        // #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // prevent compiler optimization , generate branch instruction
-        // 		asm("" : "+r"(q_min_ptr));
-        // #endif
-        //         q = *q_min_ptr; // equal to q = -1074;
-        //         c = sig;
     }
+
+    // v = c*2**q 
+
     //if (!irregular)
     {
+        //i64 h = q + ((k * -217707 - 217707) >> 16);
         unsigned char h7_precalc = h7[exp];                                // equal to h + 7;
 #if defined(__aarch64__)
         i64 k = ((i64)(exp - 1075) * (u128)(78913ull << (64 - 18))) >> 64; // arm64 emit smulh instruction.
@@ -2563,7 +2561,7 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
 
 #if defined(__aarch64__) // we use lookup table to get h + 37;
         const int use_h7_table = 1;
-        i64 h;//not used
+        i64 h = 0;//not used
         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
         u64 *p10 = (u64 *)&pow10_ptr[k * -2];
 #else
@@ -2572,7 +2570,7 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
         // or : i64 h = q + ((k * -217707 - 217707) >> 16);
         const int use_h7_table = 0;
         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
-        u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
+        u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];// get 10**(-k-1)
 #endif
         u64 pow10_hi = p10[0], pow10_lo = p10[1];
         u128 hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64));
@@ -2590,22 +2588,21 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
 #endif
 
         // gcc may genarate branch instruction , may cause performance descend.
-        // todo : use inline asm , force compiler not generate cmov instruction.
+        // use inline asm , force compiler not generate cmov instruction.
         // clang and icpx will generate cmov instruction.
         
         // one = (half_ulp > dot_one) ? 0 : one;       // down
         // one = (half_ulp > ~0 - dot_one) ? 10 : one; // up
 
-        one = select_if_less_xjb64(dot_one, half_ulp, 0, one);//down
-        one = select_if_less_xjb64(~0 - dot_one, half_ulp, 10, one);//up
+        one = select_if_less_xjb64(dot_one, half_ulp, 0, one);       // down
+        one = select_if_less_xjb64(~0 - dot_one, half_ulp, 10, one); // up
 
 
         //one = (dot_one + half_ulp < half_ulp) ? 0 :one;
         //one = (half_ulp > (u64)((hi128 >> offset) + half_ulp) ) ? 0 : one;
         //one = ((half_ulp > dot_one) + (half_ulp > (u64)((hi128 >> offset) + half_ulp) )) ? 0 : one;
-        *dec = ten + one; 
+        *dec = ten + one;
         *e10 = k;
-        // if(!irregular)return;
     }
 
 //     {

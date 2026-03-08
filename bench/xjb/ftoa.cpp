@@ -298,10 +298,9 @@ static const struct const_value_float constants_float = {
 	.c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
 #endif
 	.div10000 = 1844674407370956,
+	.m = (1ull << 32) - 10000,
 	.e7 = 10000000,
 	.e6 = 1000000,
-	//.e5 = 100000,
-	.m = (1ull << 32) - 10000,
 	.m32_4 = {0x147b000, -100 + 0x10000, 0xce0, -10 + 0x100},
 };
 
@@ -395,10 +394,9 @@ struct float_table_t
 		.c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
 #endif
 		.div10000 = 1844674407370956,
+		.m = (1ull << 32) - 10000,
 		.e7 = 10000000,
 		.e6 = 1000000,
-		//.e5 = 100000,
-		.m = (1ull << 32) - 10000,
 		.m32_4 = {0x147b000, -100 + 0x10000, 0xce0, -10 + 0x100},
 	};
 	constexpr float_table_t()
@@ -566,12 +564,12 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	//  int tz = u64_lz_bits(zeroes) >> 2;
 	//  return {ascii16 , cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO ? (14 + D17) - (tz) : 15 - tz , 15 + D17)};
 
-#endif
+#endif // endif HAS_NEON
 
 #if HAS_SSE2
 	// method 1 : AVX512IFMA, AVX512VBMI
 	// method 2 : SSE4.1
-	// method 3 : SSSE3 (maybe deleted , not enough performance than SSE2)
+	// method 3 : SSSE3 (deleted , not better than SSE2)
 	// method 4 : SSE2
 
 	// method 1 : AVX512IFMA, AVX512VBMI
@@ -775,6 +773,9 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down
 
 	abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64(abcdefgh_BCD);
 	// return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, lz)};
+
+	//when m = 0, abcdefgh_BCD = 0, tz = u64_lz_bits(0) >> 3, this is an UB, but up_down is always 0, so we can dont care about it.
+	//when up_down = 0, the tz is not used. so next line is always correct.
 	return {abcdefgh_BCD | ZERO, cmov_branchless(up_down, (7 ^ lz) - tz, 8 - lz)};// 7^lz == 7-lz
 }
 
@@ -1194,7 +1195,7 @@ namespace xjb
 #endif
 		unsigned char h7_precalc = t->h7[ieee_exponent];
 		i64 k;
-		const int offset = 9;
+		const int offset = 9;//  offset in range [3,10] has same result.
 		u64 regular = ieee_significand > 0;
 		u64 irregular = (ieee_significand == 0);
 
@@ -1298,9 +1299,9 @@ namespace xjb
 		u64 half_ulp = (pow10_hi >> ((1 + offset) - h7_precalc)) + ((c + 1) & 1);
 		u64 up = half_ulp > ~0 - dot_one;
 		u64 down = half_ulp > dot_one;
-		m = (u64)(hi64 >> offset) + up;
+		u64 m_up = (u64)(hi64 >> offset) + up;//m + up
 		up_down = up + down;
-		one = (u128_madd_hi64(dot_one, 10, cv->c4));
+		one = (u128_madd_hi64(dot_one, 10, cv->c4));//round to nearest
 		if (irregular) [[unlikely]]
 		{
 			// irregular case : c is 2**52 , exp range is [1,2046] , only 2046 values are possible. easy to compute
@@ -1311,21 +1312,19 @@ namespace xjb
 			u64 dot_one = (pow10_hi << (53 + h));
 			u64 up = (half_ulp > ~0 - dot_one);
 			u64 down = ((half_ulp >> 1) > dot_one);
-			m = (pow10_hi >> (11 - h)) + up;
+			m_up = (pow10_hi >> (11 - h)) + up;
 			up_down = up + down;
 			one = ((dot_one >> (53 + h)) * 5 + (1 << (9 - h))) >> (10 - h);
 			if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
 				one = ((((dot_one >> 54) * 5) >> 9) + 1);
 		}
-		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction
+		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction , ties to even
 			one = 2;
-		// D17 = 1 : has 17 digits
-		// D17 = 0 : has 16 digits
-		u64 D17 = m > (u64)cv->c3; // (m >= (u64)1e15);
-		u64 mr = D17 ? m : m * 10;
-		// memcpy(buf, "00000000", 8);
-		//  if arm64 : not remove left zero , better performance, high ipc
-		shortest_ascii16 s = to_ascii16(buf, NOT_REMOVE_FIRST_ZERO ? m : mr, up_down, D17, cv);
+		// D17 = 1 : has 17 digits ; D17 = 0 : has 16 digits
+		u64 D17 = m_up > (u64)cv->c3; // (m >= (u64)1e15);
+		u64 mr = D17 ? m_up : m_up * 10;// remove the first digit zero
+		//  if arm64 : not remove left zero , better performance, high ipc, Instruction set parallelism
+		shortest_ascii16 s = to_ascii16(buf, NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv);
 		i64 e10 = k + (15 + D17);
 
 		const i64 e10_DN = t->e10_DN;
@@ -1339,19 +1338,21 @@ namespace xjb
 		u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
 		char *buf_origin = buf;
 		buf += first_sig_pos;
+		
 #if HAS_NEON_OR_SSE2
-		memcpy(buf, &(s.ascii16), 16);
+		memcpy(buf, &(s.ascii16), 16);//write m+up to buffer
 #else
 		memcpy(buf + 0, &(s.hi), 8);
 		memcpy(buf + 8, &(s.lo), 8);
 #endif
 
 #if NOT_REMOVE_FIRST_ZERO
-		memmove(buf, &buf[16 - (15 + D17)], 16);
+		//if D17=0 : memmove(buf,&buf[1],16);
+		memmove(buf, &buf[16 - (15 + D17)], 16);// remove the first digit zero
 #endif
 
 		one |= 0x30303030;
-		memcpy(&buf[15 + D17], &one, 8);
+		memcpy(&buf[15 + D17], &one, 8);// write one to buffer
 		// if((u64(e10) < (u64)e10_DN))memmove(&buf[dot_pos + 1], &buf[dot_pos], 16);
 		memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
 		buf_origin[dot_pos] = '.';
