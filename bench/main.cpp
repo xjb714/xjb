@@ -174,6 +174,7 @@ void init_double()
     double_to_decimal_algorithm_set.push_back({std::string("xjb64"), xjb64_f64_to_dec});                   // 8
     double_to_decimal_algorithm_set.push_back({std::string("xjb64_comp"), xjb64_comp_f64_to_dec});         // 9
     double_to_decimal_algorithm_set.push_back({std::string("zmij64"), zmij_f64_to_dec});                   // 10
+    double_to_decimal_algorithm_set.push_back({std::string("uscalec"), uscalec_f64_to_dec});               // 11
 
     double_to_string_algorithm_set.clear();
 
@@ -324,6 +325,7 @@ void bench_double_single_impl(int i)
         BENCH_DOUBLE_TO_DECIMAL(8, xjb64_v2)
         BENCH_DOUBLE_TO_DECIMAL(9, xjb64_comp)
         BENCH_DOUBLE_TO_DECIMAL(10, zmij)
+        BENCH_DOUBLE_TO_DECIMAL(11, uscalec)
     }
 
     if (is_bench_double_to_string)

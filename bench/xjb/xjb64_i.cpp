@@ -21,11 +21,10 @@ static inline uint64_t select_if_less_xjb64(uint64_t lhs, uint64_t rhs, uint64_t
 #endif
 }
 
-static inline 
-void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
+static inline void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
 {
     // this function converts v to shortest decimal : dec * 10**e10
-    // not contain inf,NaN. 
+    // not contain inf,NaN.
 
     typedef __uint128_t u128;
     typedef uint64_t u64;
@@ -2527,8 +2526,8 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
     // const u64 *pow10_ptr = &(double_table_data.pow10_table[293 * 2 - 2]);
     // const unsigned char* h7 = &(double_table_data.h7[0]);
 
-    u64 vi ;
-    memcpy(&vi,&v,sizeof(double));
+    u64 vi;
+    memcpy(&vi, &v, sizeof(double));
     u64 sig = vi & ((1ull << 52) - 1);
     i64 exp = (vi << 1) >> 53;
     u64 irregular = sig == 0;
@@ -2547,12 +2546,12 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
         c = sig;
     }
 
-    // v = c*2**q 
+    // v = c*2**q
 
-    //if (!irregular)
+    // if (!irregular)
     {
-        //i64 h = q + ((k * -217707 - 217707) >> 16);
-        unsigned char h7_precalc = h7[exp];                                // equal to h + 7;
+        // i64 h = q + ((k * -217707 - 217707) >> 16);
+        unsigned char h7_precalc = h7[exp]; // equal to h + 7;
 #if defined(__aarch64__)
         i64 k = ((i64)(exp - 1075) * (u128)(78913ull << (64 - 18))) >> 64; // arm64 emit smulh instruction.
 #else
@@ -2561,7 +2560,7 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
 
 #if defined(__aarch64__) // we use lookup table to get h + 37;
         const int use_h7_table = 1;
-        i64 h = 0;//not used
+        i64 h = 0; // not used
         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
         u64 *p10 = (u64 *)&pow10_ptr[k * -2];
 #else
@@ -2570,86 +2569,90 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
         // or : i64 h = q + ((k * -217707 - 217707) >> 16);
         const int use_h7_table = 0;
         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
-        u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];// get 10**(-k-1)
+        u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2]; // get 10**(-k-1)
 #endif
         u64 pow10_hi = p10[0], pow10_lo = p10[1];
         u128 hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64));
         u64 dot_one = hi128 >> offset;
-        u64 half_ulp = (p10[0] >> (use_h7_table ? 7 - h7_precalc : -h)) + ((sig + 1) & 1);
+        u64 half_ulp = (p10[0] >> (use_h7_table ? 7 - h7_precalc : -h)) + ((vi + 1) & 1);
         u64 ten = (hi128 >> (offset + 64)) * 10;
-        //u64 ten = (((hi128 >> offset) + half_ulp) >> 64) * 10;
+        // u64 ten = (((hi128 >> offset) + half_ulp) >> 64) * 10;
 
         // we has three method to calculate one.
-        // u64 one = (dot_one * (u128)10 + ( (1ull << 63) + 6)) >> 64; if(dot_one == (1ull << 62)) one = 2;
+        //u64 one = (dot_one * (u128)10 + ( (1ull << 63) + 6)) >> 64; if(dot_one == (1ull << 62)) one = 2;
 #if defined(__amd64__)
         u64 one = (dot_one * (u128)10 + (dot_one == (1ull << 62) ? 0 : (1ull << 63) + 6)) >> 64;
 #else // arm64
-        u64 one = ((dot_one * (u128)10) >> 64) + ((dot_one * 10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull));
+        u64 one = ((dot_one * (u128)10) >> 64) + ((dot_one * 10) > ((dot_one == (1ull << 62)) ? ~0 : ((1ULL << 63) - 7)));
 #endif
 
         // gcc may genarate branch instruction , may cause performance descend.
         // use inline asm , force compiler not generate cmov instruction.
         // clang and icpx will generate cmov instruction.
-        
+
         // one = (half_ulp > dot_one) ? 0 : one;       // down
         // one = (half_ulp > ~0 - dot_one) ? 10 : one; // up
 
         one = select_if_less_xjb64(dot_one, half_ulp, 0, one);       // down
         one = select_if_less_xjb64(~0 - dot_one, half_ulp, 10, one); // up
-
-
-        //one = (dot_one + half_ulp < half_ulp) ? 0 :one;
-        //one = (half_ulp > (u64)((hi128 >> offset) + half_ulp) ) ? 0 : one;
-        //one = ((half_ulp > dot_one) + (half_ulp > (u64)((hi128 >> offset) + half_ulp) )) ? 0 : one;
         *dec = ten + one;
+
+        // u128 hi128_r6 = hi128 >> offset;
+        // u64 up_down = ((hi128_r6+half_ulp)>>64) > ((hi128_r6-half_ulp)>>64);
+        // u64 shorter = ((hi128_r6+half_ulp)>>64) * 10;
+        // *dec = up_down ? shorter : shorter + one;
+
+        // one = (dot_one + half_ulp < half_ulp) ? 0 :one;
+        // one = (half_ulp > (u64)((hi128 >> offset) + half_ulp) ) ? 0 : one;
+        // one = ((half_ulp > dot_one) + (half_ulp > (u64)((hi128 >> offset) + half_ulp) )) ? 0 : one;
+
         *e10 = k;
     }
 
-//     {
-//         unsigned char h7_precalc = h7[exp];                                // equal to h + 7;
-// #if defined(__aarch64__)
-//         i64 k = ((i64)(exp - 1075) * (u128)(78913ull << (64 - 18))) >> 64; // arm64 emit smulh instruction.
-// #else
-//         i64 k = ((i64)(exp - 1075) * 78913) >> 18; // equal to  (q * 78913) >> 18;
-// #endif
+    //     {
+    //         unsigned char h7_precalc = h7[exp];                                // equal to h + 7;
+    // #if defined(__aarch64__)
+    //         i64 k = ((i64)(exp - 1075) * (u128)(78913ull << (64 - 18))) >> 64; // arm64 emit smulh instruction.
+    // #else
+    //         i64 k = ((i64)(exp - 1075) * 78913) >> 18; // equal to  (q * 78913) >> 18;
+    // #endif
 
-// #if defined(__aarch64__) // we use lookup table to get h + 37;
-//         const int use_h7_table = 1;
-//         i64 h;//not used
-//         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
-//         u64 *p10 = (u64 *)&pow10_ptr[k * -2];
-// #else
-//         i64 get_e10 = -1 - k; // equal to ~k; x64 : emit neg instruction. arm64 : emit mvn instruction.
-//         i64 h = q + ((get_e10 * 217707) >> 16);
-//         // or : i64 h = q + ((k * -217707 - 217707) >> 16);
-//         const int use_h7_table = 0;
-//         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
-//         u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
-// #endif
-//         u64 pow10_hi = p10[0], pow10_lo = p10[1];
-//         u128 hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64));
-//         u64 dot_one = hi128 >> offset;
-//         u128 sig128 = hi128 >> offset;
-//         u64 half_ulp = (p10[0] >> (use_h7_table ? 7 - h7_precalc : -h)) + ((sig + 1) & 1);
-//         u64 ten = (( sig128 + half_ulp ) >> 64) * 10;
-//         // we has three method to calculate one.
-//         // u64 one = (dot_one * (u128)10 + ( (1ull << 63) + 6)) >> 64; if(dot_one == (1ull << 62)) one = 2;
-// #if defined(__amd64__)
-//         u64 one = (dot_one * (u128)10 + (dot_one == (1ull << 62) ? 0 : (1ull << 63) + 6)) >> 64;
-// #else // arm64
-//         u64 one = ((dot_one * (u128)10) >> 64) + ((dot_one * 10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull));
-// #endif
-//         u64 up_down = (( sig128 + half_ulp ) >> 64) > (( sig128 - half_ulp ) >> 64);
-//         *dec = up_down ? ten : ten + one;
-//         // gcc may genarate branch instruction , may cause performance descend.
-//         // todo : use inline asm , force compiler not generate cmov instruction.
-//         // clang and icpx will generate cmov instruction.
-//         // one = (half_ulp > dot_one) ? 0 : one;       // down
-//         // one = (half_ulp > ~0 - dot_one) ? 10 : one; // up
-//         // *dec = ten + one;
-//         *e10 = k;
-//     }
-
+    // #if defined(__aarch64__) // we use lookup table to get h + 37;
+    //         const int use_h7_table = 1;
+    //         i64 h;//not used
+    //         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
+    //         u64 *p10 = (u64 *)&pow10_ptr[k * -2];
+    // #else
+    //         i64 get_e10 = -1 - k; // equal to ~k; x64 : emit neg instruction. arm64 : emit mvn instruction.
+    //         i64 h = q + ((get_e10 * 217707) >> 16);
+    //         // or : i64 h = q + ((k * -217707 - 217707) >> 16);
+    //         const int use_h7_table = 0;
+    //         u128 cb = c << (use_h7_table ? h7_precalc : h + 1 + offset);
+    //         u64 *p10 = (u64 *)&pow10_ptr[get_e10 * 2];
+    // #endif
+    //         u64 pow10_hi = p10[0], pow10_lo = p10[1];
+    //         u128 hi128 = (cb * pow10_hi + ((cb * pow10_lo) >> 64));
+    //         u64 dot_one = hi128 >> offset;
+    //         u128 sig128 = hi128 >> offset;
+    //         u64 half_ulp = (p10[0] >> (use_h7_table ? 7 - h7_precalc : -h)) + ((sig + 1) & 1);
+    //         u64 ten = (( sig128 + half_ulp ) >> 64) * 10;
+    //         // we has three method to calculate one.
+    //         // u64 one = (dot_one * (u128)10 + ( (1ull << 63) + 6)) >> 64; if(dot_one == (1ull << 62)) one = 2;
+    // #if defined(__amd64__)
+    //         u64 one = (dot_one * (u128)10 + (dot_one == (1ull << 62) ? 0 : (1ull << 63) + 6)) >> 64;
+    // #else // arm64
+    //         u64 one = ((dot_one * (u128)10) >> 64) + ((dot_one * 10) > ((dot_one == (1ull << 62)) ? ~0 : 0x7ffffffffffffff9ull));
+    // #endif
+    //         u64 up_down = (( sig128 + half_ulp ) >> 64) > (( sig128 - half_ulp ) >> 64);
+    //         *dec = up_down ? ten : ten + one;
+    //         // gcc may genarate branch instruction , may cause performance descend.
+    //         // todo : use inline asm , force compiler not generate cmov instruction.
+    //         // clang and icpx will generate cmov instruction.
+    //         // one = (half_ulp > dot_one) ? 0 : one;       // down
+    //         // one = (half_ulp > ~0 - dot_one) ? 10 : one; // up
+    //         // *dec = ten + one;
+    //         *e10 = k;
+    //     }
 
     // else
     if (irregular)
@@ -2660,7 +2663,7 @@ void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e10)
         i64 k = (i64)(q * 315653 - 131072) >> 20;
         i64 h = q + ((k * -217707 - 217707) >> 16);
 #if defined(__aarch64__)
-        u64 pow10_hi = pow10_ptr[k * -2 ];
+        u64 pow10_hi = pow10_ptr[k * -2];
 #else
         u64 pow10_hi = pow10_ptr[k * -2 - 2];
 #endif

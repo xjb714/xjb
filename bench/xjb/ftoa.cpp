@@ -1300,6 +1300,11 @@ namespace xjb
 		u64 down = half_ulp > dot_one;
 		u64 m_up = (u64)(hi64 >> offset) + up;//m + up
 		u64 up_down = up + down;
+
+		//u128 hi128_r6 = ((u128)(hi64 >> offset) << 64) + dot_one;
+        //u64 up_down = ((hi128_r6+half_ulp)>>64) - ((hi128_r6-half_ulp)>>64);
+
+
 		u64 one = (u128_madd_hi64(dot_one, 10, cv->c4));//round to nearest
 		if (irregular) [[unlikely]]
 		{
