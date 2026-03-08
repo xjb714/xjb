@@ -1271,7 +1271,7 @@ namespace xjb
 		// const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"
 		// memcpy(buf, "00000000", 8);
 
-		u64 m, one, up_down;
+		u64 one, up_down;
 #if defined(__SIZEOF_INT128__) && defined(__aarch64__)
 		// arm64 : smulh ; x64 : imul
 		k = ((i64)(ieee_exponent - 1075) * (u128)(78913ull << (64 - 18))) >> 64;
@@ -1362,7 +1362,7 @@ namespace xjb
 		{
 			// some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
 			// if (buf[0] == '0')
-			if (m < (u64)1e14) [[unlikely]]
+			if (m_up < (u64)1e14) [[unlikely]]
 			{
 				u64 lz = 0;
 				while (buf[2 + lz] == '0')
