@@ -167,7 +167,7 @@ static inline void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
     {
         // i64 h = q + ((k * -1701 - 1701) >> 9);
         u64 h37_precalc = h37[exp];                       // equal to h + 37; h range is [-4,-1]; h + 37 range is [33,36]
-        i64 k = (q(i64) q * (u128)(1233ull << 52)) >> 64; // equal to k = (q * 1233) >> 12; arm64 emit smulh instruction,x64 emit imulq instruction.
+        i64 k = ((i64) q * (u128)(1233ull << 52)) >> 64; // equal to k = (q * 1233) >> 12; arm64 emit smulh instruction,x64 emit imulq instruction.
         u64 pow10 = pow10_reverse[k];                     // get 10^(-k-1)
         u64 cb = c << h37_precalc;                        // not overflow : h37_precalc max is 37-1=36;  the c is 23bit, so left shift 36bit is safe.
         u64 hi64 = (cb * (__uint128_t)pow10) >> 64;
