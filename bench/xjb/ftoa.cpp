@@ -678,7 +678,7 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 #endif
 }
 
-static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down, uint32_t &lz, uint64_t exp,const struct const_value_float *c = nullptr)
+static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down, uint32_t &lz, const struct const_value_float *c = nullptr)
 {
 	// m range : [0, 1e8 - 1] ; m = abcdefgh
 	const uint64_t ZERO = 0x3030303030303030;
@@ -1439,9 +1439,9 @@ namespace xjb
 
 		u64 pow10_hi = t->pow10_float_reverse[45 + k];
 		u64 cb = sig_bin << h37_precalc;
-		u64 sig_hi = umul128_hi64_xjb(cb, pow10_hi);
+		u64 hi64 = umul128_hi64_xjb(cb, pow10_hi);
 		u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + ((sig + 1) & 1);
-		u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1);
+		u64 dot_one_36bit = hi64 & (((u64)1 << BIT) - 1);
 
 		// #ifdef __amd64__
 		// 		u64 up = (half_ulp + dot_one_36bit) >> BIT;
@@ -1454,11 +1454,11 @@ namespace xjb
 
 		// two method to calculate m :
 		// u64 m = (sig_hi >> BIT) + up;
-		u32 m = (sig_hi + half_ulp) >> BIT;
+		u32 m_up = (hi64 + half_ulp) >> BIT;
 
 		// two method to calculate up_down :
 		// u64 up_down = up + down;
-		u32 up_down = m > (u32)((sig_hi - (half_ulp >> 0)) >> BIT);
+		u32 up_down = m_up > (u32)((hi64 - (half_ulp >> 0)) >> BIT);
 		// memcpy(buf, "00000000", 8);
 
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
@@ -1482,7 +1482,7 @@ namespace xjb
 		{
 			if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
 				++one;
-			up_down = m > ((sig_hi - (half_ulp >> 1)) >> BIT);
+			up_down = m_up > ((hi64 - (half_ulp >> 1)) >> BIT);
 			//  i64 k2 = (i64)(exp_bin * 1233 - 512) >> 12;
 			//  if (k2 != k)
 			//  {
@@ -1497,7 +1497,7 @@ namespace xjb
 			//  }
 		}
 		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
-		u32 lz = ((u32)m < (u32)c->e7) + ((u32)m < (u32)c->e6);
+		u32 lz = ((u32)m_up < (u32)c->e7) + ((u32)m_up < (u32)c->e6);
 		// if(exp==0){
 		// 	lz = 
 		// }
@@ -1506,7 +1506,7 @@ namespace xjb
 		// u64 lz = (m < (u64)1e6) ? 2 : (m < (u64)1e7);
 		memcpy(buf, "00000000", 8);
 		memcpy(buf+8, "00000000", 8);
-		shortest_ascii8 s = to_ascii8(m, up_down, lz, exp, c);
+		shortest_ascii8 s = to_ascii8(m_up, up_down, lz, c);
 		i64 e10 = k + (8 - lz);
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
 		// u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
@@ -1536,7 +1536,7 @@ namespace xjb
 #if defined(__aarch64__) // for arm64 processor , fewer instructions
 		if (exp == 0) [[unlikely]]
 #endif
-			if (m < 100000) [[unlikely]]
+			if (m_up < 100000) [[unlikely]]
 			{
 				u64 lz = 0;
 				// while (buf[2 + lz] == '0')
