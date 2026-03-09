@@ -650,7 +650,8 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
 	int tz = u64_lz_bits(mask);
 	__m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
-	_mm_storeu_si128((__m128i *)buf, _mm_set1_epi8('0'));
+	_mm_storeu_si128((__m128i *)buf, _mm_set1_epi8('0'));//write 32bte '0'
+	_mm_storeu_si128((__m128i *)(buf+16), _mm_set1_epi8('0'));
 	return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
 #endif
 
@@ -1136,6 +1137,7 @@ namespace xjb
 	// static inline
 	char *xjb64(double v, char *buf)
 	{
+		// require buf size >= 33 byte
 		const struct const_value_double *cv = &constants_double;
 		const struct double_table_t *t = &double_table;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions , MSVC not support inline asm
