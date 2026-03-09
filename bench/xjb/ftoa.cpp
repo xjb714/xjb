@@ -538,7 +538,8 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
 	int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 	int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-	vst1_s8((int8_t *)buf, vdup_n_s8('0'));
+	vst1q_s8((int8_t *)buf, vdupq_n_s8('0'));//write 32byte '0'
+	vst1q_s8((int8_t *)(buf+16), vdupq_n_s8('0'));
 	uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
 	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0); // zeros != 0
 	int tz = u64_lz_bits(zeroes) >> 2;
@@ -595,7 +596,8 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	__m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
 	//__m128i little_endian_ascii = _mm512_castsi512_si128(ascii);
 	__m128i little_endian_ascii = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
-	_mm_storeu_si128((__m128i *)buf, _mm_set1_epi8('0'));
+	_mm_storeu_si128((__m128i *)buf, _mm_set1_epi8('0'));//write 32byte '0'
+	_mm_storeu_si128((__m128i *)(buf+16), _mm_set1_epi8('0'));
 	int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm512_castsi512_si128(zero)));
 	int tz = u64_lz_bits(mask);
 	return {little_endian_ascii, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
@@ -667,7 +669,10 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
 	int tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
 	tz = tz / 8;
-	memcpy(buf, &ZERO, 8);
+	memcpy(buf, &ZERO, 8);//write 32bte '0'
+	memcpy(buf+8, &ZERO, 8);
+	memcpy(buf+16, &ZERO, 8);
+	memcpy(buf+24, &ZERO, 8);
 	return {abcdefgh_bcd | ZERO, ijklmnop_bcd | ZERO, compute_double_dec_sig_len(up_down, tz, D17)};
 #endif
 }
