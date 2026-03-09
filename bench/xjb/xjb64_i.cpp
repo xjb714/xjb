@@ -2607,6 +2607,7 @@ static inline void xjb64_v2_f64_to_dec(double v, unsigned long long *dec, int *e
         // one = ((half_ulp > dot_one) + (half_ulp > (u64)((hi128 >> offset) + half_ulp) )) ? 0 : one;
 
         *e10 = k;
+        //return ;
     }
 
     //     {

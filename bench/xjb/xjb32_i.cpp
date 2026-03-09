@@ -166,24 +166,20 @@ static inline void xjb_v2_f32_to_dec(float v, unsigned int *dec, int *e10)
     // }
     {
         // i64 h = q + ((k * -1701 - 1701) >> 9);
-        u64 h37_precalc = h37[exp];                       // equal to h + 37; h range is [-4,-1]; h + 37 range is [33,36]
-        i64 k = ((i64) q * (u128)(1233ull << 52)) >> 64; // equal to k = (q * 1233) >> 12; arm64 emit smulh instruction,x64 emit imulq instruction.
-        u64 pow10 = pow10_reverse[k];                     // get 10^(-k-1)
-        u64 cb = c << h37_precalc;                        // not overflow : h37_precalc max is 37-1=36;  the c is 23bit, so left shift 36bit is safe.
+        u64 h37_precalc = h37[exp];                     // equal to h + 37; h range is [-4,-1]; h + 37 range is [33,36]
+        i64 k = ((i64)q * (u128)(1233ull << 52)) >> 64; // equal to k = (q * 1233) >> 12; arm64 emit smulh instruction,x64 emit imulq instruction.
+        u64 pow10 = pow10_reverse[k];                   // get 10^(-k-1)
+        u64 cb = c << h37_precalc;                      // not overflow : h37_precalc max is 37-1=36;  the c is 23bit, so left shift 36bit is safe.
         u64 hi64 = (cb * (__uint128_t)pow10) >> 64;
         u64 half_ulp = (pow10 >> (65 - h37_precalc)) + ((sig + 1) & 1);
-        u64 shorter = ((hi64 + half_ulp) >> BIT) * 10;    // equal to (m + up) * 10
-#if defined(__aarch64__)
-        // maybe madd instruction is more efficient;
-        // u64 longer = (hi64 * 10 + ((1ULL << (BIT - 1)) - 3) + ((hi64 >> 34) & 3) ) >> BIT;
+        u64 shorter = ((hi64 + half_ulp) >> BIT) * 10; // equal to (m + up) * 10
+#if defined(__aarch64__) // madd instruction is more efficient;
         u64 longer = (hi64 * 10 + ((1ULL << (BIT - 1)) - 7) + ((hi64 >> 32) & 15)) >> BIT;
 #else
         u64 longer = (hi64 * 5 + ((1ULL << (BIT - 2)) - 7) + ((hi64 >> 32) & 15)) >> (BIT - 1); // equal to (m * 10 + one)
 #endif
-
         // u64 up_down = ((hi64 + half_ulp) >> BIT) > ((hi64 - half_ulp) >> BIT);
         // *dec = up_down ? shorter : longer; // cmov instruction is more efficient than branch instruction. gcc not generate cmov.
-
         *dec = select_if_less_xjb32(((hi64 - half_ulp) >> BIT), ((hi64 + half_ulp) >> BIT), shorter, longer);
         *e10 = k;
     }

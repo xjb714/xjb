@@ -39,7 +39,7 @@ const int is_bench_float_to_string = BENCH_STR;
 
 const int CHECK_CORRECTNESS = 0;
 
-const u64 LOOP_UNROLL = 2;
+const u64 LOOP_UNROLL = 1;
 
 // double and float algorithm set
 #include "schubfach/schubfach_i.hpp"
@@ -290,8 +290,6 @@ void bench_double_single_impl(int i)
 
     char *buffer = (char *)malloc(128);
     memset(buffer, 0, 128);
-    unsigned long long d;
-    int k;
     u64 sum_final = 0;
     auto t1 = getns();
     auto c1 = get_cycle();
@@ -303,15 +301,16 @@ void bench_double_single_impl(int i)
 
     if (is_bench_double_to_decimal)
     {
-#define BENCH_DOUBLE_TO_DECIMAL(n, name)                \
-    if (i == n)                                         \
-        for (u64 j = 0; j < N; j += LOOP_UNROLL)        \
-        {                                               \
-            for (u64 u = 0; u < LOOP_UNROLL; u++)       \
-            {                                           \
-                name##_f64_to_dec(data[j + u], &d, &k); \
-                sum_final += d;                         \
-            }                                           \
+#define BENCH_DOUBLE_TO_DECIMAL(n, name)            \
+    if (i == n)                                     \
+        for (u64 j = 0; j < N; j += 1)              \
+        {                                           \
+            {                                       \
+                unsigned long long d;               \
+                int k;                              \
+                name##_f64_to_dec(data[j], &d, &k); \
+                sum_final += d;                     \
+            }                                       \
         };
 
         BENCH_DOUBLE_TO_DECIMAL(0, schubfach)
@@ -396,17 +395,16 @@ void bench_float_single_impl(int i)
 
     if (is_bench_float_to_decimal)
     {
-#define BENCH_FLOAT_TO_DECIMAL(n, name)                       \
-    if (i == n)                                               \
-        for (u64 j = 0; j < N; j += LOOP_UNROLL)              \
-        {                                                     \
-            for (u64 u = 0; u < LOOP_UNROLL; u++)             \
-            {                                                 \
-                u32 d;                                        \
-                int k;                                        \
-                name##_f32_to_dec(data_float[j + u], &d, &k); \
-                sum_final += d;                               \
-            }                                                 \
+#define BENCH_FLOAT_TO_DECIMAL(n, name)                   \
+    if (i == n)                                           \
+        for (u64 j = 0; j < N; j += 1)                    \
+        {                                                 \
+            {                                             \
+                u32 d;                                    \
+                int k;                                    \
+                name##_f32_to_dec(data_float[j], &d, &k); \
+                sum_final += d;                           \
+            }                                             \
         };
 
         BENCH_FLOAT_TO_DECIMAL(0, xjb_v2)
