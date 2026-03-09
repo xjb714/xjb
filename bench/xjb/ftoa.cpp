@@ -1334,7 +1334,7 @@ namespace xjb
 		// D17 = 1 : has 17 digits ; D17 = 0 : has 16 digits
 		u64 D17 = m_up > (u64)cv->c3; // (m >= (u64)1e15);
 		u64 mr = D17 ? m_up : m_up * 10;// remove the first digit zero
-		//  if arm64 : not remove left zero , better performance, high ipc, Instruction set parallelism
+		//  if arm64 : not remove left zero , better performance, high ipc, instruction-level parallelism
 		shortest_ascii16 s = to_ascii16(buf, NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv);
 		i64 e10 = k + (15 + D17);
 
