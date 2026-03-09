@@ -1505,6 +1505,7 @@ namespace xjb
 		//  u64 lz = (m < c->e6) ? 2 : (m < c->e7);
 		// u64 lz = (m < (u64)1e6) ? 2 : (m < (u64)1e7);
 		memcpy(buf, "00000000", 8);
+		memcpy(buf+8, "00000000", 8);
 		shortest_ascii8 s = to_ascii8(m, up_down, lz, exp, c);
 		i64 e10 = k + (8 - lz);
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
@@ -1517,8 +1518,9 @@ namespace xjb
 		// 		++one;
 		// }
 		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
+		const u64 interval = e10_UP - e10_DN + 1;// 6 + 3 + 1 = 10
 		u64 e10_3 = e10 + (-e10_DN);
-		u64 e10_data_ofs = e10_3 < (u64)e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
+		u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
 		//u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
@@ -1529,7 +1531,7 @@ namespace xjb
 		buf += first_sig_pos;
 		memcpy(buf, &(s.ascii), 8);
 		memcpy(&buf[8 - lz], &one, 4);
-		memmove(&buf[move_pos], &buf[dot_pos], 8);
+		memmove(&buf[move_pos], &buf[dot_pos], 8);// the index (first_sig_pos + dot_pos + sign) max = 7+1=8,
 		buf_origin[dot_pos] = '.';
 #if defined(__aarch64__) // for arm64 processor , fewer instructions
 		if (exp == 0) [[unlikely]]
