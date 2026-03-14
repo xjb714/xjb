@@ -4,7 +4,6 @@
 
 // todo : big-endian support, msvc support, optimize for performance, add comments, reduce code size, etc.
 
-
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
@@ -66,6 +65,10 @@ typedef __uint128_t u128; // msvc not support
 typedef uint64_t u64;
 typedef int64_t i64;
 typedef uint32_t u32;
+typedef int32_t i32;
+typedef uint16_t u16;
+typedef int16_t i16;
+typedef uint8_t u8;
 
 static inline constexpr uint64_t umul128_hi64_fallback(uint64_t x, uint64_t y)
 {
@@ -258,12 +261,12 @@ struct const_value_double
 
 struct const_value_float
 {
-	int64_t c1;
+	uint64_t c1;
 	uint64_t div10000;
+	uint64_t m;
 	uint32_t e7;
 	uint32_t e6;
-	uint32_t e5;
-	uint32_t m;
+	//uint32_t e5;
 #if HAS_NEON
 	int32x4_t m32_4;
 #else
@@ -295,10 +298,9 @@ static const struct const_value_float constants_float = {
 	.c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
 #endif
 	.div10000 = 1844674407370956,
+	.m = (1ull << 32) - 10000,
 	.e7 = 10000000,
 	.e6 = 1000000,
-	.e5 = 100000,
-	.m = (1ull << 32) - 10000,
 	.m32_4 = {0x147b000, -100 + 0x10000, 0xce0, -10 + 0x100},
 };
 
@@ -380,11 +382,23 @@ struct float_table_t
 	static const int e10_DN = -3;
 	static const int e10_UP = 6;
 	static const int max_dec_sig_len = 9;
-	const int num_pow10 = 44 - (-32) + 1;
+	static const int num_pow10 = 44 - (-32) + 1;
 	uint64_t pow10_float_reverse[44 - (-32) + 1] = {};
 	uint32_t exp_result_float[45 + 38 + 1] = {};
 	unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][max_dec_sig_len + 3] = {};
 	unsigned char h37[256] = {};
+	struct const_value_float constants_float = {
+#if defined(__aarch64__)
+		.c1 = (((u64)('0' + '0' * 256) << (36)) + (((u64)1 << (36 - 1)) - 7)),
+#else
+		.c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
+#endif
+		.div10000 = 1844674407370956,
+		.m = (1ull << 32) - 10000,
+		.e7 = 10000000,
+		.e6 = 1000000,
+		.m32_4 = {0x147b000, -100 + 0x10000, 0xce0, -10 + 0x100},
+	};
 	constexpr float_table_t()
 	{
 		struct uint128_xjb
@@ -524,7 +538,8 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
 	int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 	int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-	vst1_s8((int8_t *)buf, vdup_n_s8('0'));
+	vst1q_s8((int8_t *)buf, vdupq_n_s8('0'));//write 32byte '0'
+	vst1q_s8((int8_t *)(buf+16), vdupq_n_s8('0'));
 	uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
 	uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0); // zeros != 0
 	int tz = u64_lz_bits(zeroes) >> 2;
@@ -550,12 +565,12 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	//  int tz = u64_lz_bits(zeroes) >> 2;
 	//  return {ascii16 , cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO ? (14 + D17) - (tz) : 15 - tz , 15 + D17)};
 
-#endif
+#endif // endif HAS_NEON
 
 #if HAS_SSE2
 	// method 1 : AVX512IFMA, AVX512VBMI
 	// method 2 : SSE4.1
-	// method 3 : SSSE3 (maybe deleted , not enough performance than SSE2)
+	// method 3 : SSSE3 (deleted , not better than SSE2)
 	// method 4 : SSE2
 
 	// method 1 : AVX512IFMA, AVX512VBMI
@@ -581,7 +596,8 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	__m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
 	//__m128i little_endian_ascii = _mm512_castsi512_si128(ascii);
 	__m128i little_endian_ascii = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
-	_mm_storeu_si128((__m128i *)buf, _mm_set1_epi8('0'));
+	_mm_storeu_si128((__m128i *)buf, _mm_set1_epi8('0'));//write 32byte '0'
+	_mm_storeu_si128((__m128i *)(buf+16), _mm_set1_epi8('0'));
 	int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm512_castsi512_si128(zero)));
 	int tz = u64_lz_bits(mask);
 	return {little_endian_ascii, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
@@ -634,7 +650,8 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
 	int tz = u64_lz_bits(mask);
 	__m128i ascii16 = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
-	_mm_storeu_si128((__m128i *)buf, _mm_set1_epi8('0'));
+	_mm_storeu_si128((__m128i *)buf, _mm_set1_epi8('0'));//write 32bte '0'
+	_mm_storeu_si128((__m128i *)(buf+16), _mm_set1_epi8('0'));
 	return {ascii16, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
 #endif
 
@@ -653,12 +670,15 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
 	int tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
 	tz = tz / 8;
-	memcpy(buf, &ZERO, 8);
+	memcpy(buf, &ZERO, 8);//write 32bte '0'
+	memcpy(buf+8, &ZERO, 8);
+	memcpy(buf+16, &ZERO, 8);
+	memcpy(buf+24, &ZERO, 8);
 	return {abcdefgh_bcd | ZERO, ijklmnop_bcd | ZERO, compute_double_dec_sig_len(up_down, tz, D17)};
 #endif
 }
 
-static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down, uint64_t lz, const struct const_value_float *c = nullptr)
+static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down, uint32_t &lz, const struct const_value_float *c = nullptr)
 {
 	// m range : [0, 1e8 - 1] ; m = abcdefgh
 	const uint64_t ZERO = 0x3030303030303030;
@@ -669,7 +689,8 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 	int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->m32_4[0])), c->m32_4[1]);
 	// int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10 + 0x100);
 	int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])), c->m32_4[3]); // fewer instructions but slower,why?
-	u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0));											  // big_endian to little_endian , reverse 8 bytes
+	u64 hgfedcba_BCD = vget_lane_u64(BCD_big_endian, 0);
+	u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0)); // big_endian to little_endian , reverse 8 bytes
 #endif
 
 #if HAS_SSE2
@@ -692,7 +713,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 	const __m512i permb_const7 = _mm512_set1_epi64(idx7);
 	__m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
 	//__m512i highbits_l7 = _mm512_add_epi64(_mm512_slli_epi64(lowbits_l, 5), _mm512_slli_epi64(lowbits_l, 7)); // old CPU
-	__m512i highbits_l7 = _mm512_mullo_epi64(lowbits_l , _mm512_set1_epi64(10<<4));//new CPU may faster
+	__m512i highbits_l7 = _mm512_mullo_epi64(lowbits_l, _mm512_set1_epi64(10 << 4)); // new CPU may faster
 	__m512i bcd = _mm512_permutexvar_epi8(permb_const7, highbits_l7);
 
 	u64 abcdefgh_BCD = _mm_cvtsi128_si64(_mm512_castsi512_si128(bcd));
@@ -749,13 +770,19 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint64_t up_down
 	i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull << 16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
 	u64 abcdefgh_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
 #endif
-
-	abcdefgh_BCD = abcdefgh_BCD >> (NOT_REMOVE_F32_FIRST_ZERO ? 0 : (lz << 3));
-
+	// if(exp == 0) [[unlikely]]
+	// 	lz = u64_lz_bits(hgfedcba_BCD | 1) >> 3; // lz_max = 7;
+	//lz = u64_tz_bits(abcdefgh_BCD) >> 3;
 	int tz = u64_lz_bits(abcdefgh_BCD) >> 3;
+	abcdefgh_BCD = abcdefgh_BCD >> (lz << 3);
+	// abcdefgh_BCD = abcdefgh_BCD >> (u64_lz_bits(hgfedcba_BCD) & 0b1111000);
+
 	abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64(abcdefgh_BCD);
 	// return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, lz)};
-	return {abcdefgh_BCD | ZERO, cmov_branchless(up_down, NOT_REMOVE_F32_FIRST_ZERO ? (7 - lz) - tz : 7 - tz, 8 - lz)};
+
+	//when m = 0, abcdefgh_BCD = 0, tz = u64_lz_bits(0) >> 3, this is an UB, but up_down is always 0, so we can dont care about it.
+	//when up_down = 0, the tz is not used. so next line is always correct.
+	return {abcdefgh_BCD | ZERO, cmov_branchless(up_down, (7 ^ lz) - tz, 8 - lz)};// 7^lz == 7-lz
 }
 
 #if HAS_SSE2
@@ -1107,9 +1134,10 @@ static inline char *write_1_to_16_digit(u64 x, char *buf, const struct const_val
 
 namespace xjb
 {
-	//static inline
+	// static inline
 	char *xjb64(double v, char *buf)
 	{
+		// require buf size >= 33 byte
 		const struct const_value_double *cv = &constants_double;
 		const struct double_table_t *t = &double_table;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions , MSVC not support inline asm
@@ -1117,7 +1145,7 @@ namespace xjb
 #endif
 		u64 vi;
 		memcpy(&vi, &v, sizeof(v));
-		buf[0] = '-';
+		*buf = '-';
 		buf += vi >> 63;
 		u64 ieee_significand = vi & ((1ull << 52) - 1);
 		u64 ieee_exponent = (vi << 1) >> 53;
@@ -1174,7 +1202,7 @@ namespace xjb
 #endif
 		unsigned char h7_precalc = t->h7[ieee_exponent];
 		i64 k;
-		const int offset = 9;
+		const int offset = 9;//  offset in range [3,10] has same result.
 		u64 regular = ieee_significand > 0;
 		u64 irregular = (ieee_significand == 0);
 
@@ -1248,9 +1276,8 @@ namespace xjb
 		// #endif
 
 		// const u64 ZERO_DIGIT = 0x3030303030303030ull; // "00000000"
-		//memcpy(buf, "00000000", 8);
+		// memcpy(buf, "00000000", 8);
 
-		u64 m, one, up_down;
 #if defined(__SIZEOF_INT128__) && defined(__aarch64__)
 		// arm64 : smulh ; x64 : imul
 		k = ((i64)(ieee_exponent - 1075) * (u128)(78913ull << (64 - 18))) >> 64;
@@ -1278,9 +1305,14 @@ namespace xjb
 		u64 half_ulp = (pow10_hi >> ((1 + offset) - h7_precalc)) + ((c + 1) & 1);
 		u64 up = half_ulp > ~0 - dot_one;
 		u64 down = half_ulp > dot_one;
-		m = (u64)(hi64 >> offset) + up;
-		up_down = up + down;
-		one = (u128_madd_hi64(dot_one, 10, cv->c4));
+		u64 m_up = (u64)(hi64 >> offset) + up;//m + up
+		u64 up_down = up + down;
+
+		//u128 hi128_r6 = ((u128)(hi64 >> offset) << 64) + dot_one;
+        //u64 up_down = ((hi128_r6+half_ulp)>>64) - ((hi128_r6-half_ulp)>>64);
+
+
+		u64 one = (u128_madd_hi64(dot_one, 10, cv->c4));//round to nearest
 		if (irregular) [[unlikely]]
 		{
 			// irregular case : c is 2**52 , exp range is [1,2046] , only 2046 values are possible. easy to compute
@@ -1291,27 +1323,27 @@ namespace xjb
 			u64 dot_one = (pow10_hi << (53 + h));
 			u64 up = (half_ulp > ~0 - dot_one);
 			u64 down = ((half_ulp >> 1) > dot_one);
-			m = (pow10_hi >> (11 - h)) + up;
+			m_up = (pow10_hi >> (11 - h)) + up;
 			up_down = up + down;
 			one = ((dot_one >> (53 + h)) * 5 + (1 << (9 - h))) >> (10 - h);
 			if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
 				one = ((((dot_one >> 54) * 5) >> 9) + 1);
 		}
-		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction
+		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction , ties to even
 			one = 2;
-		// D17 = 1 : has 17 digits
-		// D17 = 0 : has 16 digits
-		u64 D17 = m > (u64)cv->c3; // (m >= (u64)1e15);
-		u64 mr = D17 ? m : m * 10;
-		//memcpy(buf, "00000000", 8);
-		// if arm64 : not remove left zero , better performance, high ipc
-		shortest_ascii16 s = to_ascii16(buf, NOT_REMOVE_FIRST_ZERO ? m : mr, up_down, D17, cv);
+		// D17 = 1 : has 17 digits ; D17 = 0 : has 16 digits
+		u64 D17 = m_up > (u64)cv->c3; // (m >= (u64)1e15);
+		u64 mr = D17 ? m_up : m_up * 10;// remove the first digit zero
+		//  if arm64 : not remove left zero , better performance, high ipc, instruction-level parallelism
+		shortest_ascii16 s = to_ascii16(buf, NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv);
 		i64 e10 = k + (15 + D17);
 
 		const i64 e10_DN = t->e10_DN;
 		const i64 e10_UP = t->e10_UP;
+		const u64 interval = e10_UP - e10_DN + 1;
 		u64 e10_3 = e10 + (-e10_DN);
-		u64 e10_data_ofs = e10_3 < (u64)e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1; // compute offset , min(e10_3,19)
+		u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+		//u64 e10_data_ofs = (e10_DN <= e10 && e10 <= e10_UP) ? e10 - e10_DN : interval; // equal to this line
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][17 + 1];
 		u64 move_pos = t->e10_variable_data[e10_data_ofs][17 + 2];
@@ -1319,20 +1351,22 @@ namespace xjb
 		u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
 		char *buf_origin = buf;
 		buf += first_sig_pos;
+		
 #if HAS_NEON_OR_SSE2
-		memcpy(buf, &(s.ascii16), 16);
+		memcpy(buf, &(s.ascii16), 16);//write m+up to buffer
 #else
 		memcpy(buf + 0, &(s.hi), 8);
 		memcpy(buf + 8, &(s.lo), 8);
 #endif
 
 #if NOT_REMOVE_FIRST_ZERO
-		memmove(buf, &buf[16 - (15 + D17)], 16);
+		//if D17=0 : memmove(buf,&buf[1],16);
+		memmove(buf, &buf[16 - (15 + D17)], 16);// remove the first digit zero
 #endif
 
 		one |= 0x30303030;
-		memcpy(&buf[15 + D17], &one, 8);
-		//if((u64(e10) < (u64)e10_DN))memmove(&buf[dot_pos + 1], &buf[dot_pos], 16);
+		memcpy(&buf[15 + D17], &one, 8);// write one to buffer
+		// if((u64(e10) < (u64)e10_DN))memmove(&buf[dot_pos + 1], &buf[dot_pos], 16);
 		memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
 		buf_origin[dot_pos] = '.';
 #if defined(__aarch64__)
@@ -1340,8 +1374,8 @@ namespace xjb
 #endif
 		{
 			// some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-			//if (buf[0] == '0')
-			if (m < (u64)1e14) [[unlikely]]
+			// if (buf[0] == '0')
+			if (m_up < (u64)1e14) [[unlikely]]
 			{
 				u64 lz = 0;
 				while (buf[2 + lz] == '0')
@@ -1363,8 +1397,10 @@ namespace xjb
 	// static inline
 	char *xjb32(float v, char *buf)
 	{
-		const struct const_value_float *c = &constants_float;
+		//const struct const_value_float *c = &constants_float;
+		//const struct const_value_float *c = &float_table.constants_float;
 		const struct float_table_t *t = &float_table;
+		const struct const_value_float *c = &t->constants_float;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions , MSVC not support inline asm
 		asm("" : "+r"(c));											  // read constant values from memory to register
 #endif
@@ -1372,8 +1408,7 @@ namespace xjb
 		memcpy(&vi, &v, 4);
 		buf[0] = '-';
 		buf += vi >> 31;
-		//memcpy(buf, "00000000", 8);
-		u64 sig = vi & ((1 << 23) - 1);
+		u32 sig = vi & ((1 << 23) - 1);
 		u64 exp = (vi << 1) >> 24;
 		u64 sig_bin = sig | (1 << 23);
 		i64 exp_bin = (i64)exp - 150;
@@ -1386,8 +1421,8 @@ namespace xjb
 		}
 		if (exp == 255) [[unlikely]]
 			return (char *)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
-		u64 h37_precalc = t->h37[exp];
-		u64 irregular = sig == 0;
+		u32 h37_precalc = t->h37[exp];
+		u32 irregular = sig == 0;
 		const int BIT = 36;
 #if defined(__SIZEOF_INT128__) && defined(__aarch64__) // for arm64 processor , fewer instructions
 		// arm64 : single smulh instruction can be used to calculate high 64 bits of multiplication
@@ -1399,50 +1434,46 @@ namespace xjb
 		if (irregular) [[unlikely]]
 		{
 			k = (i64)(exp_bin * 1233 - 512) >> 12;
-			h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
+			h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9); // 37+h
 		}
-		
+
 		u64 pow10_hi = t->pow10_float_reverse[45 + k];
 		u64 cb = sig_bin << h37_precalc;
-		// u64 sig_hi = (cb * (__uint128_t)pow10_hi) >> 64;
-		//memcpy(buf, "00000000", 8);
-		u64 sig_hi = umul128_hi64_xjb(cb, pow10_hi);
+		u64 hi64 = umul128_hi64_xjb(cb, pow10_hi);
 		u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + ((sig + 1) & 1);
-		u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1);
+		u64 dot_one_36bit = hi64 & (((u64)1 << BIT) - 1);
 
-// #ifdef __amd64__
-// 		u64 up = (half_ulp + dot_one_36bit) >> BIT;
-// #else // for arm64
-// 	  // u64 up = (half_ulp + dot_one_36bit) >> BIT;
-// 		u64 up = half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit;
-// 		// u64 up = dot_one_36bit > (((u64)1 << BIT) - 1) - half_ulp;
-// #endif
-// 		u64 down = half_ulp > dot_one_36bit;
+		// #ifdef __amd64__
+		// 		u64 up = (half_ulp + dot_one_36bit) >> BIT;
+		// #else // for arm64
+		// 	  // u64 up = (half_ulp + dot_one_36bit) >> BIT;
+		// 		u64 up = half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit;
+		// 		// u64 up = dot_one_36bit > (((u64)1 << BIT) - 1) - half_ulp;
+		// #endif
+		// 		u64 down = half_ulp > dot_one_36bit;
 
 		// two method to calculate m :
-		//u64 m = (sig_hi >> BIT) + up;
-		u64 m = (sig_hi + half_ulp) >> BIT;
+		// u64 m = (sig_hi >> BIT) + up;
+		u32 m_up = (hi64 + half_ulp) >> BIT;
 
 		// two method to calculate up_down :
-		//u64 up_down = up + down;
-		u64 up_down = m > ((sig_hi - (half_ulp >> 0) ) >> BIT);
-		//memcpy(buf, "00000000", 8);
-
-		
+		// u64 up_down = up + down;
+		u32 up_down = m_up > (u32)((hi64 - (half_ulp >> 0)) >> BIT);
+		// memcpy(buf, "00000000", 8);
 
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
-		
+
 		// three method to calculate one:
 		// method 1 :
 #if defined(__aarch64__)
-		u64 one = (dot_one_36bit * 10 + c->c1 + (dot_one_36bit >> (BIT - 4)) ) >> (BIT );//for arm64 : madd instruction faster.
+		u32 one = (dot_one_36bit * 10 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT); // for arm64 : madd instruction faster.
 #else
-		u64 one = (dot_one_36bit * 5 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT - 1);//for x64.
+		u32 one = (dot_one_36bit * 5 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT - 1); // for x64.
 #endif
 		// method 2 :
-		//u64 one = ((dot_one_36bit | (dot_one_36bit >> 32)) + (dot_one_36bit << 2) + c->c1) >> (BIT - 1);
+		// u64 one = ((dot_one_36bit | (dot_one_36bit >> 32)) + (dot_one_36bit << 2) + c->c1) >> (BIT - 1);
 		// method 3 :
-		//u64 one = (dot_one_36bit + c->c1 + ((dot_one_36bit >> 32) | (dot_one_36bit << 2)) ) >> (BIT - 1);
+		// u64 one = (dot_one_36bit + c->c1 + ((dot_one_36bit >> 32) | (dot_one_36bit << 2)) ) >> (BIT - 1);
 
 		// u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 3) + ((sig_hi >> 34) & 3) ) >> BIT;
 		// u64 one = longer - m * 10;
@@ -1450,63 +1481,32 @@ namespace xjb
 		if (irregular) [[unlikely]]
 		{
 			if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
-			{	
 				++one;
-				//printf("exp_bin = %d,m = %d\n",exp_bin,m);
-			}
-			// u64 up = half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit;
-			// down = (half_ulp >> 1) > dot_one_36bit;
-			// m = (sig_hi >> BIT) + up;
-			// up_down = up + down;
-			up_down = m > ((sig_hi - (half_ulp >> 1)) >> BIT);
-			//up_down = m > ((sig_hi - (half_ulp >> 1)) >> BIT);
-			// i64 k2 = (i64)(exp_bin * 1233 - 512) >> 12;
-			// if (k2 != k)
-			// {
-			// 	if (exp_bin == 24 - 150)
-			// 		return (char *)memcpy(buf, "9.8607613e-32\0\0", 16) + 13;
-			// 	if (exp_bin == 57 - 150)
-			// 		return (char *)memcpy(buf, "8.4703295e-22\0\0", 16) + 13;
-			// 	if (exp_bin == 67 - 150)
-			// 		return (char *)memcpy(buf, "8.6736174e-19\0\0", 16) + 13;
-			// 	if (exp_bin == 220 - 150)
-			// 		return (char *)memcpy(buf, "9.9035203e+27\0\0", 16) + 13;
-			// }
-			//else
-			{
-				// if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
-				// 	++one;
-				// up_down = ((sig_hi + half_ulp) >> BIT) > ((sig_hi - (half_ulp >> 1)) >> BIT);
-			}
+			up_down = m_up > ((hi64 - (half_ulp >> 1)) >> BIT);
+			//  i64 k2 = (i64)(exp_bin * 1233 - 512) >> 12;
+			//  if (k2 != k)
+			//  {
+			//  	if (exp_bin == 24 - 150)
+			//  		return (char *)memcpy(buf, "9.8607613e-32\0\0", 16) + 13;
+			//  	if (exp_bin == 57 - 150)
+			//  		return (char *)memcpy(buf, "8.4703295e-22\0\0", 16) + 13;
+			//  	if (exp_bin == 67 - 150)
+			//  		return (char *)memcpy(buf, "8.6736174e-19\0\0", 16) + 13;
+			//  	if (exp_bin == 220 - 150)
+			//  		return (char *)memcpy(buf, "9.9035203e+27\0\0", 16) + 13;
+			//  }
 		}
-		// 	if (irregular)
-		// {
-		//     // irregular case : only conatin 254 value ; c = 1 << 23; exp range is [1,254]
-		//     k = (i64)(exp_bin * 1233 - 512) >> 12;
-		//     i64 h = exp_bin + ((k * -1701 - 1701) >> 9);
-		//     u64 pow10_hi = t->pow10_float_reverse[45 + k]; // get 10^(-k-1)
-		//     u64 sig_hi = pow10_hi >> (4 - h);
-		//     u64 ten = (sig_hi >> BIT) * 10;
-		// 	m = (sig_hi + half_ulp) >> BIT;
-		//     u64 dot_one_36bit = sig_hi & (((u64)1 << BIT) - 1); // only need high 36 bit
-		//     u64 half_ulp = pow10_hi >> ((64 - BIT) - h);
-		//     u64 offset_num = (((u64)1 << (BIT - 2)) - 7) + (dot_one_36bit >> (BIT - 4));
-		//     u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
-		//     one = (((half_ulp) >> 1) > dot_one_36bit) ? 0 : one;
-		//     if ((exp_bin == 31 - 150) || (exp_bin == 214 - 150) || (exp_bin == 217 - 150))
-		//         one++;
-		//     one = (half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit) ? 0 : one;
-		//     // *dec = ten + one;
-		//     // *e10 = k;
-		// }
-		// u64 up_down = up + down;
-		
 		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
-		u64 lz = (m < c->e7) + (m < c->e6);
-		// u64 lz = (m < c->e6) ? 2 : (m < c->e7);
-		//u64 lz = (m < (u64)1e6) ? 2 : (m < (u64)1e7);
+		u32 lz = ((u32)m_up < (u32)c->e7) + ((u32)m_up < (u32)c->e6);
+		// if(exp==0){
+		// 	lz = 
+		// }
+		//u32 lz;
+		//  u64 lz = (m < c->e6) ? 2 : (m < c->e7);
+		// u64 lz = (m < (u64)1e6) ? 2 : (m < (u64)1e7);
 		memcpy(buf, "00000000", 8);
-		shortest_ascii8 s = to_ascii8(m, up_down, lz, c);
+		memcpy(buf+8, "00000000", 8);
+		shortest_ascii8 s = to_ascii8(m_up, up_down, lz, c);
 		i64 e10 = k + (8 - lz);
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
 		// u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
@@ -1518,17 +1518,9 @@ namespace xjb
 		// 		++one;
 		// }
 		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
-		// i64 e10_ofs = (i64)e10 * 12 + 36;
-		// u64 e10_data_ofs = (u64)e10_ofs < (u64)10*12 ? (u64)e10_ofs : (u64)10*12;
-		// const unsigned char* base_ptr1 = &(t->e10_variable_data[0][0]);
-		// unsigned char* base_ptr = (unsigned char*)base_ptr1 + e10_data_ofs;
-		// u64 first_sig_pos = base_ptr[9 + 0];
-		// u64 dot_pos = base_ptr[9 + 1];
-		// u64 move_pos = base_ptr[9 + 2];
-		// u64 exp_pos = base_ptr[s.dec_sig_len];
-
+		const u64 interval = e10_UP - e10_DN + 1;// 6 + 3 + 1 = 10
 		u64 e10_3 = e10 + (-e10_DN);
-		u64 e10_data_ofs = e10_3 < (u64)e10_UP - e10_DN + 1 ? e10_3 : e10_UP - e10_DN + 1;
+		u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
 		//u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
@@ -1538,18 +1530,13 @@ namespace xjb
 		char *buf_origin = (char *)buf;
 		buf += first_sig_pos;
 		memcpy(buf, &(s.ascii), 8);
-		memcpy(&buf[8 - lz], &one, 8);
-
-#if NOT_REMOVE_F32_FIRST_ZERO
-		memmove(&buf[0], &buf[lz], 16);
-#endif
-
-		memmove(&buf[move_pos], &buf[dot_pos], 8);
+		memcpy(&buf[8 - lz], &one, 4);
+		memmove(&buf[move_pos], &buf[dot_pos], 8);// the index (first_sig_pos + dot_pos + sign) max = 7+1=8,
 		buf_origin[dot_pos] = '.';
 #if defined(__aarch64__) // for arm64 processor , fewer instructions
 		if (exp == 0) [[unlikely]]
 #endif
-			if (m < 100000) [[unlikely]]
+			if (m_up < 100000) [[unlikely]]
 			{
 				u64 lz = 0;
 				// while (buf[2 + lz] == '0')
@@ -1573,6 +1560,136 @@ namespace xjb
 		memcpy(buf, &exp_result_u64, 8);
 		return buf + (exp_result_u64 & 4); // 'e' is 0b01100101
 	}
+#if 0
+	static inline void xjb32_pair(float v1, float v2,char *buf1,char* buf2,char** buf_end1,char** buf_end2)
+	{
+		const struct float_table_t *t = &float_table;
+		const struct const_value_float *c = &t->constants_float;
+#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions , MSVC not support inline asm
+		asm("" : "+r"(c));											  // read constant values from memory to register
+#endif
+		const int N = 2;
+		const int BIT = 36;
+		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
+
+#define FOR2 for(int i=0;i<2;i++)
+
+		u32 vi[N],one[N],lz[N],exp_result_u32[N];
+		char *buf[N], *buf_origin[N],*buf_end[N];
+		u64 sig[N],exp[N],sig_bin[N],exp_bin[N],h37_precalc[N],irregular[N],pow10_hi[N],cb[N],sig_hi[N],half_ulp[N];
+		u64 dot_one_36bit[N],m[N],up_down[N],e10_offset[N],e10_data_ofs[N],first_sig_pos[N],dot_pos[N],move_pos[N],exp_pos[N];
+		u64 exp_result_u64[N];
+		shortest_ascii8 s[N];
+		i64 k[N],e10[N];
+
+		memcpy(&vi[0], &v1, 4);
+		memcpy(&vi[1], &v2, 4);
+		buf[0] = buf1;
+		buf[1] = buf2;
+		FOR2 buf[i][0] = '-';
+		FOR2 buf[i] += vi[i] >> 31;
+		FOR2 sig[i] = vi[i] & ((1 << 23) - 1);
+		FOR2 exp[i] = (vi[i] << 1) >> 24;
+		FOR2 sig_bin[i] = sig[i] | (1 << 23);
+		FOR2 exp_bin[i] = (i64)exp[i] - 150;
+		FOR2
+		if (exp[i] == 0) [[unlikely]]
+		{
+			// if (sig == 0)
+			// 	return (char *)memcpy(buf, "0.0", 4) + 3;
+			exp_bin[i] = 1 - 150;
+			sig_bin[i] = sig[i];
+		}
+		// if (exp == 255) [[unlikely]]
+		// 	return (char *)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
+		FOR2 h37_precalc[i] = t->h37[exp[i]];
+		FOR2 irregular[i] = sig[i] == 0;
+		
+#if defined(__SIZEOF_INT128__) && defined(__aarch64__) // for arm64 processor , fewer instructions
+		// arm64 : single smulh instruction can be used to calculate high 64 bits of multiplication
+		// x64 : gcc can not optimize this to a single imul instruction on x86_64 processor , but clang and icpx can optimize it
+		FOR2 k[i] = ((i64)exp_bin[i] * (u128)(1233ull << 52)) >> 64; // signed multiplication
+#else
+		FOR2 k[i] = (exp_bin[i] * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]
+#endif
+		FOR2
+		if (irregular[i]) [[unlikely]]
+		{
+			k[i] = (i64)(exp_bin[i] * 1233 - 512) >> 12;
+			h37_precalc[i] = (BIT + 1) + exp_bin[i] + ((k[i] * -1701 + (-1701)) >> 9); // 37+h
+		}
+
+		FOR2 pow10_hi[i] = t->pow10_float_reverse[45 + k[i]];
+		FOR2 cb[i] = sig_bin[i] << h37_precalc[i];
+		FOR2 sig_hi[i] = umul128_hi64_xjb(cb[i], pow10_hi[i]);
+		FOR2 half_ulp[i] = (pow10_hi[i] >> (65 - h37_precalc[i])) + ((sig[i] + 1) & 1);
+		FOR2 dot_one_36bit[i] = sig_hi[i] & (((u64)1 << BIT) - 1);
+		FOR2 m[i] = (sig_hi[i] + half_ulp[i]) >> BIT;
+		FOR2 up_down[i] = m[i] > ((sig_hi[i] - (half_ulp[i] >> 0)) >> BIT);
+#if defined(__aarch64__)
+		FOR2 one[i] = (dot_one_36bit[i] * 10 + c->c1 + (dot_one_36bit[i] >> (BIT - 4))) >> (BIT); // for arm64 : madd instruction faster.
+#else
+		FOR2 one[i] = (dot_one_36bit[i] * 5 + c->c1 + (dot_one_36bit[i] >> (BIT - 4))) >> (BIT - 1); // for x64.
+#endif
+
+		FOR2
+		if (irregular[i]) [[unlikely]]
+		{
+			if ((exp_bin[i] == 31 - 150) | (exp_bin[i] == 214 - 150) | (exp_bin[i] == 217 - 150)) // branch instruction
+				++one[i];
+			up_down[i] = m[i] > ((sig_hi[i] - (half_ulp[i] >> 1)) >> BIT);
+		}
+		FOR2 lz[i] = ((u32)m[i] < (u32)c->e7) + ((u32)m[i] < (u32)c->e6);
+		FOR2 memcpy(buf[i], "00000000", 8);
+		FOR2 s[i] = to_ascii8(m[i], up_down[i], lz[i], c);
+		FOR2 e10[i] = k[i] + (8 - lz[i]);
+		FOR2 e10_offset[i] = e10[i] + (-e10_DN);
+		FOR2 e10_data_ofs[i] = e10_offset[i] < e10_UP - e10_DN + 1 ? e10_offset[i] : e10_UP - e10_DN + 1;
+		FOR2 first_sig_pos[i] = t->e10_variable_data[e10_data_ofs[i]][9 + 0];
+		FOR2 dot_pos[i] = t->e10_variable_data[e10_data_ofs[i]][9 + 1];
+		FOR2 move_pos[i] = t->e10_variable_data[e10_data_ofs[i]][9 + 2];
+		FOR2 exp_pos[i] = t->e10_variable_data[e10_data_ofs[i]][s[i].dec_sig_len];
+
+		FOR2 buf_origin[i] = (char *)buf[i];
+		FOR2 buf[i] += first_sig_pos[i];
+		FOR2 memcpy(buf[i], &(s[i].ascii), 8);
+		FOR2 memcpy(&buf[i][8 - lz[i]], &one[i], 4);
+		FOR2 memmove(&buf[i][move_pos[i]], &buf[i][dot_pos[i]], 8);
+		FOR2 buf_origin[i][dot_pos[i]] = '.';
+		//if(0)
+		FOR2
+#if defined(__aarch64__) // for arm64 processor , fewer instructions
+		if (exp[i] == 0) [[unlikely]]
+#endif
+			if (m[i] < 100000) [[unlikely]]
+			{
+				u64 lz = 0;
+				// while (buf[2 + lz] == '0')
+				//     lz++;
+				u64 u;
+				memcpy(&u, &buf[2], 8);
+				u = is_little_endian() ? u : byteswap64(u);
+				lz = u64_tz_bits(u & 0x0f0f0f0f0f0f0f0f) / 8;
+				lz += 2;
+				if(lz >= 10)lz=6;
+				e10[i] -= lz - 1;
+				buf[i][0] = buf[i][lz];
+				memmove(&buf[i][2], &buf[i][lz + 1], 8);
+				exp_pos[i] = exp_pos[i] - lz + (exp_pos[i] - lz != 1);
+			}
+		FOR2 exp_result_u32[i] = t->exp_result_float[45 + e10[i]];
+		// if (!is_little_endian())
+		// 	exp_result_u32 = ((exp_result_u32 & 0xff000000) >> 24) | ((exp_result_u32 & 0x00ff0000) >> 8) |
+		// 					 ((exp_result_u32 & 0x0000ff00) << 8) | ((exp_result_u32 & 0x000000ff) << 24);
+		FOR2 exp_result_u64[i] = is_little_endian() ? exp_result_u32[i] : (u64)exp_result_u32[i] << 32;
+		FOR2 buf[i] += exp_pos[i];
+		FOR2 memcpy(buf[i], &exp_result_u64[i], 8);
+		FOR2 buf_end[i] = buf[i] + (exp_result_u64[i] & 4);
+		*buf_end1 = buf_end[0];
+		*buf_end2 = buf_end[1];
+		//return buf + (exp_result_u64[i] & 4); // 'e' is 0b01100101
+	}
+#endif
 	// char *to_string(float v, char *buf) { return xjb32(v, buf); }
 	// char *to_string(double v, char *buf) { return xjb64(v, buf); }
 } // end of namespace xjb
