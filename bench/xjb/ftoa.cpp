@@ -458,7 +458,7 @@ alignas(64) constexpr double_table_t double_table;
 alignas(64) constexpr float_table_t float_table;
 /* const value table for double to string : end */
 
-static inline uint64_t byteswap64(uint64_t x)
+static inline uint64_t byteswap64_xjb(uint64_t x)
 {
 #if defined(__has_builtin) && __has_builtin(__builtin_bswap64)
 	return __builtin_bswap64(x);
@@ -666,8 +666,8 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	uint64_t i_j_k_l_m_n_o_p = ij_kl_mn_op + (0x100 - 10) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f);
 	int abcdefgh_tz = u64_tz_bits(a_b_c_d_e_f_g_h);
 	int ijklmnop_tz = u64_tz_bits(i_j_k_l_m_n_o_p);
-	uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
-	uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
+	uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64_xjb(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+	uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64_xjb(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
 	int tz = (ijklmnop == 0) ? 64 + abcdefgh_tz : ijklmnop_tz;
 	tz = tz / 8;
 	memcpy(buf, &ZERO, 8);//write 32bte '0'
@@ -690,7 +690,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down
 	// int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10 + 0x100);
 	int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])), c->m32_4[3]); // fewer instructions but slower,why?
 	u64 hgfedcba_BCD = vget_lane_u64(BCD_big_endian, 0);
-	u64 abcdefgh_BCD = byteswap64(vget_lane_u64(BCD_big_endian, 0)); // big_endian to little_endian , reverse 8 bytes
+	u64 abcdefgh_BCD = byteswap64_xjb(vget_lane_u64(BCD_big_endian, 0)); // big_endian to little_endian , reverse 8 bytes
 #endif
 
 #if HAS_SSE2
@@ -777,7 +777,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down
 	abcdefgh_BCD = abcdefgh_BCD >> (lz << 3);
 	// abcdefgh_BCD = abcdefgh_BCD >> (u64_lz_bits(hgfedcba_BCD) & 0b1111000);
 
-	abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64(abcdefgh_BCD);
+	abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64_xjb(abcdefgh_BCD);
 	// return {abcdefgh_BCD | ZERO, compute_float_dec_sig_len(up_down, tz, lz)};
 
 	//when m = 0, abcdefgh_BCD = 0, tz = u64_lz_bits(0) >> 3, this is an UB, but up_down is always 0, so we can dont care about it.
@@ -882,7 +882,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf, const struct const_val
 		int16x4_t a_b_c_d_e_f_g_h = vmla_s16(ab_cd_ef_gh, vqdmulh_s16(ab_cd_ef_gh, vdup_n_s16(0xce0)), vdup_n_s16(-10 + 0x100));
 		u64 bcd_big_endian = vget_lane_u64(a_b_c_d_e_f_g_h, 0);
 		u64 lz = u64_lz_bits(bcd_big_endian) / 8; // lz max is 7 , bcd_big_endian = 0 is impossible
-		u64 abcdefgh_bcd = is_little_endian() ? byteswap64(bcd_big_endian) : bcd_big_endian;
+		u64 abcdefgh_bcd = is_little_endian() ? byteswap64_xjb(bcd_big_endian) : bcd_big_endian;
 		u64 abcdefgh_ascii = abcdefgh_bcd | ZERO;
 		abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * lz) : abcdefgh_ascii << (8 * lz);
 		memcpy(buf, &abcdefgh_ascii, 8);
@@ -960,7 +960,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf, const struct const_val
 #endif
 
 		u64 lz = u64_tz_bits(abcdefgh_BCD) / 8;
-		uint64_t abcdefgh_bcd = !is_little_endian() ? byteswap64(abcdefgh_BCD) : abcdefgh_BCD;
+		uint64_t abcdefgh_bcd = !is_little_endian() ? byteswap64_xjb(abcdefgh_BCD) : abcdefgh_BCD;
 		uint64_t abcdefgh_ascii = abcdefgh_bcd | ZERO;
 		abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * lz) : abcdefgh_ascii << (8 * lz); // remove leading zeros
 		memcpy(buf, &abcdefgh_ascii, 8);
@@ -974,7 +974,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf, const struct const_val
 		int64_t ab_cd_ef_gh = abcd_efgh + (0x10000 - 100) * (((abcd_efgh * 0x147b) >> 19) & 0x7f0000007f);
 		int64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f);
 		u64 lz = u64_lz_bits(a_b_c_d_e_f_g_h) / 8;
-		uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+		uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64_xjb(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
 		uint64_t abcdefgh_ascii = abcdefgh_bcd | ZERO;
 		abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * lz) : abcdefgh_ascii << (8 * lz); // remove leading zeros
 		memcpy(buf, &abcdefgh_ascii, 8);
@@ -1115,8 +1115,8 @@ static inline char *write_1_to_16_digit(u64 x, char *buf, const struct const_val
 		uint64_t a_b_c_d_e_f_g_h = ab_cd_ef_gh + (0x100 - 10) * (((ab_cd_ef_gh * 0x67) >> 10) & 0xf000f000f000f); //+ 0x3030303030303030;
 		uint64_t i_j_k_l_m_n_o_p = ij_kl_mn_op + (0x100 - 10) * (((ij_kl_mn_op * 0x67) >> 10) & 0xf000f000f000f); //+ 0x3030303030303030;
 		u64 abcdefgh_lz = u64_lz_bits(a_b_c_d_e_f_g_h) / 8;
-		uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
-		uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
+		uint64_t abcdefgh_bcd = is_little_endian() ? byteswap64_xjb(a_b_c_d_e_f_g_h) : a_b_c_d_e_f_g_h;
+		uint64_t ijklmnop_bcd = is_little_endian() ? byteswap64_xjb(i_j_k_l_m_n_o_p) : i_j_k_l_m_n_o_p;
 		u64 abcdefgh_ascii = abcdefgh_bcd | ZERO;
 		u64 ijklmnop_ascii = ijklmnop_bcd | ZERO;
 		abcdefgh_ascii = is_little_endian() ? abcdefgh_ascii >> (8 * abcdefgh_lz) : abcdefgh_ascii << (8 * abcdefgh_lz);
@@ -1543,7 +1543,7 @@ namespace xjb
 				//     lz++;
 				u64 u;
 				memcpy(&u, &buf[2], 8);
-				u = is_little_endian() ? u : byteswap64(u);
+				u = is_little_endian() ? u : byteswap64_xjb(u);
 				lz = u64_tz_bits(u & 0x0f0f0f0f0f0f0f0f) / 8;
 				lz += 2;
 				e10 -= lz - 1;
@@ -1668,7 +1668,7 @@ namespace xjb
 				//     lz++;
 				u64 u;
 				memcpy(&u, &buf[2], 8);
-				u = is_little_endian() ? u : byteswap64(u);
+				u = is_little_endian() ? u : byteswap64_xjb(u);
 				lz = u64_tz_bits(u & 0x0f0f0f0f0f0f0f0f) / 8;
 				lz += 2;
 				if(lz >= 10)lz=6;
