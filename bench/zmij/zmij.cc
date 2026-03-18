@@ -921,7 +921,9 @@ auto write_fixed_double_sse4(char* buffer, uint64_t dec_sig, int dec_exp,
   char* point = buffer + dec_exp + !extra_digit;
   *point = '.';
   buffer += len;
-  return buffer > point ? buffer + 1 : point;
+  char* buf_end = buffer > point ? buffer + 1 : point;
+  *buf_end = '\0';
+  return buf_end;
 }
 #endif
 
