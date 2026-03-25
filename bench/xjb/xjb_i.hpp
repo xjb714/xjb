@@ -1,19 +1,12 @@
-//float/double to string
-
-//#include "dtoa_xjb_comp.cpp"
-//#include "dtoa_xjb64_xjb32.cpp"
-//#include "xjb.cpp"
-//#include "ftoa.cpp"
-
 #define USE_xjb_comp 1
 
-#include "float_to_string/ftoa.cpp"
+#include "float_to_string/ftoa.cpp" // full table
 
 #if USE_xjb_comp
-    #include "float_to_string/xjb_comp.cpp"
+    #include "float_to_string/xjb_comp.cpp" // compress table
 #endif
 
-#include "other/d2e_xjb.cpp"
+#include "other/d2e_xjb.cpp" // only information reserve
 
 //float/double to decimal
 #include "float_to_decimal/xjb32_i.cpp" // contain xjb_f32_to_dec xjb xjb_comp_f32_to_dec
