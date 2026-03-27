@@ -3,7 +3,7 @@ xjb : a fast float to string algorithm.
 
 float/double to string single file implementation : `src/ftoa.cpp`
 
-for json lib, satisfy  `RFC8259` or https://tc39.es/ecma262/#sec-numeric-types-number-tostring : `src/ftoa_json.cpp`
+for json lib, satisfy  `RFC8259` and https://tc39.es/ecma262/#sec-numeric-types-number-tostring : `src/ftoa_json.cpp`
 
 This code is still being updated continuously, so it may not be the final version. Later, I will write documentation to explain in detail the function of each line of code and the proof process.
 
@@ -20,12 +20,12 @@ make check
 
 ## src files:
 (1)float/double to decimal algorithm  
-&emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `bench/xjb/xjb32_i.cpp`;  <!-- https://godbolt.org/z/eT57sW9q1   -->  
-&emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `bench/xjb/xjb64_i.cpp`;  <!-- https://godbolt.org/z/oG7eW9jEj   -->
+&emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `bench/xjb/float_to_decimal/xjb32_i.cpp`;  
+&emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `bench/xjb/float_to_decimal/xjb64_i.cpp`;
 
 (2)float/double to string algorithm  
-&emsp;&emsp;   full lookup table : `bench/xjb/ftoa.cpp` 
-&emsp;&emsp;   compress lookup table : `bench/xjb/xjb_comp.cpp`
+&emsp;&emsp;   full lookup table : `bench/xjb/float_to_string/ftoa.cpp`  
+&emsp;&emsp;   compress lookup table : `bench/xjb/float_to_string/xjb_comp.cpp`
 
 lookup table size:
 <table border="1px">
