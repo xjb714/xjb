@@ -213,6 +213,7 @@ namespace xjb_comp
             0xcecb8f27f4200f3a, // = (5**27) << clz(5**27) = (5**27) <<  1 ; e10 = 27
 #endif
         };
+        
         int get_e10 = -k - 1;
 
         const u64 *pow5_rlz_ptr = &pow10_base_and_pow5_rlz[(base_end - base_start + 1) * 2];
