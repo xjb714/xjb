@@ -20,11 +20,11 @@ make check
 
 ## src files:
 (1)float/double to decimal algorithm  
-&emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `bench/xjb/float_to_decimal/xjb32_i.cpp`;
+&emsp;&emsp;   xjb32 : for float (IEEE754-binary32) ; `bench/xjb/float_to_decimal/xjb32_i.cpp`;  
 &emsp;&emsp;   xjb64 : for double(IEEE754-binary64) ; `bench/xjb/float_to_decimal/xjb64_i.cpp`;
 
 (2)float/double to string algorithm  
-&emsp;&emsp;   full lookup table : `bench/xjb/float_to_string/ftoa.cpp` 
+&emsp;&emsp;   full lookup table : `bench/xjb/float_to_string/ftoa.cpp`  
 &emsp;&emsp;   compress lookup table : `bench/xjb/float_to_string/xjb_comp.cpp`
 
 lookup table size:
