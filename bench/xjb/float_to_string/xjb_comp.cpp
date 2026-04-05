@@ -505,7 +505,8 @@ namespace xjb_comp
         u64 exp_result = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : e + e10_BCD;                    // e10_DN<=e10 && e10<=e10_UP : no need to print exponent
         buf += exp_pos;
         memcpy(buf, &exp_result, 8);
-        u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
+        //u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
+        u64 exp_len = exp_result & 4;
         return buf + exp_len;
     }
 

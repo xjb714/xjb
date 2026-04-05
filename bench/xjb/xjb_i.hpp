@@ -3,7 +3,7 @@
 #include "float_to_string/ftoa.cpp" // full table
 
 #if USE_xjb_comp
-    #include "float_to_string/xjb_comp.cpp" // compress table
+    #include "float_to_string/ftoa_comp.cpp" // compress table
 #endif
 
 #include "other/d2e_xjb.cpp" // only information reserve
