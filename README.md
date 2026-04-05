@@ -25,14 +25,14 @@ make check
 
 (2)float/double to string algorithm  
 &emsp;&emsp;   full lookup table : `bench/xjb/float_to_string/ftoa.cpp`  
-&emsp;&emsp;   compress lookup table : `bench/xjb/float_to_string/xjb_comp.cpp`
+&emsp;&emsp;   compress lookup table : `bench/xjb/float_to_string/ftoa_comp.cpp`
 
 lookup table size:
 <table border="1px">
     <tr>
         <td colspan="1"></td>
         <td colspan="1">full table:ftoa.cpp</td>
-        <td colspan="1">compress table:xjb_comp.cpp</td>
+        <td colspan="1">compress table:ftoa_comp.cpp</td>
     </tr>
     <tr>
         <td>float</td>
@@ -42,7 +42,7 @@ lookup table size:
     <tr>
         <td>double</td>
         <td>15336 byte</td>
-        <td>592 byte</td>
+        <td>368 byte</td>
     </tr>
 </table>
 
@@ -173,6 +173,7 @@ Thanks to the following authors:
 
 * Raffaello Giulietti ([@rgiulietti](https://github.com/rgiulietti)) - Author of the Schubfach algorithm, whose work forms a foundational basis for xjb.
 
+* Victor Zverovich ([@vitaut](https://github.com/vitaut)) - The author of the [zmij](https://github.com/vitaut/zmij) algorithm and the fmt library. The source code implementation of this project is partially derived from zmij.
 
 ## who is using this algorithm
 
