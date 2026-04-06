@@ -5,7 +5,7 @@
 //#include "bench/xjb/xjb.cpp" // full table
 
 //#include "../src/ftoa.cpp"
-#include "../bench/xjb/ftoa.cpp"
+#include "../bench/xjb/float_to_string/ftoa.cpp"
 
 
 int main()
@@ -76,6 +76,7 @@ int main()
         -std::numeric_limits<double>::infinity(),
         std::numeric_limits<double>::quiet_NaN(),
         -std::numeric_limits<double>::quiet_NaN(),
+        9.1562589111328125e+03
     };
     
     for(int i = 0; i < sizeof(v) / sizeof(double); i++)
