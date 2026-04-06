@@ -88,9 +88,9 @@ unsigned check_xjb64_and_schubfach_xjb_to_string(double d)
     char *end_buf_xjb = xjb64_f64_to_str(d, buf_xjb);
     char *end_buf_xjb_comp = xjb64_comp_f64_to_str(d, buf_xjb_comp);
     char *end_buf_schubfach_xjb = schubfach_xjb_f64_to_str(d, buf_schubfach_xjb);
-    size_t len_xjb = end_buf_xjb - buf_xjb;
-    size_t len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
-    size_t len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
+    int len_xjb = end_buf_xjb - buf_xjb;
+    int len_xjb_comp = end_buf_xjb_comp - buf_xjb_comp;
+    int len_schubfach_xjb = end_buf_schubfach_xjb - buf_schubfach_xjb;
     if (len_xjb_comp != len_schubfach_xjb || len_xjb != len_schubfach_xjb)
     //if (len_xjb != len_schubfach_xjb)
     {
@@ -613,7 +613,43 @@ void check_rand_integer()
         printf("check_random_integer fail error sum = %llu\n", error_sum);
     }
 }
-
+double recover_v_from_c_q(uint64_t c,int q)
+{
+    // recovery v from c,q
+    uint64_t ieee_exp = q + 1075;
+    uint64_t ieee_sig = c & ((1ULL<<52) - 1);
+    uint64_t v = ((ieee_exp << 52) | ieee_sig);
+    return *(double*)&v;
+}
+double generate_rand_two_nearest()
+{
+    int rand_q = gen() % 74 - 75; // range : [-75,-2]
+    int k = (rand_q * 78913) >> 18;
+    int bit = k - rand_q;
+    uint64_t rand_b = gen() & ((1ULL << (52 - bit)) - 1);
+    uint64_t rand_c = (1ULL << 52) + (rand_b << bit) + (1ULL << (bit - 1));
+    double v = recover_v_from_c_q(rand_c,rand_q);
+    return v;
+}
+template <int M = DOUBLE_TO_DECIMAL>
+void check_two_nearest()
+{
+    unsigned long long error_sum = 0;
+    const unsigned long NUM = 10000 ; // 1e8
+    for (unsigned long i = 0; i < NUM; ++i)
+    {
+        double d = generate_rand_two_nearest();
+        error_sum += check_xjb64_and_schubfach_xjb<M>(d);
+    }
+    if (error_sum == 0)
+    {
+        printf("check_two_nearest ok\n");
+    }
+    else
+    {
+        printf("check_two_nearest fail error sum = %llu\n", error_sum);
+    }
+}
 
 void check_double_to_decimal()
 {
@@ -625,6 +661,7 @@ void check_double_to_decimal()
     check_subnormal<DOUBLE_TO_DECIMAL>();     // random subnormal double
     check_rand_double<DOUBLE_TO_DECIMAL>();   // random double
     check_rand_integer<DOUBLE_TO_DECIMAL>();  // random integer
+    check_two_nearest<DOUBLE_TO_DECIMAL>();   // two nearest double
     auto t2 = getns();
     printf("check finish, check_double_to_decimal cost %.3lf second\n", (t2 - t1) / 1e9);
 }
@@ -638,6 +675,7 @@ void check_double_to_string()
     check_subnormal<DOUBLE_TO_STRING>();     // random subnormal double
     check_rand_double<DOUBLE_TO_STRING>();   // random double
     check_rand_integer<DOUBLE_TO_STRING>();  // random integer
+    check_two_nearest<DOUBLE_TO_STRING>();   // two nearest double
     auto t2 = getns();
     printf("check finish, check_double_to_string cost %.3lf second\n", (t2 - t1) / 1e9);
 

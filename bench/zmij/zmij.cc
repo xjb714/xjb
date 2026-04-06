@@ -1105,6 +1105,7 @@ ZMIJ_INLINE auto to_decimal(UInt bin_sig, int64_t raw_exp,
     // rounding). +6 is needed for boundary cases found by verify.py.
     uint64_t rem = fractional * 10;
     int digit = int(umul128_hi64(fractional, 10) + (rem + half + 6 < rem));
+    if(fractional == (1ull << 62)) digit = 2;
     return {integral, dec_exp, (round_up + round_down) ? 0 : digit};
   }
 
