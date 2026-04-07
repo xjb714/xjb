@@ -314,7 +314,7 @@ struct double_table_t
 	static const int num_pow10 = 323 - (-293) + 1;
 	uint64_t pow10_double[(323 - (-293) + 1) * 2] = {};
 	uint64_t exp_result_double[324 + 308 + 1] = {};
-	unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][max_dec_sig_len + 3] = {};
+	unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][1 ? 32 : max_dec_sig_len + 3] = {};
 	unsigned char h7[2048] = {};
 	//uint8_t shuffle_table[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0};
 	//uint8_t shuffle_table_big_endian[17] = {0, 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8};
@@ -389,7 +389,7 @@ struct float_table_t
 	static const int num_pow10 = 44 - (-32) + 1;
 	uint64_t pow10_float_reverse[44 - (-32) + 1] = {};
 	uint32_t exp_result_float[45 + 38 + 1] = {};
-	unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][max_dec_sig_len + 3] = {};
+	unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][1 ? 16 : max_dec_sig_len + 3] = {};
 	unsigned char h37[256] = {};
 	struct const_value_float constants_float = {
 #if defined(__aarch64__)
@@ -1208,8 +1208,8 @@ namespace xjb
 		unsigned char h7_precalc = t->h7[ieee_exponent];
 		i64 k;
 		const int offset = 9;//  offset in range [3,10] has same result.
-		u64 regular = ieee_significand > 0;
-		u64 irregular = (ieee_significand == 0);
+		u32 regular = ieee_significand > 0;
+		u32 irregular = (ieee_significand == 0);
 
 		// 		if (!irregular)
 		// 		{
@@ -1308,16 +1308,11 @@ namespace xjb
 		u64 dot_one = (hi64 << (64 - offset)) | (lo64 >> offset);
 		// u64 half_ulp = (pow10_hi >> (-h)) + ((c + 1) & 1);
 		u64 half_ulp = (pow10_hi >> ((1 + offset) - h7_precalc)) + ((c + 1) & 1);
-		u64 up = half_ulp > ~0 - dot_one;
-		u64 down = half_ulp > dot_one;
-		u64 m_up = (u64)(hi64 >> offset) + up;//m + up
+		bool up = half_ulp > ~0 - dot_one;
+		bool down = half_ulp > dot_one;
+		u64 m_up = (hi64 >> offset) + up;//m + up
 		u64 up_down = up + down;
-
-		//u128 hi128_r6 = ((u128)(hi64 >> offset) << 64) + dot_one;
-        //u64 up_down = ((hi128_r6+half_ulp)>>64) - ((hi128_r6-half_ulp)>>64);
-
-
-		u64 one = (u128_madd_hi64(dot_one, 10, cv->c4));//round to nearest
+		u32 one = (u128_madd_hi64(dot_one, 10, cv->c4));//round to nearest
 		if (irregular) [[unlikely]]
 		{
 			// irregular case : c is 2**52 , exp range is [1,2046] , only 2046 values are possible. easy to compute
@@ -1337,7 +1332,7 @@ namespace xjb
 		if (dot_one == (1ull << 62)) [[unlikely]] // branch instruction , ties to even
 			one = 2;
 		// D17 = 1 : has 17 digits ; D17 = 0 : has 16 digits
-		u64 D17 = m_up > (u64)cv->c3; // (m >= (u64)1e15);
+		bool D17 = m_up > (u64)cv->c3; // (m >= (u64)1e15);
 		u64 mr = D17 ? m_up : m_up * 10;// remove the first digit zero
 		//  if arm64 : not remove left zero , better performance, high ipc, instruction-level parallelism
 		shortest_ascii16 s = to_ascii16(buf, NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv);
@@ -1369,8 +1364,8 @@ namespace xjb
 #endif
 
 		one |= 0x30303030;
-		memcpy(&buf[15 + D17], &one, 8);// write one to buffer
-		// if((u64(e10) < (u64)e10_DN))memmove(&buf[dot_pos + 1], &buf[dot_pos], 16);
+		memcpy(&buf[15 + D17], &one, 4);// write one to buffer
+		//if((u64(e10) < (u64)e10_DN))memmove(&buf[dot_pos + 1], &buf[dot_pos], 16);
 		memmove(&buf[move_pos], &buf[dot_pos], 16); // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 byte buffer
 		buf_origin[dot_pos] = '.';
 #if defined(__aarch64__)
@@ -1395,7 +1390,7 @@ namespace xjb
 		// exp_result = is_little_endian() ? exp_result : byteswap64(exp_result);
 		buf += exp_pos;
 		memcpy(buf, &exp_result, 8);
-		u64 exp_len = exp_result >> 56;
+		u32 exp_len = exp_result >> 56;
 		return buf + exp_len;
 	}
 	// static inline
