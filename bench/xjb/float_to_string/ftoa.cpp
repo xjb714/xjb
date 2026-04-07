@@ -257,6 +257,7 @@ struct const_value_double
 	int32_t multipliers32[4]; // 16
 	int16_t multipliers16[8]; // 16
 #endif
+	uint8_t shuffle_table[17];
 };
 
 struct const_value_float
@@ -290,6 +291,7 @@ static const struct const_value_double constants_double = {
 	.div10000_2 = 0xd1b7176000,
 	.multipliers32 = {0x68db8bb, -10000 + 0x10000, 0x147b000, -100 + 0x10000},
 	.multipliers16 = {0xce0, -10 + 0x100, '0' + '0' * 256},
+	.shuffle_table = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0},
 };
 static const struct const_value_float constants_float = {
 #if defined(__aarch64__)
@@ -314,6 +316,8 @@ struct double_table_t
 	uint64_t exp_result_double[324 + 308 + 1] = {};
 	unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][max_dec_sig_len + 3] = {};
 	unsigned char h7[2048] = {};
+	//uint8_t shuffle_table[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0};
+	//uint8_t shuffle_table_big_endian[17] = {0, 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8};
 	constexpr double_table_t()
 	{
 		struct uint192
@@ -538,6 +542,7 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
 	int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 	int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+	ascii16 = vqtbl1q_u8(vreinterpretq_u8_u16(ascii16), vld1q_u8(&cv->shuffle_table[ 16 - (15 + D17) ]));//remove left zero
 	vst1q_s8((int8_t *)buf, vdupq_n_s8('0'));//write 32byte '0'
 	vst1q_s8((int8_t *)(buf+16), vdupq_n_s8('0'));
 	uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
@@ -1351,7 +1356,6 @@ namespace xjb
 		u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
 		char *buf_origin = buf;
 		buf += first_sig_pos;
-		
 #if HAS_NEON_OR_SSE2
 		memcpy(buf, &(s.ascii16), 16);//write m+up to buffer
 #else
@@ -1361,7 +1365,7 @@ namespace xjb
 
 #if NOT_REMOVE_FIRST_ZERO
 		//if D17=0 : memmove(buf,&buf[1],16);
-		memmove(buf, &buf[16 - (15 + D17)], 16);// remove the first digit zero
+		//memmove(buf, &buf[16 - (15 + D17)], 16);// remove the first digit zero
 #endif
 
 		one |= 0x30303030;

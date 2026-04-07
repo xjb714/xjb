@@ -1275,7 +1275,7 @@ auto write(Float value, char* buffer) noexcept -> char* {
   if (exp_string_table::enable && traits::num_bits == 64) {
     uint64_t exp_data = exp_strings.data[dec_exp + exp_string_table::offset];
     int len = int(exp_data >> 48);
-    if (is_big_endian) exp_data = bswap64(exp_data);
+    if (is_big_endian) exp_data = byteswap64(exp_data);
     memcpy(buffer, &exp_data, traits::max_exponent10 >= 100 ? 8 : 4);
     return buffer + len;
   }
