@@ -1278,10 +1278,10 @@ namespace xjb
         const u64 interval = e10_UP - e10_DN + 1;
         u64 e10_3 = e10 + (-e10_DN);
         u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
-        auto str = vqtbl1q_u8(vreinterpretq_u8_u16(s.ascii16), vld1q_u8(t->shuffle_table[e10_data_ofs][1]));
+        auto str = vqtbl1q_u8(vreinterpretq_u8_u16(s.ascii16), vld1q_u8(t->shuffle_table[e10_data_ofs][D17]));
         uint64_t trailing_digit = vreinterpretq_u8_u16(s.ascii16)[15];// one byte
-        one |= 0x30;
-        trailing_digit |= (one << 8); // write one to high bits of trailing_digit, so we can write one and trailing_digit to buffer together by one memcpy
+        one |= 0x30303030;
+        //trailing_digit |= (one << 8); // write one to high bits of trailing_digit, so we can write one and trailing_digit to buffer together by one memcpy
         u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
         u64 dot_pos = t->e10_variable_data[e10_data_ofs][17 + 1];
         //u64 move_pos = t->e10_variable_data[e10_data_ofs][17 + 2];
@@ -1290,13 +1290,13 @@ namespace xjb
         buf += first_sig_pos;
         //uint64_t trailing_digit_pos = (dot_pos <= 14 + D17 && e10_3 >= 4) ? 15 + D17 : 14 + D17;
         //uint64_t one_pos = (dot_pos <= 15 + D17 && e10_3 >= 4) ? 16 + D17 : 15 + D17;
-        u64 trailing_digit_pos = t->e10_variable_data[e10_data_ofs][(17 + 3)];
-        u64 one_pos = t->e10_variable_data[e10_data_ofs][(17 + 5) | D17];
+        u64 trailing_digit_pos = t->e10_variable_data[e10_data_ofs][(17 + 3) + D17];
+        u64 one_pos = t->e10_variable_data[e10_data_ofs][(17 + 5) + D17];
 #if HAS_NEON_OR_SSE2
         //memcpy(buf, &(s.ascii16), 16); // write m+up to buffer
         memcpy(buf, &str, 16);
-        memcpy(buf + trailing_digit_pos, &trailing_digit, 4);
-        //memcpy(buf + one_pos, &one, 4);
+        memcpy(buf + trailing_digit_pos, &trailing_digit, 1);
+        memcpy(buf + one_pos, &one, 4);
 #else
         memcpy(buf + 0, &(s.hi), 8);
         memcpy(buf + 8, &(s.lo), 8);

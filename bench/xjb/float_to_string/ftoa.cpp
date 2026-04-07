@@ -542,7 +542,7 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
 	int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
 	int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
 	int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-	ascii16 = vqtbl1q_u8(vreinterpretq_u8_u16(ascii16), vld1q_u8(&cv->shuffle_table[ 16 - (15 + D17) ]));//remove left zero
+	ascii16 = vqtbl1q_u8(vreinterpretq_u8_u16(ascii16), vld1q_u8(&cv->shuffle_table[ !D17 ]));//remove left zero
 	vst1q_s8((int8_t *)buf, vdupq_n_s8('0'));//write 32byte '0'
 	vst1q_s8((int8_t *)(buf+16), vdupq_n_s8('0'));
 	uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
