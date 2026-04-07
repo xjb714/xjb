@@ -1421,7 +1421,7 @@ namespace xjb
 		if (exp == 255) [[unlikely]]
 			return (char *)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
 		u32 h37_precalc = t->h37[exp];
-		u32 irregular = sig == 0;
+		bool irregular = sig == 0;
 		const int BIT = 36;
 #if defined(__SIZEOF_INT128__) && defined(__aarch64__) // for arm64 processor , fewer instructions
 		// arm64 : single smulh instruction can be used to calculate high 64 bits of multiplication
@@ -1497,16 +1497,13 @@ namespace xjb
 		}
 		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
 		u32 lz = ((u32)m_up < (u32)c->e7) + ((u32)m_up < (u32)c->e6);
-		// if(exp==0){
-		// 	lz = 
-		// }
-		//u32 lz;
 		//  u64 lz = (m < c->e6) ? 2 : (m < c->e7);
 		// u64 lz = (m < (u64)1e6) ? 2 : (m < (u64)1e7);
-		memcpy(buf, "00000000", 8);
-		memcpy(buf+8, "00000000", 8);
+		// memcpy(buf, "00000000", 8);
+		// memcpy(buf+8, "00000000", 8);
+		memset(buf, '0', 16);
 		shortest_ascii8 s = to_ascii8(m_up, up_down, lz, c);
-		i64 e10 = k + (8 - lz);
+		i32 e10 = (i32)k + (8 - lz);
 		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
 		// u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
 		// u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
@@ -1518,8 +1515,8 @@ namespace xjb
 		// }
 		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
 		const u64 interval = e10_UP - e10_DN + 1;// 6 + 3 + 1 = 10
-		u64 e10_3 = e10 + (-e10_DN);
-		u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+		u32 e10_3 = e10 + (-e10_DN);
+		u32 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
 		//u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
