@@ -1137,7 +1137,7 @@ static inline char *write_1_to_16_digit(u64 x, char *buf, const struct const_val
 
 namespace xjb
 {
-	// static inline
+	static inline
 	char *xjb64(double v, char *buf)
 	{
 		// require buf size >= 33 byte
@@ -1391,7 +1391,7 @@ namespace xjb
 		u32 exp_len = exp_result >> 56;
 		return buf + exp_len;
 	}
-	// static inline
+	static inline
 	char *xjb32(float v, char *buf)
 	{
 		const struct float_table_t *t = &float_table;
@@ -1632,12 +1632,12 @@ namespace xjb
 	// char *to_string(double v, char *buf) { return xjb64(v, buf); }
 } // end of namespace xjb
 
-template <typename T>
-char *xjb_ftoa(T v, char *buf)
+
+char* xjb_ftoa(float v, char *buf)
 {
-	if(sizeof(T) == sizeof(float))
-		return xjb::xjb32(v, buf);
-	else if(sizeof(T) == sizeof(double))
-		return xjb::xjb64(v, buf);
-	return nullptr;
+	return xjb::xjb32(v, buf);
+}
+char* xjb_ftoa(double v, char *buf)
+{
+	return xjb::xjb64(v, buf);
 }
