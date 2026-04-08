@@ -775,10 +775,8 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down
 	i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) + (1 - (100ull << 16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
 	u64 abcdefgh_BCD = (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) & ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
 #endif
-	// if(exp == 0) [[unlikely]]
-	// 	lz = u64_lz_bits(hgfedcba_BCD | 1) >> 3; // lz_max = 7;
-	//lz = u64_tz_bits(abcdefgh_BCD) >> 3;
-	int tz = u64_lz_bits(abcdefgh_BCD) >> 3;
+	//lz = u64_lz_bits(hgfedcba_BCD) >> 3;
+	u32 tz = u64_lz_bits(abcdefgh_BCD) >> 3;
 	abcdefgh_BCD = abcdefgh_BCD >> (lz << 3);
 	// abcdefgh_BCD = abcdefgh_BCD >> (u64_lz_bits(hgfedcba_BCD) & 0b1111000);
 
@@ -1422,8 +1420,6 @@ namespace xjb
 		bool irregular = sig == 0;
 		const int BIT = 36;
 #if defined(__SIZEOF_INT128__) && defined(__aarch64__) // for arm64 processor , fewer instructions
-		// arm64 : single smulh instruction can be used to calculate high 64 bits of multiplication
-		// x64 : gcc can not optimize this to a single imul instruction on x86_64 processor , but clang and icpx can optimize it
 		i64 k = ((i64)exp_bin * (u128)(1233ull << 52)) >> 64; // signed multiplication
 #else
 		i64 k = (exp_bin * 1233) >> 12; // exp_bin range : [-149,104] ; k range : [-45,31]

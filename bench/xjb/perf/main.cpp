@@ -7,11 +7,11 @@
 #define DOUBLE 1
 
 #ifndef PERF_DOUBLE_OR_FLOAT  // 1 : double ; 0 : float
-    #define PERF_DOUBLE_OR_FLOAT 0
+    #define PERF_DOUBLE_OR_FLOAT 1
 #endif
 
 
-#include "../ftoa.cpp"
+#include "../float_to_string/ftoa.cpp"
 //#include "../xjb_comp.cpp"
 // #include "xjb64.cpp"
 //  char *xjb64(double value, char *buffer);
