@@ -1631,3 +1631,13 @@ namespace xjb
 	// char *to_string(float v, char *buf) { return xjb32(v, buf); }
 	// char *to_string(double v, char *buf) { return xjb64(v, buf); }
 } // end of namespace xjb
+
+template <typename T>
+char *xjb_ftoa(T v, char *buf)
+{
+	if(sizeof(T) == sizeof(float))
+		return xjb::xjb32(v, buf);
+	else if(sizeof(T) == sizeof(double))
+		return xjb::xjb64(v, buf);
+	return nullptr;
+}
