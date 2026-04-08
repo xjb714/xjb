@@ -1396,8 +1396,6 @@ namespace xjb
 	// static inline
 	char *xjb32(float v, char *buf)
 	{
-		//const struct const_value_float *c = &constants_float;
-		//const struct const_value_float *c = &float_table.constants_float;
 		const struct float_table_t *t = &float_table;
 		const struct const_value_float *c = &t->constants_float;
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__)) // for arm64 processor , fewer instructions , MSVC not support inline asm
@@ -1435,56 +1433,23 @@ namespace xjb
 			k = (i64)(exp_bin * 1233 - 512) >> 12;
 			h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9); // 37+h
 		}
-
 		u64 pow10_hi = t->pow10_float_reverse[45 + k];
 		u64 cb = sig_bin << h37_precalc;
 		u64 hi64 = umul128_hi64_xjb(cb, pow10_hi);
 		u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + ((sig + 1) & 1);
 		u64 dot_one_36bit = hi64 & (((u64)1 << BIT) - 1);
-
-		// #ifdef __amd64__
-		// 		u64 up = (half_ulp + dot_one_36bit) >> BIT;
-		// #else // for arm64
-		// 	  // u64 up = (half_ulp + dot_one_36bit) >> BIT;
-		// 		u64 up = half_ulp > (((u64)1 << BIT) - 1) - dot_one_36bit;
-		// 		// u64 up = dot_one_36bit > (((u64)1 << BIT) - 1) - half_ulp;
-		// #endif
-		// 		u64 down = half_ulp > dot_one_36bit;
-
-		// two method to calculate m :
-		// u64 m = (sig_hi >> BIT) + up;
 		u32 m_up = (hi64 + half_ulp) >> BIT;
-
-		// two method to calculate up_down :
-		// u64 up_down = up + down;
 		u32 up_down = m_up > (u32)((hi64 - (half_ulp >> 0)) >> BIT);
-		// memcpy(buf, "00000000", 8);
-
-		// u64 offset_num = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
-
-		// three method to calculate one:
-		// method 1 :
 #if defined(__aarch64__)
 		u32 one = (dot_one_36bit * 10 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT); // for arm64 : madd instruction faster.
 #else
 		u32 one = (dot_one_36bit * 5 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT - 1); // for x64.
 #endif
-		// method 2 :
-		// u64 one = ((dot_one_36bit | (dot_one_36bit >> 32)) + (dot_one_36bit << 2) + c->c1) >> (BIT - 1);
-		// method 3 :
-		// u64 one = (dot_one_36bit + c->c1 + ((dot_one_36bit >> 32) | (dot_one_36bit << 2)) ) >> (BIT - 1);
-
-		// u64 longer = (sig_hi * 10 + ((1ULL << (BIT - 1)) - 3) + ((sig_hi >> 34) & 3) ) >> BIT;
-		// u64 one = longer - m * 10;
-
 		if (irregular) [[unlikely]]
 		{
 			if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
 				++one;
 			up_down = m_up > ((hi64 - (half_ulp >> 1)) >> BIT);
-			//  i64 k2 = (i64)(exp_bin * 1233 - 512) >> 12;
-			//  if (k2 != k)
-			//  {
 			//  	if (exp_bin == 24 - 150)
 			//  		return (char *)memcpy(buf, "9.8607613e-32\0\0", 16) + 13;
 			//  	if (exp_bin == 57 - 150)
@@ -1493,36 +1458,19 @@ namespace xjb
 			//  		return (char *)memcpy(buf, "8.6736174e-19\0\0", 16) + 13;
 			//  	if (exp_bin == 220 - 150)
 			//  		return (char *)memcpy(buf, "9.9035203e+27\0\0", 16) + 13;
-			//  }
 		}
-		// u64 lz = (m < (u32)1e7) + (m < (u32)1e6); // 0, 1, 2
 		u32 lz = ((u32)m_up < (u32)c->e7) + ((u32)m_up < (u32)c->e6);
-		//  u64 lz = (m < c->e6) ? 2 : (m < c->e7);
-		// u64 lz = (m < (u64)1e6) ? 2 : (m < (u64)1e7);
-		// memcpy(buf, "00000000", 8);
-		// memcpy(buf+8, "00000000", 8);
 		memset(buf, '0', 16);
 		shortest_ascii8 s = to_ascii8(m_up, up_down, lz, c);
 		i32 e10 = (i32)k + (8 - lz);
-		// u64 offset_num = (((u64)('0' + '0' * 256) << (BIT - 1)) + (((u64)1 << (BIT - 2)) - 7)) + (dot_one_36bit >> (BIT - 4));
-		// u64 offset_num = c->c1 + (dot_one_36bit >> (BIT - 4));
-		// u64 one = (dot_one_36bit * 5 + offset_num) >> (BIT - 1);
-		// // one = cmov_branchless(up_down, '0' + '0' * 256, one); // prevent gcc generate branch instruction
-		// if (irregular) [[unlikely]]
-		// {
-		// 	if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150)) // branch instruction
-		// 		++one;
-		// }
 		const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
 		const u64 interval = e10_UP - e10_DN + 1;// 6 + 3 + 1 = 10
 		u32 e10_3 = e10 + (-e10_DN);
 		u32 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
-		//u64 exp_len = (e10_DN <= e10 && e10 <= e10_UP) ? 0 : 4;
 		u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
 		u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
 		u64 move_pos = t->e10_variable_data[e10_data_ofs][9 + 2];
 		u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
-
 		char *buf_origin = (char *)buf;
 		buf += first_sig_pos;
 		memcpy(buf, &(s.ascii), 8);
@@ -1535,8 +1483,6 @@ namespace xjb
 			if (m_up < 100000) [[unlikely]]
 			{
 				u64 lz = 0;
-				// while (buf[2 + lz] == '0')
-				//     lz++;
 				u64 u;
 				memcpy(&u, &buf[2], 8);
 				u = is_little_endian() ? u : byteswap64_xjb(u);
