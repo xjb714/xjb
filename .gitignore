@@ -28,3 +28,5 @@ bench/xjb/perf/*.s
 example/example
 example/example_json
 bench/check
+
+build/
