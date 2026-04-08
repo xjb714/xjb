@@ -65,7 +65,7 @@ xjb is based on the schubfach algorithm and inspired by other state-of-the-art a
 6. **Efficient Instruction Count**: Minimizes the number of operations
 
 ## 5.Algorithm Correctness
-
+Algorithm Principle Introduction Document : [xjb](xjb.pdf)
 To verify the correctness of the algorithm, run the following command:
 
 ```bash
