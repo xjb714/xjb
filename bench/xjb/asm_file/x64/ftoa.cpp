@@ -1021,7 +1021,7 @@ namespace xjb
 		u32 exp_len = exp_result >> 56;
 		return buf + exp_len;
 	}
-	// static inline
+	static inline
 	char *xjb32(float v, char *buf)
 	{
 		const struct float_table_t *t = &float_table;
