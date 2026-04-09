@@ -4,6 +4,7 @@
 
 // todo : big-endian support, msvc support, optimize for performance, add comments, reduce code size, etc.
 
+#include "ftoa.h"
 #include <stdint.h>
 #include <string.h>
 #include <stdio.h>
