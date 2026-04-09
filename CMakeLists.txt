@@ -3,7 +3,7 @@ project(xjb CXX)
 
 set(XJB_STANDARD cxx_std_20)
 
-add_library(xjb src/ftoa.cpp src/ftoa.h)
+add_library(xjb src/ftoa.cpp)
 target_compile_features(xjb PRIVATE ${XJB_STANDARD})
 
 set(CMAKE_CTEST_ARGUMENTS "--output-on-failure")
