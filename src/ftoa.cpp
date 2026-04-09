@@ -1162,16 +1162,12 @@ namespace xjb
 		u64 vi_abs = (vi << 1) >> 1;
 		if ((u64)(vi_abs - 2) >= (u64)((2047ull << 52) - 2)) [[unlikely]]
 		{
-			// generate branch instruction
-			if (vi_abs == 0)
-				memcpy(buf, "0.0\0\0\0\0", 4);
-			if (vi_abs == 1)
-				memcpy(buf, "5e-324\0", 8);
-			if (vi_abs == (2047ull << 52))
-				memcpy(buf, "inf\0\0\0\0", 4);
-			if (vi_abs > (2047ull << 52))
-				memcpy(buf, "nan\0\0\0\0", 4);
-			return buf + (vi_abs == 1 ? 6 : 3);
+			// generate cmov
+			const bool is_inf = vi_abs == (2047ull << 52);
+			const char* copy_from;
+			u64 move = (vi_abs == 1) ? 6 : 3;
+			copy_from = (vi_abs == 1) ? "5e-324\0" : (vi_abs ? (is_inf ? "inf\0\0\0\0" : "nan\0\0\0\0") : "0.0\0\0\0\0");
+			return (char *)memcpy(buf, copy_from, 8) + move;
 		}
 #endif
 		i64 q = (i64)ieee_exponent - 1075;
