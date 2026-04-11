@@ -37,10 +37,10 @@
 
 #endif  // endif USE_NEON_SSE2
 
-#ifdef __aarch64__
-#define NOT_REMOVE_FIRST_ZERO 1
+#if defined(HAS_NEON) || (defined(HAS_SSE2) && defined(__SSSE3__))
+#define NOT_REMOVE_FIRST_ZERO_XJB 1
 #else
-#define NOT_REMOVE_FIRST_ZERO 0
+#define NOT_REMOVE_FIRST_ZERO_XJB 0
 #endif
 
 #ifndef is_real_gcc
@@ -488,14 +488,13 @@ static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value,
 static inline uint64_t compute_double_dec_sig_len(uint64_t up_down, int tz,
                                                   uint64_t D17) {
     return cmov_branchless(
-        up_down, (NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) - (tz), 15 + D17);
+        up_down, (NOT_REMOVE_FIRST_ZERO_XJB ? 14 + D17 : 15) - (tz), 15 + D17);
 }
 static inline uint64_t compute_double_dec_sig_len_sse2(uint64_t up_down,
                                                        int tz_add_48,
                                                        uint64_t D17) {
-    return cmov_branchless(
-        up_down, (NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) + 48 - tz_add_48,
-        15 + D17);
+    return cmov_branchless(up_down, (0 ? 14 + D17 : 15) + 48 - tz_add_48,
+                           15 + D17);
 }
 static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz,
                                                  uint64_t lz) {
@@ -550,10 +549,11 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
     // int tz = u64_lz_bits((zeroes >> 4) | ( up_down - 1 )) >> 2;
     // return {ascii16, 15 + D17 - tz};
     int tz = u64_lz_bits(zeroes) >> 2;
-    return {ascii16,
-            cmov_branchless(up_down,
-                            NOT_REMOVE_FIRST_ZERO ? (14 + D17) - (tz) : 15 - tz,
-                            15 + D17)};
+    return {
+        ascii16,
+        cmov_branchless(up_down,
+                        NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - (tz) : 15 - tz,
+                        15 + D17)};
 #endif  // endif HAS_NEON
 
 #if HAS_SSE2
@@ -579,6 +579,20 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
     __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
     __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
     __m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
+
+#if NOT_REMOVE_FIRST_ZERO_XJB
+#if defined(__SSSE3__)
+    little_endian_bcd = _mm_shuffle_epi8(
+        little_endian_bcd,
+        // D17?_mm_set_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
+        // 0)
+        //    :_mm_set_epi8(0, 15, 14, 13, 12, 11, 10, 9, 8, 7,  6,  5,  4,  3,
+        //    2, 1));
+        _mm_loadu_si128((const __m128i*)(&(
+            cv->shuffle_table[D17 ? 0 : 1]))));  // remove left zero
+#endif
+#endif
+
     __m128i little_endian_ascii =
         _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
     _mm_storeu_si128((__m128i*)buf, _mm_set1_epi8('0'));  // write 32byte '0'
@@ -615,6 +629,19 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
         _mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
     __m128i little_endian_bcd =
         _mm_shuffle_epi32(bcd_swapped, _MM_SHUFFLE(2, 3, 0, 1));
+
+#if NOT_REMOVE_FIRST_ZERO_XJB
+#if defined(__SSSE3__)
+    little_endian_bcd = _mm_shuffle_epi8(
+        little_endian_bcd,
+        // D17?_mm_set_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
+        // 0)
+        //    :_mm_set_epi8(0, 15, 14, 13, 12, 11, 10, 9, 8, 7,  6,  5,  4,  3,
+        //    2, 1));
+        _mm_loadu_si128((const __m128i*)(&(
+            cv->shuffle_table[D17 ? 0 : 1]))));  // remove left zero
+#endif
+#endif
 
     int mask = _mm_movemask_epi8(
         _mm_cmpgt_epi8(little_endian_bcd, _mm_setzero_si128()));
@@ -1157,10 +1184,10 @@ static inline char* xjb64(double v, char* buf) {
     if (dot_one == (1ull << 62))
         [[unlikely]]  // branch instruction , round to even
         one = 2;
-    bool D17 = m_up > (u64)cv->c3;    // (m >= (u64)1e15);
+    u64 D17 = m_up > (u64)cv->c3;     // (m >= (u64)1e15);
     u64 mr = D17 ? m_up : m_up * 10;  // remove the first digit zero
-    shortest_ascii16 s =
-        to_ascii16(buf, NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv);
+    shortest_ascii16 s = to_ascii16(buf, NOT_REMOVE_FIRST_ZERO_XJB ? m_up : mr,
+                                    up_down, D17, cv);
     i64 e10 = k + (15 + D17);
     const i64 e10_DN = t->e10_DN;
     const i64 e10_UP = t->e10_UP;
