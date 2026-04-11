@@ -1090,14 +1090,22 @@ static inline char* xjb64(double v, char* buf) {
     u64 vi_abs = (vi << 1) >> 1;
     if ((u64)(vi_abs - 2) >= (u64)((2047ull << 52) - 2)) [[unlikely]] {
         // generate cmov
+        // const bool is_inf = vi_abs == (2047ull << 52);
+        // const char* copy_from;
+        // u64 move = (vi_abs == 1) ? 6 : 3;
+        // copy_from = (vi_abs == 1)
+        //                 ? "5e-324\0"
+        //                 : (vi_abs ? (is_inf ? "inf\0\0\0\0" : "nan\0\0\0\0")
+        //                           : "0.0\0\0\0\0");
+        // return (char*)memcpy(buf, copy_from, 8) + move;
+		if (vi_abs <= 1) [[likely]] {
+            u64 move = (vi_abs == 1) ? 6 : 3;
+            const char* copy_from = vi_abs == 1 ? "5e-324\0" : "0.0\0\0\0\0";
+            return (char*)memcpy(buf, copy_from, 8) + move;
+        }
         const bool is_inf = vi_abs == (2047ull << 52);
-        const char* copy_from;
-        u64 move = (vi_abs == 1) ? 6 : 3;
-        copy_from = (vi_abs == 1)
-                        ? "5e-324\0"
-                        : (vi_abs ? (is_inf ? "inf\0\0\0\0" : "nan\0\0\0\0")
-                                  : "0.0\0\0\0\0");
-        return (char*)memcpy(buf, copy_from, 8) + move;
+        const char* copy_from = is_inf ? "inf" : "nan";
+        return (char*)memcpy(buf, copy_from, 4) + 3;
     }
 #endif
     i64 q = (i64)ieee_exponent - 1075;

@@ -34,11 +34,12 @@
 
 #endif // endif USE_NEON_SSE2
 
-#ifdef __aarch64__
-#define NOT_REMOVE_FIRST_ZERO 1
+#if defined(HAS_NEON) || (defined(HAS_SSE2) && defined(__SSSE3__)) 
+	#define NOT_REMOVE_FIRST_ZERO_XJB 1
 #else
-#define NOT_REMOVE_FIRST_ZERO 0
+	#define NOT_REMOVE_FIRST_ZERO_XJB 0
 #endif
+
 
 #ifdef __aarch64__
 #define NOT_REMOVE_F32_FIRST_ZERO 0
@@ -515,12 +516,12 @@ static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value, 
 static inline uint64_t compute_double_dec_sig_len(uint64_t up_down, int tz, uint64_t D17)
 {
     // return (15 + D17) + cmov_branchless(up_down, -1 - tz, up_down);
-    return cmov_branchless(up_down, (NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) - (tz), 15 + D17);
+    return cmov_branchless(up_down, (NOT_REMOVE_FIRST_ZERO_XJB ? 14 + D17 : 15) - (tz), 15 + D17);
     // return cmov_branchless(up_down, 15 - tz, 15 + D17);
 }
 static inline uint64_t compute_double_dec_sig_len_sse2(uint64_t up_down, int tz_add_48, uint64_t D17)
 {
-    return cmov_branchless(up_down, (NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) + 48 - tz_add_48, 15 + D17);
+    return cmov_branchless(up_down, (NOT_REMOVE_FIRST_ZERO_XJB ? 14 + D17 : 15) + 48 - tz_add_48, 15 + D17);
 }
 static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint64_t lz)
 {
@@ -561,8 +562,8 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
     uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
     uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0); // zeros != 0
     int tz = u64_lz_bits(zeroes) >> 2;
-    return {ascii16, cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO ? (14 + D17) - (tz) : 15 - tz, 15 + D17)};
-    // return {ascii16 , cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO ? (-1 ) - (tz) : 15 - tz , 0 ) + (15 + D17) };
+    return {ascii16, cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - (tz) : 15 - tz, 15 + D17)};
+    // return {ascii16 , cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO_XJB ? (-1 ) - (tz) : 15 - tz , 0 ) + (15 + D17) };
     // return {ascii16 , (15 + D17) - (up_down ? (tz+1) : up_down)};
     // return {ascii16, compute_double_dec_sig_len(up_down, tz, D17)};
 
@@ -581,7 +582,7 @@ static inline shortest_ascii16 to_ascii16(char *buf, const uint64_t m, const uin
     //  uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
     //  uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);// zeros != 0
     //  int tz = u64_lz_bits(zeroes) >> 2;
-    //  return {ascii16 , cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO ? (14 + D17) - (tz) : 15 - tz , 15 + D17)};
+    //  return {ascii16 , cmov_branchless(up_down, NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - (tz) : 15 - tz , 15 + D17)};
 
 #endif // endif HAS_NEON
 
@@ -1270,7 +1271,7 @@ namespace xjb
         //one = up_down ? 0 : one;
         u64 D17 = m_up > (u64)cv->c3;    // (m >= (u64)1e15);
         u64 mr = D17 ? m_up : m_up * 10; // remove the first digit zero
-        shortest_ascii16 s = to_ascii16(buf, NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv);
+        shortest_ascii16 s = to_ascii16(buf, NOT_REMOVE_FIRST_ZERO_XJB ? m_up : mr, up_down, D17, cv);
         i64 e10 = k + (15 + D17);
 
         const i64 e10_DN = t->e10_DN;
@@ -1278,8 +1279,10 @@ namespace xjb
         const u64 interval = e10_UP - e10_DN + 1;
         u64 e10_3 = e10 + (-e10_DN);
         u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+
         auto str = vqtbl1q_u8(vreinterpretq_u8_u16(s.ascii16), vld1q_u8(t->shuffle_table[e10_data_ofs][D17]));
         uint64_t trailing_digit = vreinterpretq_u8_u16(s.ascii16)[15];// one byte
+        
         one |= 0x30303030;
         //trailing_digit |= (one << 8); // write one to high bits of trailing_digit, so we can write one and trailing_digit to buffer together by one memcpy
         u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
@@ -1302,7 +1305,7 @@ namespace xjb
         memcpy(buf + 8, &(s.lo), 8);
 #endif
 
-#if NOT_REMOVE_FIRST_ZERO
+#if NOT_REMOVE_FIRST_ZERO_XJB
         //memmove(buf, &buf[16 - (15 + D17)], 16); // remove the first digit zero
 #endif
 
