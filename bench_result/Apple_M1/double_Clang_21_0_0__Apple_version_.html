@@ -12,6 +12,35 @@
 <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.0/css/bulma.min.css' />
 <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/sortable/0.8.0/css/sortable-theme-bootstrap.min.css' />
 <script>window.onload=Sortable.init</script>
+<script>
+// 在所有图表创建之前添加
+Highcharts.setOptions({
+    title: {
+        style: { fontSize: '18px', fontWeight: 'bold' }
+    },
+    subtitle: {
+        style: { fontSize: '16px' }
+    },
+    xAxis: {
+        labels: { style: { fontSize: '14px' } },
+        title: { style: { fontSize: '16px' } }
+    },
+    yAxis: {
+        labels: { style: { fontSize: '14px' } },
+        title: { style: { fontSize: '16px' } }
+    },
+    legend: {
+        itemStyle: { fontSize: '16px' }
+    },
+    // 在所有 Highcharts.chart 调用之前添加这段代码
+    exporting: {
+      // 重点：将 libURL 指向你本地存放库文件的文件夹路径
+      // 如果和 HTML 在同一级目录，写成 './' 即可
+      libURL: 'https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/lib/',
+      fallbackToExportServer: false // 可选，建议设为 false，强制使用本地导出，避免回退到在线服务器
+    }
+});
+</script>
 <style type='text/css'>
 hr {
     height: 1px;
