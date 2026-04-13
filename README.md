@@ -77,7 +77,7 @@ make check
 
 Benchmark tests are located in the `bench` directory. Build the benchmark program with `make` and run `bench/main.cpp` to test performance.
 
-Latest benchmark results (as of 2026.4.8) on various CPUs:
+Latest benchmark results (as of 2026.4.13 v1.5.0) on various CPUs:
 
 <table>
 on Apple M5:
