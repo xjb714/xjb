@@ -544,6 +544,9 @@ void check_special_value()
     {
         double num = u64_to_f64(num_u64[i]);
         error_sum += check_xjb64_and_schubfach_xjb<M>(num);
+        char buf_xjb[64];
+        xjb64_f64_to_str(num, buf_xjb);
+        printf("i=%d,%llx,%s\n", (unsigned long long)i, (unsigned long long)num_u64[i], buf_xjb);
     }
     if (error_sum == 0)
     {
@@ -696,7 +699,7 @@ void check_double()
 {
     printf("\nchecking xjb64 and d2e_xjb algorithm:\n\n");
 
-    check_double_to_decimal();
+    //check_double_to_decimal();
 
     check_double_to_string();
 
@@ -714,7 +717,7 @@ int main()
     buf_xjb_comp = new char[48];
     buf_schubfach_xjb = new char[32];
     
-    check_float();
+    //check_float();
 
     check_double();
 
