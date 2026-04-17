@@ -75,4 +75,4 @@ check:
 	./check
 
 clean:
-	rm -f main main_gcc main_clang main_icpx *.s
+	rm -f main main_gcc main_clang main_icpx *.s *.o check main_gcc_double main_gcc_float main_clang_double main_clang_float main_icpx_double main_icpx_float
