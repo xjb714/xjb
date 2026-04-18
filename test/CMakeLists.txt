@@ -67,22 +67,21 @@ if(XJB_TEST_SSSE3)
     target_link_libraries(float-check-ssse3 dragonbox Threads::Threads)
     add_test(NAME float-check-ssse3 COMMAND float-check-ssse3)
 
-    add_executable(xjb-ssse3-nommove-test xjb-test.cc)
-    target_include_directories(xjb-ssse3-nommove-test
+    add_executable(xjb-ssse3-mmove-test xjb-test.cc)
+    target_include_directories(xjb-ssse3-mmove-test
                                PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-    target_compile_options(xjb-ssse3-nommove-test PRIVATE -mssse3)
-    target_compile_definitions(xjb-ssse3-nommove-test PRIVATE XJB_NO_MEMMOVE=0)
-    target_link_libraries(xjb-ssse3-nommove-test dragonbox GTest::gtest_main)
-    add_test(NAME xjb-ssse3-nommove-test COMMAND xjb-ssse3-nommove-test)
+    target_compile_options(xjb-ssse3-mmove-test PRIVATE -mssse3)
+    target_compile_definitions(xjb-ssse3-mmove-test PRIVATE XJB_NO_MEMMOVE=0)
+    target_link_libraries(xjb-ssse3-mmove-test dragonbox GTest::gtest_main)
+    add_test(NAME xjb-ssse3-mmove-test COMMAND xjb-ssse3-mmove-test)
 
-    add_executable(float-check-ssse3-nommove float-check.cc)
-    target_include_directories(float-check-ssse3-nommove
+    add_executable(float-check-ssse3-mmove float-check.cc)
+    target_include_directories(float-check-ssse3-mmove
                                PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-    target_compile_options(float-check-ssse3-nommove PRIVATE -mssse3)
-    target_compile_definitions(float-check-ssse3-nommove
-                               PRIVATE XJB_NO_MEMMOVE=0)
-    target_link_libraries(float-check-ssse3-nommove dragonbox Threads::Threads)
-    add_test(NAME float-check-ssse3-nommove COMMAND float-check-ssse3-nommove)
+    target_compile_options(float-check-ssse3-mmove PRIVATE -mssse3)
+    target_compile_definitions(float-check-ssse3-mmove PRIVATE XJB_NO_MEMMOVE=0)
+    target_link_libraries(float-check-ssse3-mmove dragonbox Threads::Threads)
+    add_test(NAME float-check-ssse3-mmove COMMAND float-check-ssse3-mmove)
   endif()
 endif()
 
@@ -103,39 +102,38 @@ if(XJB_TEST_SSE4_1)
     target_link_libraries(float-check-sse4 dragonbox Threads::Threads)
     add_test(NAME float-check-sse4 COMMAND float-check-sse4)
 
-    add_executable(xjb-sse4-nommove-test xjb-test.cc)
-    target_include_directories(xjb-sse4-nommove-test
+    add_executable(xjb-sse4-mmove-test xjb-test.cc)
+    target_include_directories(xjb-sse4-mmove-test
                                PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-    target_compile_options(xjb-sse4-nommove-test PRIVATE -msse4.1)
-    target_compile_definitions(xjb-sse4-nommove-test PRIVATE XJB_NO_MEMMOVE=0)
-    target_link_libraries(xjb-sse4-nommove-test dragonbox GTest::gtest_main)
-    add_test(NAME xjb-sse4-nommove-test COMMAND xjb-sse4-nommove-test)
+    target_compile_options(xjb-sse4-mmove-test PRIVATE -msse4.1)
+    target_compile_definitions(xjb-sse4-mmove-test PRIVATE XJB_NO_MEMMOVE=0)
+    target_link_libraries(xjb-sse4-mmove-test dragonbox GTest::gtest_main)
+    add_test(NAME xjb-sse4-mmove-test COMMAND xjb-sse4-mmove-test)
 
-    add_executable(float-check-sse4-nommove float-check.cc)
-    target_include_directories(float-check-sse4-nommove
+    add_executable(float-check-sse4-mmove float-check.cc)
+    target_include_directories(float-check-sse4-mmove
                                PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-    target_compile_options(float-check-sse4-nommove PRIVATE -msse4.1)
-    target_compile_definitions(float-check-sse4-nommove
-                               PRIVATE XJB_NO_MEMMOVE=0)
-    target_link_libraries(float-check-sse4-nommove dragonbox Threads::Threads)
-    add_test(NAME float-check-sse4-nommove COMMAND float-check-sse4-nommove)
+    target_compile_options(float-check-sse4-mmove PRIVATE -msse4.1)
+    target_compile_definitions(float-check-sse4-mmove PRIVATE XJB_NO_MEMMOVE=0)
+    target_link_libraries(float-check-sse4-mmove dragonbox Threads::Threads)
+    add_test(NAME float-check-sse4-mmove COMMAND float-check-sse4-mmove)
   endif()
 endif()
 
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64|arm64")
-  add_executable(xjb-neon-nommove-test xjb-test.cc)
-  target_include_directories(xjb-neon-nommove-test
+  add_executable(xjb-neon-mmove-test xjb-test.cc)
+  target_include_directories(xjb-neon-mmove-test
                              PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-  target_compile_definitions(xjb-neon-nommove-test PRIVATE XJB_NO_MEMMOVE=0)
-  target_link_libraries(xjb-neon-nommove-test dragonbox GTest::gtest_main)
-  add_test(NAME xjb-neon-nommove-test COMMAND xjb-neon-nommove-test)
+  target_compile_definitions(xjb-neon-mmove-test PRIVATE XJB_NO_MEMMOVE=0)
+  target_link_libraries(xjb-neon-mmove-test dragonbox GTest::gtest_main)
+  add_test(NAME xjb-neon-mmove-test COMMAND xjb-neon-mmove-test)
 
-  add_executable(float-check-neon-nommove float-check.cc)
-  target_include_directories(float-check-neon-nommove
+  add_executable(float-check-neon-mmove float-check.cc)
+  target_include_directories(float-check-neon-mmove
                              PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/..)
-  target_compile_definitions(float-check-neon-nommove PRIVATE XJB_NO_MEMMOVE=0)
-  target_link_libraries(float-check-neon-nommove dragonbox Threads::Threads)
-  add_test(NAME float-check-neon-nommove COMMAND float-check-neon-nommove)
+  target_compile_definitions(float-check-neon-mmove PRIVATE XJB_NO_MEMMOVE=0)
+  target_link_libraries(float-check-neon-mmove dragonbox Threads::Threads)
+  add_test(NAME float-check-neon-mmove COMMAND float-check-neon-mmove)
 endif()
 
 if(XJB_TEST_AVX512)
