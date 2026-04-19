@@ -2,7 +2,15 @@ name: CI
 on: [push, pull_request]
 jobs:
   test:
-    runs-on: ubuntu-24.04
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
     steps:
-      - uses: actions/checkout@v4
-      - run: ./test.sh
+      - uses: actions/checkout@v5
+      - run: cmake -S test -B build -DCMAKE_BUILD_TYPE=Debug
+      - run: cmake --build build --config Debug -j
+      - run: ctest -E "^float-check" --test-dir build -C Debug --output-on-failure
+      - run: cmake -S test -B build -DCMAKE_BUILD_TYPE=Release
+      - run: cmake --build build --config Release -j
+      - run: ctest -R "^float-check" --test-dir build -C Release --output-on-failure
