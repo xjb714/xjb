@@ -710,7 +710,7 @@ void check_double()
 
 int main()
 {
-    printf("check start, this program may cost long time, please wait:\n");
+    printf("check start, this program may cost long time, please wait five to ten minutes:\n");
     auto t1 = getns();
     
     buf_xjb = new char[48];

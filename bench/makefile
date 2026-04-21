@@ -71,7 +71,7 @@ all_result_arm64:
 	$(MAKE) g BENCH_DOUBLE=1 BENCH_F_TO_STR=1
 
 check:
-	g++ -O3 -std=c++20 check.cpp -o check
+	clang++ -O3 -std=c++20 -march=native check.cpp -o check
 	./check
 
 clean:
