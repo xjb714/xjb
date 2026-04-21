@@ -1,6 +1,6 @@
 #define USE_xjb_comp 1
 
-#include "float_to_string/ftoa.cpp" // full table
+#include "float_to_string/ftoa_nommove.cpp" // full table
 
 #if USE_xjb_comp
     #include "float_to_string/ftoa_comp.cpp" // compress table

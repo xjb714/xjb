@@ -408,9 +408,10 @@ struct const_value_double {
     alignas(32) uint8_t
         move_shuffle_table[2 * (e10_UP - (e10_DN) + 1 + 1)][16] = {};
 #elif NOT_REMOVE_FIRST_ZERO_XJB
+    
+#endif
     uint8_t shuffle_table[17] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
                                  9, 10, 11, 12, 13, 14, 15, 0};
-#endif
 
     constexpr const_value_double() {
 #if XJB_NO_MEMMOVE
@@ -732,7 +733,63 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
     asm("" : "+r"(hundred_million));
 #endif
     uint32_t ijklmnop = m + abcdefgh * hundred_million;
-#if HAS_NEON
+
+#if HAS_NEON && XJB_NO_MEMMOVE
+    //  src from :
+    //  https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
+    //  bolg :
+    //  https://dougallj.wordpress.com/2022/04/01/converting-integers-to-fixed-width-strings-faster-with-neon-simd-on-the-apple-m1/
+    //  author : https://github.com/dougallj
+    uint64x1_t hundredmillions = {ijklmnop | ((uint64_t)abcdefgh << 32)};
+    int32x2_t high_10000 = vshr_n_u32(
+        vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
+    int32x2_t tenthousands =
+        vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
+    int32x4_t extended = vshll_n_u16(tenthousands, 0);
+#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
+    asm("" : "+w"(extended));
+#endif
+    int32x4_t high_100 =
+        vqdmulhq_s32(extended, vdupq_n_s32(cv->multipliers32[2]));
+    int32x4_t hundreds =
+        vmlaq_s32(extended, high_100, vdupq_n_s32(cv->multipliers32[3]));
+    int16x8_t high_10 =
+        vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
+    int16x8_t BCD_big_endian =
+        vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
+
+    int8x16_t ascii16_swapped = vorrq_u64(BCD_big_endian, vdupq_n_s8('0'));
+    int8x16_t ascii16 = vqtbl1q_u8(ascii16_swapped, vld1q_u8(move_shuffler));
+    uint16x8_t is_not_zero = vcgtzq_s8(BCD_big_endian);
+    uint64_t zeroes = vget_lane_u64(
+        vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
+    // int tz = u64_lz_bits((__builtin_bitreverse64(zeroes) >> 4) | ( up_down - 1 )) >> 2;
+    // return {ascii16, 15 + D17 - tz, ascii16_swapped};
+    int tz = u64_tz_bits(zeroes) >> 2;// tz is slow on arm64 . tz = rbit and lz; two instruction.
+    return {ascii16, compute_double_dec_sig_len(up_down, tz, D17),
+            vgetq_lane_s32(ascii16_swapped, 0)
+            };
+
+    // int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+    // int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+    // ascii16 =
+    //     vqtbl1q_u8(vreinterpretq_u8_u16(ascii16),
+    //                vld1q_u8(&cv->shuffle_table[!D17]));  // remove left zero
+    // //vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));             // write 32byte '0'
+    // //vst1q_s8((int8_t*)(buf + 16), vdupq_n_s8('0'));
+    // uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
+    // uint64_t zeroes = vget_lane_u64(
+    //     vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
+    // // int tz = u64_lz_bits((zeroes >> 4) | ( up_down - 1 )) >> 2;
+    // // return {ascii16, 15 + D17 - tz};
+    // int tz = u64_lz_bits(zeroes) >> 2;
+    // return {
+    //     ascii16,
+    //     cmov_branchless(up_down,
+    //                     NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - (tz) : 15 - tz,
+    //                     15 + D17)};
+//#endif  // endif HAS_NEON
+#elif HAS_NEON
     //  src from :
     //  https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
     //  bolg :
