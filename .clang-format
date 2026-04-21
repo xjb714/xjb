@@ -16,3 +16,4 @@ IndentCaseLabels: false
 AccessModifierOffset: -4
 NamespaceIndentation: None
 FixNamespaceComments: true
+IndentPPDirectives: AfterHash
