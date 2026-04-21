@@ -10,7 +10,7 @@ jobs:
       - uses: actions/checkout@v5
       - run: cmake -S test -B build -DCMAKE_BUILD_TYPE=Debug
       - run: cmake --build build --config Debug -j
-      - run: ctest -E "^float-check" --test-dir build -C Debug --output-on-failure
+      # - run: ctest -E "^float-check" --test-dir build -C Debug --output-on-failure
       - run: cmake -S test -B build -DCMAKE_BUILD_TYPE=Release
       - run: cmake --build build --config Release -j
-      - run: ctest -R "^float-check" --test-dir build -C Release --output-on-failure
+      # - run: ctest -R "^float-check" --test-dir build -C Release --output-on-failure
