@@ -267,7 +267,7 @@ static void dtoa_func_benchmark_all(const char *output_path) {
     const int num_per_case = 1 << 17; // 131072
     const int meansure_count = 1;
 
-    const int loop_unroll = 2;
+    const int loop_unroll = 1;
 
     //bool recovery_from_file = true;         // read from file or not
     //std::string file_path = std::string(BENCHMARK_DATA_PATH) + "/dtoa_func_benchmark.txt";
@@ -425,9 +425,9 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                         for (int v = 0; v < num_per_case; v+=loop_unroll) {
                             //f64 val = vals[v];
                             //f64 val = all_vals[v + all_vals_begin_pos + (len - 1) * num_per_case];
-                            // f64 val = data[v];
-                            // func(val, buf);
-                            for(int u=0;u<loop_unroll;u++)func(data[v+u], buf);
+                            f64 val = data[v];
+                            func(val, buf);
+                            //for(int u=0;u<loop_unroll;u++)func(data[v+u], buf);
                         }
                         u64 t2 = yy_time_get_ticks();
                         u64 t = t2 - t1;
@@ -479,9 +479,9 @@ static void dtoa_func_benchmark_all(const char *output_path) {
                     for (int v = 0; v < num_per_case; v+=loop_unroll) {
                         //f64 val = vals[v];
                         //f64 val = all_vals[v + all_vals_begin_pos];
-                        // f64 val = data[v];
-                        // func(val, buf);
-                        for(int u=0;u<loop_unroll;u++)func(data[v+u], buf);
+                        f64 val = data[v];
+                        func(val, buf);
+                        //for(int u=0;u<loop_unroll;u++)func(data[v+u], buf);
                     }
                     u64 t2 = yy_time_get_ticks();
                     u64 t = t2 - t1;
