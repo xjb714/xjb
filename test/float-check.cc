@@ -128,22 +128,22 @@ int main() {
         *aend = '\0';
 
         // --- produce expected --- // faster
-        schubfach_xjb_f32_to_str(value, expected);
+        //schubfach_xjb_f32_to_str(value, expected);
 
         // //--- produce expected ---
-        // if (value == 0.0f) {
-        //   strcpy(expected, std::signbit(value) ? "-0.0" : "0.0");
-        // } else if (std::isinf(value)) {
-        //   strcpy(expected, value < 0 ? "-inf" : "inf");
-        // } else if (std::isnan(value)) {
-        //   strcpy(expected, std::signbit(value) ? "-nan" : "nan");
-        // } else {
-        //   auto dec = jkj::dragonbox::to_decimal(
-        //       std::fabs(value), jkj::dragonbox::policy::sign::ignore);
-        //   char* p = expected;
-        //   if (value < 0) *p++ = '-';
-        //   format_like_xjb32(p, dec.significand, dec.exponent);
-        // }
+        if (value == 0.0f) {
+          strcpy(expected, std::signbit(value) ? "-0.0" : "0.0");
+        } else if (std::isinf(value)) {
+          strcpy(expected, value < 0 ? "-inf" : "inf");
+        } else if (std::isnan(value)) {
+          strcpy(expected, std::signbit(value) ? "-nan" : "nan");
+        } else {
+          auto dec = jkj::dragonbox::to_decimal(
+              std::fabs(value), jkj::dragonbox::policy::sign::ignore);
+          char* p = expected;
+          if (value < 0) *p++ = '-';
+          format_like_xjb32(p, dec.significand, dec.exponent);
+        }
 
         if (strcmp(actual, expected) == 0) continue;
 
