@@ -18,10 +18,10 @@
 #include <thread>
 #include <vector>
 
-#include "../bench/dragonbox/dragonbox_to_chars.h"
-#include "../src/ftoa.cpp"
+#include "dragonbox_to_chars.h"
+#include "src/ftoa.cpp"
 
-#include "../bench/schubfach_xjb/schubfach_xjb_i.hpp"
+//#include "../bench/schubfach_xjb/schubfach_xjb_i.hpp"
 
 // ---------------------------------------------------------------------------
 // Reference formatter that reproduces xjb32's formatting conventions.
