@@ -130,7 +130,7 @@ int main() {
         // --- produce expected --- // faster
         schubfach_xjb_f32_to_str(value, expected);
 
-        //--- produce expected ---
+        // //--- produce expected ---
         // if (value == 0.0f) {
         //   strcpy(expected, std::signbit(value) ? "-0.0" : "0.0");
         // } else if (std::isinf(value)) {
