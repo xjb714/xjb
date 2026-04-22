@@ -294,7 +294,7 @@ struct double_table_t {
     uint64_t pow10_double[(323 - (-293) + 1) * 2] = {};
     uint64_t exp_result_double[324 + 308 + 1] = {};
     unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1]
-                                   [1 ? 32 : max_dec_sig_len + 5] = {};
+                                   [1 ? 64 : max_dec_sig_len + 5] = {};
     unsigned char h7[2048] = {};
 
     // uint8_t shuffle_table[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
@@ -364,6 +364,18 @@ struct double_table_t {
                                                             : dec_sig_len + 1)
                                : (dec_sig_len + 1 - (dec_sig_len == 1)));
                 e10_variable_data[tmp_data_ofs][dec_sig_len - 1] = exp_pos;
+            }
+            uint8_t v = 0xf;
+            for (uint64_t j = 0; j < 16; ++j)
+                e10_variable_data[tmp_data_ofs][32 + 16 + j] = v--;
+            if (move_pos > dot_pos) {
+                for (uint64_t j = 15; j > dot_pos && j > 0; --j)
+                    e10_variable_data[tmp_data_ofs][j + 32 + 16] =
+                        e10_variable_data[tmp_data_ofs][j + 32 +16 - 1];
+            }
+            for (uint64_t j = 0; j < 16; ++j) {
+                auto v = e10_variable_data[tmp_data_ofs][j+32+16];
+                e10_variable_data[tmp_data_ofs][j+32] = v ? (v - 1) : 15;
             }
         }
         for (int exp = 0; exp < 2048; ++exp) {
@@ -715,6 +727,41 @@ static inline shortest_ascii16 to_ascii16_no_avx512(
 #endif  // SSE2
 }
 #endif  // HAS_SSE2
+static inline uint64_t rotateRight64(uint64_t x, int s) {
+	return (x>>s) | (x<<(64-s));
+}
+static inline uint32_t countZeros(uint64_t x) {
+	const uint64_t maxUint64 = ~0ULL;
+	const uint64_t div1e8m = 0xc767074b22e90e21ULL;
+	const uint64_t div1e4m = 0xd288ce703afb7e91ULL;
+	const uint64_t div1e2m = 0x8f5c28f5c28f5c29ULL;
+	const uint64_t div1e1m = 0xcccccccccccccccdULL;
+	const uint64_t div1e8le = maxUint64 / 100000000;
+	const uint64_t div1e4le = maxUint64 / 10000;
+	const uint64_t div1e2le = maxUint64 / 100;
+	const uint64_t div1e1le = maxUint64 / 10;
+
+	uint64_t d;
+    uint32_t tz = 0;
+	// Cut 8 zeros, then 4, then 2, then 1.
+	if ((d = rotateRight64(x*div1e8m, 8)) <= div1e8le) {
+		x = d;
+		tz += 8;
+	}
+	if ((d = rotateRight64(x*div1e4m, 4)) <= div1e4le) {
+		x = d;
+		tz += 4;
+	}
+	if ((d = rotateRight64(x*div1e2m, 2)) <= div1e2le) {
+		x = d;
+		tz += 2;
+	}
+	if ((d = rotateRight64(x*div1e1m, 1)) <= div1e1le) {
+		x = d;
+		tz += 1;
+	}
+	return tz;
+}
 
 static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
                                           const uint64_t up_down,
@@ -766,7 +813,7 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
     // int tz = u64_lz_bits((__builtin_bitreverse64(zeroes) >> 4) | ( up_down - 1 )) >> 2;
     // return {ascii16, 15 + D17 - tz, ascii16_swapped};
     int tz = u64_tz_bits(zeroes) >> 2;// tz is slow on arm64 . tz = rbit and lz; two instruction.
-    return {ascii16, compute_double_dec_sig_len(up_down, tz, D17),
+    return {ascii16, up_down ? (NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - tz : 15 - tz) : 15 + D17,
             vgetq_lane_s32(ascii16_swapped, 0)
             };
 
@@ -816,20 +863,20 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
     ascii16 =
         vqtbl1q_u8(vreinterpretq_u8_u16(ascii16),
-                   vld1q_u8(&cv->shuffle_table[!D17]));  // remove left zero
+                   vld1q_u8(&cv->shuffle_table[1 - D17]));  // remove left zero
     vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));             // write 32byte '0'
-    vst1q_s8((int8_t*)(buf + 16), vdupq_n_s8('0'));
+    //vst1q_s8((int8_t*)(buf + 16), vdupq_n_s8('0'));
     uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
     uint64_t zeroes = vget_lane_u64(
         vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
     // int tz = u64_lz_bits((zeroes >> 4) | ( up_down - 1 )) >> 2;
     // return {ascii16, 15 + D17 - tz};
-    int tz = u64_lz_bits(zeroes) >> 2;
-    return {
-        ascii16,
-        cmov_branchless(up_down,
-                        NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - (tz) : 15 - tz,
-                        15 + D17)};
+    u32 tz = u64_lz_bits(zeroes) >> 2;
+    //int tz = countZeros(m);
+    return {ascii16, up_down ? (NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - tz : 15 - tz) : 15 + D17};
+        // cmov_branchless(up_down,
+        //                 NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - (tz) : 15 - tz,
+        //                 15 + D17)};
 #endif  // endif HAS_NEON
 
 #if HAS_SSE2
@@ -1438,15 +1485,16 @@ static inline char* xjb64(double v, char* buf) {
     const i64 e10_DN = t->e10_DN;
     const i64 e10_UP = t->e10_UP;
     const u64 interval = e10_UP - e10_DN + 1;
-    u64 e10_3 = e10 + (-e10_DN);
-    u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+    u32 e10_3 = e10 + (-e10_DN);
+    u32 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
 #if XJB_NO_MEMMOVE
     memset(buf, '0', 8);
 #endif
     shortest_ascii16 s =
         to_ascii16(buf, NOT_REMOVE_FIRST_ZERO_XJB ? m_up : mr, up_down, D17, cv
 #if XJB_NO_MEMMOVE
-                   ,cv->move_shuffle_table[(2 * e10_data_ofs) + D17]
+                   //,cv->move_shuffle_table[(2 * e10_data_ofs) + D17]
+                   ,&(t->e10_variable_data[e10_data_ofs][32 +  D17 * 16])
 #endif
         );
     u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
