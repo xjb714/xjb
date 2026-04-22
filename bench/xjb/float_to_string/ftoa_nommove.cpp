@@ -13,7 +13,7 @@
 
 #define USE_NEON_SSE2 1 // 1: use neon for arm64 , use sse2 for x86-64; 0: scalar code
 
-#define USE_AVX512 0 // 1: use avx512 for x86-64 if supported; 0: use sse2 for x86-64
+#define USE_AVX512 1 // 1: use avx512 for x86-64 if supported; 0: use sse2 for x86-64
 
 #if USE_NEON_SSE2
 
@@ -49,7 +49,6 @@
 #if HAS_SSE2
 // x86-64.
 #if HAS_AVX512IFMA_VBMI
-// TODO.
 #define XJB_NO_MEMMOVE 1
 #elif defined(__SSSE3__) && __SSSE3__
 #define XJB_NO_MEMMOVE 1
@@ -893,33 +892,12 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
         0x00000000002af31dc, 0x0000000001ad7f29b, 0x0000000010c6f7a0c,
         0x00000000a7c5ac472, 0x000000068db8bac72, 0x0000004189374bc6b,
         0x0000028f5c28f5c29, 0x0000199999999999a);
-    const __m512i permb_const = _mm512_castsi128_si512(
-        _mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58, 0x50, 0x48, 0x40, 0x38, 0x30,
-                     0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
     __m512i lowbits_h = _mm512_madd52lo_epu64(zmmzero, bcstq_h, ifma_const);
     __m512i lowbits_l = _mm512_madd52lo_epu64(zmmzero, bcstq_l, ifma_const);
     __m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
     __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
-    // __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
-    // __m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
-// #if NOT_REMOVE_FIRST_ZERO_XJB && defined(__SSSE3__) && __SSSE3__
-//     little_endian_bcd = _mm_shuffle_epi8(
-//         little_endian_bcd,
-//         // D17?_mm_set_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0)
-//         //    :_mm_set_epi8(0, 15, 14, 13, 12, 11, 10, 9, 8, 7,  6,  5,  4, 3,2, 1));
-//         _mm_loadu_si128((const __m128i*)(&(
-//             cv->shuffle_table[D17 ? 0 : 1]))));  // remove left zero
-// #endif
-
-//     __m128i little_endian_ascii =
-//         _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
-//     _mm_storeu_si128((__m128i*)buf, _mm_set1_epi8('0'));  // write 32byte '0'
-//     _mm_storeu_si128((__m128i*)(buf + 16), _mm_set1_epi8('0'));
-//     int mask = _mm_movemask_epi8(
-//         _mm_cmpgt_epi8(little_endian_bcd, _mm512_castsi512_si128(zero)));
-//     int tz = u64_lz_bits(mask);
-//     return {little_endian_ascii,
-//             compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+    
+#if XJB_NO_MEMMOVE
     const __m512i permb_const_reverse = _mm512_castsi128_si512(
         _mm_setr_epi8(0x78, 0x70, 0x68, 0x60, 0x58, 0x50, 0x48, 0x40, 0x38, 0x30,
                      0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
@@ -933,7 +911,31 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
     return {ascii16, compute_double_dec_sig_len_ssse3(up_down, tz, D17),
             _mm_cvtsi128_si32(ascii16_swapped)
         };
+#else
+    const __m512i permb_const = _mm512_castsi128_si512(
+        _mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58, 0x50, 0x48, 0x40, 0x38, 0x30,
+                     0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
+    __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
+    __m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
+#if NOT_REMOVE_FIRST_ZERO_XJB && defined(__SSSE3__) && __SSSE3__
+    little_endian_bcd = _mm_shuffle_epi8(
+        little_endian_bcd,
+        // D17?_mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
+        //    :_mm_set_epi8(0,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1));
+        _mm_loadu_si128((const __m128i*)(&(
+            cv->shuffle_table[D17 ? 0 : 1]))));  // remove left zero
+#endif
 
+    __m128i little_endian_ascii =
+        _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
+    _mm_storeu_si128((__m128i*)buf, _mm_set1_epi8('0'));  // write 32byte '0'
+    _mm_storeu_si128((__m128i*)(buf + 16), _mm_set1_epi8('0'));
+    int mask = _mm_movemask_epi8(
+        _mm_cmpgt_epi8(little_endian_bcd, _mm512_castsi512_si128(zero)));
+    int tz = u64_lz_bits(mask);
+    return {little_endian_ascii,
+            compute_double_dec_sig_len_sse2(up_down, tz, D17)};
+#endif
 
 #else  // x86-64, no AVX512
     return to_ascii16_no_avx512(buf, m, up_down, D17, cv, abcdefgh, ijklmnop
@@ -1477,7 +1479,7 @@ static inline char* xjb64(double v, char* buf) {
             one = ((((dot_one >> 54) * 5) >> 9) + 1);
     }
     if (dot_one == (1ULL << 62)) [[unlikely]] // round to even
-        one = 2; // 2.5 -> 2
+        one = 2; // 0.25 * 10 = 2.5 -> 2
     u64 D17 = m_up > (u64)cv->c3;     // (m_up >= (u64)1e15);
     u64 mr = D17 ? m_up : m_up * 10;  // remove the first digit zero
 
@@ -1485,8 +1487,15 @@ static inline char* xjb64(double v, char* buf) {
     const i64 e10_DN = t->e10_DN;
     const i64 e10_UP = t->e10_UP;
     const u64 interval = e10_UP - e10_DN + 1;
-    u32 e10_3 = e10 + (-e10_DN);
+
+#if defined(__aarch64__) || (defined(__x86_64__) && HAS_AVX512IFMA_VBMI && XJB_NO_MEMMOVE)
+    u32 e10_3 = (i32)e10 + (-e10_DN);
     u32 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+#else
+    u64 e10_3 = e10 + (-e10_DN);
+    u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+#endif    
+    
 #if XJB_NO_MEMMOVE
     memset(buf, '0', 8);
 #endif
@@ -1501,7 +1510,7 @@ static inline char* xjb64(double v, char* buf) {
     u64 dot_pos = t->e10_variable_data[e10_data_ofs][17 + 1];
     u64 move_pos = t->e10_variable_data[e10_data_ofs][17 + 2];
 #if XJB_NO_MEMMOVE
-    u64 one_offset = t->e10_variable_data[e10_data_ofs][ 5 + (15 + D17)];
+    u64 one_offset = t->e10_variable_data[e10_data_ofs][ 17 + 3 + D17];
 #endif
     u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
     char* buf_origin = buf;
@@ -1548,7 +1557,7 @@ static inline char* xjb64(double v, char* buf) {
     u64 exp_result = t->exp_result_double[e10 + 324];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
-    u32 exp_len = exp_result >> 56;
+    u64 exp_len = exp_result >> 56;
     return buf + exp_len;
 }
 static inline char* xjb32(float v, char* buf) {
