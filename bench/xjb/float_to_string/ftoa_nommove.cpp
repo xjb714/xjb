@@ -415,39 +415,45 @@ struct const_value_double {
                                 -100 + 0x10000};                       // 16
     int16_t multipliers16[8] = {0xce0, -10 + 0x100, '0' + '0' * 256};  // 16
 #endif
-#if XJB_NO_MEMMOVE
-    alignas(32) uint8_t
-        move_shuffle_table[2 * (e10_UP - (e10_DN) + 1 + 1)][16] = {};
-#elif NOT_REMOVE_FIRST_ZERO_XJB
+// #if XJB_NO_MEMMOVE
+//     alignas(32) uint8_t
+//         move_shuffle_table[2 * (e10_UP - (e10_DN) + 1 + 1)][16] = {};
+// #elif NOT_REMOVE_FIRST_ZERO_XJB
     
-#endif
+// #endif
+    uint8_t shuffle_table_neon[32]={
+        7,6,5,4,3,2,1,0,15,14,13,12,11,10,9,8,
+        6,5,4,3,2,1,0,15,14,13,12,11,10,9,8,7
+    };
+    uint8_t reverse_shuffle_table[17] = {0, 15, 14, 13, 12, 11, 10, 9, 8,
+                                 7, 6, 5, 4, 3, 2, 1, 0};
     uint8_t shuffle_table[17] = {0, 1,  2,  3,  4,  5,  6,  7, 8,
                                  9, 10, 11, 12, 13, 14, 15, 0};
 
-    constexpr const_value_double() {
-#if XJB_NO_MEMMOVE
-        double_table_t double_table;
-        for (int i = 0; i < e10_UP - (e10_DN) + 1 + 1; ++i) {
-            u64 dot_pos =
-                double_table.e10_variable_data[i][max_dec_sig_len + 1];
-            u64 move_pos =
-                double_table.e10_variable_data[i][max_dec_sig_len + 2];
+//     constexpr const_value_double() {
+// #if XJB_NO_MEMMOVE
+//         double_table_t double_table;
+//         for (int i = 0; i < e10_UP - (e10_DN) + 1 + 1; ++i) {
+//             u64 dot_pos =
+//                 double_table.e10_variable_data[i][max_dec_sig_len + 1];
+//             u64 move_pos =
+//                 double_table.e10_variable_data[i][max_dec_sig_len + 2];
 
-            uint8_t v = 0xf;
-            for (uint64_t j = 0; j < 16; ++j)
-                move_shuffle_table[2 * i + 1][j] = v--;
-            if (move_pos > dot_pos) {
-                for (uint64_t j = 15; j > dot_pos && j > 0; --j)
-                    move_shuffle_table[2 * i + 1][j] =
-                        move_shuffle_table[2 * i + 1][j - 1];
-            }
-            for (uint64_t j = 0; j < 16; ++j) {
-                auto v = move_shuffle_table[2 * i + 1][j];
-                move_shuffle_table[2 * i][j] = v ? (v - 1) : 15;
-            }
-        }
-#endif
-    }
+//             uint8_t v = 0xf;
+//             for (uint64_t j = 0; j < 16; ++j)
+//                 move_shuffle_table[2 * i + 1][j] = v--;
+//             if (move_pos > dot_pos) {
+//                 for (uint64_t j = 15; j > dot_pos && j > 0; --j)
+//                     move_shuffle_table[2 * i + 1][j] =
+//                         move_shuffle_table[2 * i + 1][j - 1];
+//             }
+//             for (uint64_t j = 0; j < 16; ++j) {
+//                 auto v = move_shuffle_table[2 * i + 1][j];
+//                 move_shuffle_table[2 * i][j] = v ? (v - 1) : 15;
+//             }
+//         }
+// #endif
+//     }
 };
 
 static const struct const_value_double constants_double;
@@ -803,8 +809,10 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
         vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
     int16x8_t BCD_big_endian =
         vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
-
-    int8x16_t ascii16_swapped = vorrq_u64(BCD_big_endian, vdupq_n_s8('0'));
+    //vst1q_s8((int8_t*)buf, vdupq_n_s8('0')); 
+    int8x16_t ascii16_swapped = vorrq_u8(BCD_big_endian, vdupq_n_s8('0'));
+    // int16x8_t BCD_little_endian = vqtbl1q_u8(BCD_big_endian,
+    //                                           vld1q_u8(&cv->reverse_shuffle_table[1]));
     int8x16_t ascii16 = vqtbl1q_u8(ascii16_swapped, vld1q_u8(move_shuffler));
     uint16x8_t is_not_zero = vcgtzq_s8(BCD_big_endian);
     uint64_t zeroes = vget_lane_u64(
@@ -856,12 +864,12 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
         vmlaq_s32(extended, high_100, vdupq_n_s32(cv->multipliers32[3]));
     int16x8_t high_10 =
         vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
+#if 1
     int16x8_t BCD_big_endian =
         vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
     int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    ascii16 =
-        vqtbl1q_u8(vreinterpretq_u8_u16(ascii16),
+    ascii16 = vqtbl1q_u8(vreinterpretq_u8_u16(ascii16),
                    vld1q_u8(&cv->shuffle_table[1 - D17]));  // remove left zero
     vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));             // write 32byte '0'
     //vst1q_s8((int8_t*)(buf + 16), vdupq_n_s8('0'));
@@ -871,11 +879,24 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
     // int tz = u64_lz_bits((zeroes >> 4) | ( up_down - 1 )) >> 2;
     // return {ascii16, 15 + D17 - tz};
     u32 tz = u64_lz_bits(zeroes) >> 2;
-    //int tz = countZeros(m);
     return {ascii16, up_down ? (NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - tz : 15 - tz) : 15 + D17};
-        // cmov_branchless(up_down,
-        //                 NOT_REMOVE_FIRST_ZERO_XJB ? (14 + D17) - (tz) : 15 - tz,
-        //                 15 + D17)};
+#else
+    int16x8_t BCD_big_endian =
+        vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
+    int8x16_t BCD_little_endian = vqtbl1q_u8(vreinterpretq_u8_u16(BCD_big_endian),
+                   vld1q_u8(&cv->shuffle_table_neon[D17 ? 0 : 16]));
+    int16x8_t ascii16 = vorrq_u8(BCD_little_endian, vdupq_n_s8('0'));
+    vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));             // write 32byte '0'
+    //vst1q_s8((int8_t*)(buf + 16), vdupq_n_s8('0'));
+    uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
+    uint64_t zeroes = vget_lane_u64(
+        vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
+    // int tz = u64_lz_bits((zeroes >> 4) | ( up_down - 1 )) >> 2;
+    // return {ascii16, 15 + D17 - tz};
+    int tz = u64_lz_bits(zeroes) >> 2;
+    return {ascii16,up_down ? 15 - tz : 15 + D17};
+#endif
+
 #endif  // endif HAS_NEON
 
 #if HAS_SSE2
@@ -1503,7 +1524,7 @@ static inline char* xjb64(double v, char* buf) {
         to_ascii16(buf, NOT_REMOVE_FIRST_ZERO_XJB ? m_up : mr, up_down, D17, cv
 #if XJB_NO_MEMMOVE
                    //,cv->move_shuffle_table[(2 * e10_data_ofs) + D17]
-                   ,&(t->e10_variable_data[e10_data_ofs][32 +  D17 * 16])
+                   ,&(t->e10_variable_data[e10_data_ofs][32 + D17 * 16])
 #endif
         );
     u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
