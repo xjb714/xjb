@@ -711,7 +711,7 @@ static inline shortest_ascii16 to_ascii16_no_avx512(
 #    if defined(__SSE4_1__) && __SSE4_1__
 #        if XJB_NO_MEMMOVE
     return to_ascii16_no_memmove_sse41(buf, up_down, D17, y,
-                                       _mm_load_si128((__m128i*)move_shuffler));
+                                       _mm_loadu_si128((__m128i*)move_shuffler));
 #        else
     __m128i z = _mm_sub_epi32(
         _mm_slli_epi32(y, 16),
@@ -723,7 +723,7 @@ static inline shortest_ascii16 to_ascii16_no_avx512(
 #    elif defined(__SSSE3__) && __SSSE3__
 #        if XJB_NO_MEMMOVE
     return to_ascii16_no_memmove_ssse3(up_down, D17, y,
-                                       _mm_load_si128((__m128i*)move_shuffler));
+                                       _mm_loadu_si128((__m128i*)move_shuffler));
 #        else
     return to_ascii16_sse_fallback(buf, up_down, D17, cv, y);
 #        endif
@@ -936,7 +936,7 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m,
     __m128i bcd_swapped = _mm512_castsi512_si128(bcd_r);
     __m128i ascii16_swapped = _mm_add_epi8(bcd_swapped, _mm_set1_epi8('0'));
     __m128i ascii16 = _mm_shuffle_epi8(ascii16_swapped,
-                                       _mm_load_si128((__m128i*)move_shuffler));
+                                       _mm_loadu_si128((__m128i*)move_shuffler));
     int mask =
         _mm_movemask_epi8(_mm_cmpgt_epi8(bcd_swapped, _mm_setzero_si128()));
     int tz = u64_tz_bits(mask);
