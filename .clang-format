@@ -6,7 +6,7 @@ AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: Inline
 AllowShortBlocksOnASingleLine: false
-ColumnLimit: 80
+ColumnLimit: 120
 PointerAlignment: Left
 SortIncludes: true
 IncludeBlocks: Regroup
@@ -17,3 +17,4 @@ AccessModifierOffset: -4
 NamespaceIndentation: None
 FixNamespaceComments: true
 IndentPPDirectives: AfterHash
+InsertNewlineAtEOF: true
