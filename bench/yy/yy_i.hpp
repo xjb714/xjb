@@ -1,5 +1,5 @@
 //compile time is too long, set 0 to reduce compile time
-#define use_yyjson 0
+#define use_yyjson 1
 
 #include "yy_double.c"
 #if use_yyjson
