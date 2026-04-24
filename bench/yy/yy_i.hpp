@@ -4,7 +4,7 @@
 #include "yy_double.c"
 #if use_yyjson
 namespace yyjson {
-    #include "yyjson.c"
+    #include "yyjson_simplify.c"
 }
 #endif
 
