@@ -12,35 +12,6 @@
 <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.0/css/bulma.min.css' />
 <link rel='stylesheet' href='https://cdnjs.cloudflare.com/ajax/libs/sortable/0.8.0/css/sortable-theme-bootstrap.min.css' />
 <script>window.onload=Sortable.init</script>
-<script>
-// 在所有图表创建之前添加
-Highcharts.setOptions({
-    title: {
-        style: { fontSize: '18px', fontWeight: 'bold' }
-    },
-    subtitle: {
-        style: { fontSize: '16px' }
-    },
-    xAxis: {
-        labels: { style: { fontSize: '14px' } },
-        title: { style: { fontSize: '16px' } }
-    },
-    yAxis: {
-        labels: { style: { fontSize: '14px' } },
-        title: { style: { fontSize: '16px' } }
-    },
-    legend: {
-        itemStyle: { fontSize: '16px' }
-    },
-    // 在所有 Highcharts.chart 调用之前添加这段代码
-    exporting: {
-      // 重点：将 libURL 指向你本地存放库文件的文件夹路径
-      // 如果和 HTML 在同一级目录，写成 './' 即可
-      libURL: 'https://cdnjs.cloudflare.com/ajax/libs/highcharts/8.2.0/lib/',
-      fallbackToExportServer: false // 可选，建议设为 false，强制使用本地导出，避免回退到在线服务器
-    }
-});
-</script>
 <style type='text/css'>
 hr {
     height: 1px;
@@ -96,7 +67,7 @@ table .number {
                     <a class='navbar-item'>Compiler: Clang 21.1.1</a>
                     <a class='navbar-item'>OS: Linux 64-bit</a>
                     <a class='navbar-item'>CPU: AMD Ryzen 7 7840H w/ Radeon 780M Graphics</a>
-                    <a class='navbar-item'>CPU Frequency: 5051.79 MHz</a>
+                    <a class='navbar-item'>CPU Frequency: 5115.20 MHz</a>
                 </div>
             </div>
             <div class='navbar-item has-dropdown is-hoverable'>
@@ -118,7 +89,7 @@ Highcharts.chart('chart_id_0', {
     title: { text: 'random' },
     subtitle: { text: 'random float number in all binary range, ignore nan and inf' },
     credits: { enabled: false },
-    xAxis: { allowDecimals: true, categories: ['fmt_comp', 'fmt_full', 'jnum', 'ryu', 'dragonbox_comp', 'yyjson', 'schubfach', 'dragonbox_full', 'schubfach_xjb', 'xjb32_comp', 'zmij', 'xjb32', 'null'], type: 'linear' },
+    xAxis: { allowDecimals: true, categories: ['fmt_comp', 'fmt_full', 'jnum', 'ryu', 'dragonbox_comp', 'yyjson', 'schubfach', 'dragonbox_full', 'schubfach_xjb', 'xjb32_comp', 'zmij', 'xjb32', 'f2e_xjb', 'null'], type: 'linear' },
     yAxis: { title: { text: 'CPU cycles' }, allowDecimals: true, type: 'linear' },
     tooltip: {valueDecimals: 2, shared: false, crosshairs: false, shadow: false },
     legend: { layout: 'vertical', align: 'right', verticalAlign: 'middle', enabled: false },
@@ -127,7 +98,7 @@ Highcharts.chart('chart_id_0', {
         series: { label: { enabled: false}, dataLabels: { enabled: true , allowOverlap: true, format: '{point.y:.2f}' } }
     },
     series: [
-        { data: [123.317696, 121.791031, 118.235115, 116.041367, 113.054253, 108.999619, 95.876884, 93.729668, 59.570324, 57.768524, 57.056839, 33.723560, 4.188632] }
+        { data: [125.614662, 125.556793, 120.617401, 116.406250, 115.952484, 111.001953, 99.430107, 94.437149, 63.953465, 59.126881, 58.013882, 34.357765, 18.365591, 4.193548] }
     ]
 });
 </script>

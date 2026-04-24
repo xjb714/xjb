@@ -325,6 +325,107 @@ static const struct const_value_float constants_float = {
     .m32_4 = {0x147b000, -100 + 0x10000, 0xce0, -10 + 0x100},
 };
 
+ constexpr int num_pow10 = 323 - (-293) + 1;
+ constexpr int e10_DN = -4;
+ constexpr int e10_UP = 15;
+ constexpr int max_dec_sig_len = 17;
+
+struct pow10_double_t{
+    uint64_t pow10_double[(323 - (-293) + 1) * 2] = {};
+    constexpr pow10_double_t(){
+        struct uint192 {
+            uint64_t w0, w1, w2;
+        };
+        uint192 current = {0xb2e28cedd086d011, 0x1e53ed49a96272c8, 0xcc5fc196fefd7d0c};  // e10 = -293
+        constexpr uint64_t ten = 0xa000000000000000;
+        for (int i = 0; i < num_pow10; ++i) {
+            int e10 = i - 293;
+            pow10_double[(num_pow10 - 1 - i) * 2 + 0] = e10 == 0 ? 1ULL << 63 : current.w2 + (e10 >= 0 && e10 <= 27);
+            pow10_double[(num_pow10 - 1 - i) * 2 + 1] = current.w1 + 1;
+            uint64_t h0 = umul128_hi64_fallback(current.w0, ten);
+            uint64_t h1 = umul128_hi64_fallback(current.w1, ten);
+            uint64_t c0 = h0 + current.w1 * ten;
+            uint64_t c1 = (c0 < h0) + h1 + current.w2 * ten;
+            uint64_t c2 = (c1 < h1) + umul128_hi64_fallback(current.w2, ten);
+            if (c2 >> 63)
+                current = {c0, c1, c2};
+            else
+                current = {c0 << 1, c1 << 1 | c0 >> 63, c2 << 1 | c1 >> 63};  // left shift 1 bit
+        }
+    }
+};
+struct exp_result_double_t{
+    uint64_t exp_result_double[324 + 308 + 1] = {};
+    constexpr exp_result_double_t(){
+    for (int e10 = -324; e10 <= 308; ++e10) {
+            u64 e = e10 < 0 ? ('e' + '-' * 256) : 'e' + '+' * 256;
+            u64 e10_abs = e10 < 0 ? -e10 : e10;
+            u64 a = e10_abs / 100;
+            u64 bc = e10_abs - a * 100;
+            u64 b = bc / 10;
+            u64 c = bc - b * 10;
+            u64 exp_len = 4 + (e10_abs >= 100);
+            u64 e10_abs_ascii =
+                (e10_abs >= 100) ? (a + '0') + ((b + '0') << 8) + ((c + '0') << 16) : (b + '0') + ((c + '0') << 8);
+            u64 exp_res = e + (e10_abs_ascii << 16) + (exp_len << 56);
+            exp_res = (e10 >= e10_DN && e10 <= e10_UP) ? 0 : exp_res;
+            exp_result_double[e10 + 324] = exp_res;
+        }
+    }
+};
+
+struct e10_variable_data_t{
+    unsigned char e10_variable_data[e10_UP - e10_DN + 1 + 1][64] = {};
+    constexpr e10_variable_data_t(){
+     for (int e10 = e10_DN; e10 <= e10_UP + 1; e10++) {
+            int tmp_data_ofs = e10 - e10_DN;
+            u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
+            u64 dot_pos = (0 <= e10 && e10 <= e10_UP) ? 1 + e10 : 1;
+            u64 move_pos = dot_pos + (0 <= e10 || e10 < e10_DN);
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 0] = first_sig_pos;
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 1] = dot_pos;
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 2] = move_pos;
+            bool D17 = 0;
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 3] =
+                15 + D17 + (move_pos > dot_pos && dot_pos <= 15 + D17);
+            D17 = 1;
+            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 4] =
+                15 + D17 + (move_pos > dot_pos && dot_pos <= 15 + D17);
+            for (int dec_sig_len = 1; dec_sig_len <= max_dec_sig_len; dec_sig_len++) {
+                u64 exp_pos = (e10_DN <= e10 && e10 <= -1)
+                                  ? dec_sig_len
+                                  : (0 <= e10 && e10 <= e10_UP ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
+                                                               : (dec_sig_len + 1 - (dec_sig_len == 1)));
+                e10_variable_data[tmp_data_ofs][dec_sig_len - 1] = exp_pos;
+            }
+            uint8_t v = 0xf;
+            for (uint64_t j = 0; j < 16; ++j)
+                e10_variable_data[tmp_data_ofs][32 + 16 + j] = v--;
+            if (move_pos > dot_pos) {
+                for (uint64_t j = 15; j > dot_pos && j > 0; --j)
+                    e10_variable_data[tmp_data_ofs][j + 32 + 16] = e10_variable_data[tmp_data_ofs][j + 32 + 16 - 1];
+            }
+            for (uint64_t j = 0; j < 16; ++j) {
+                auto v = e10_variable_data[tmp_data_ofs][j + 32 + 16];
+                e10_variable_data[tmp_data_ofs][j + 32] = v ? (v - 1) : 15;
+            }
+        }
+    }
+};
+struct h7_t{
+    unsigned char h7[2048] = {};
+    constexpr h7_t(){
+    for (int exp = 0; exp < 2048; ++exp) {
+            const int offset = 9;
+            int q = exp - 1075 + (exp == 0);
+            int k = (q * 78913) >> 18;
+            int h = q + (((-k - 1) * 217707) >> 16);
+            h7[exp] = (unsigned char)(h + 1 + offset);
+        }
+    }
+};
+
+
 struct double_table_t {
     static constexpr int e10_DN = -4;
     static constexpr int e10_UP = 15;
@@ -417,10 +518,10 @@ struct double_table_t {
 
 /* const value table for float/double to string : begin */
 struct const_value_double {
-    static constexpr int e10_DN = double_table_t::e10_DN;
-    static constexpr int e10_UP = double_table_t::e10_UP;
-    static constexpr int max_dec_sig_len = double_table_t::max_dec_sig_len;
-    static constexpr int num_pow10 = double_table_t::num_pow10;
+    // static constexpr int e10_DN = double_table_t::e10_DN;
+    // static constexpr int e10_UP = double_table_t::e10_UP;
+    // static constexpr int max_dec_sig_len = double_table_t::max_dec_sig_len;
+    // static constexpr int num_pow10 = double_table_t::num_pow10;
     uint64_t c1 = 78913ull << (64 - 18);
     uint64_t c2 = (uint64_t)-217707;
     uint64_t c3 = (uint64_t)1e15 - 1;
@@ -568,6 +669,11 @@ static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint6
 static const struct const_value_double constants_double;
 alignas(64) constexpr double_table_t double_table;
 alignas(64) constexpr float_table_t float_table;
+
+constexpr pow10_double_t pow10_double_table;
+constexpr  exp_result_double_t exp_result_double_table;
+constexpr  e10_variable_data_t e10_variable_data_table;
+constexpr  h7_t h7_table;
 
 /*==============================================================================
  * Implementations
@@ -1232,16 +1338,17 @@ static inline i64 compute_k_double(i64 q) {
     return ((i64)q * 78913) >> 18;
 #endif
 }
-static inline u64* get_pow10_ptr(const struct double_table_t* t, const i64 k) {
+static inline u64* get_pow10_ptr(const i64 k) {
     // return pointer of 10**(-k-1)
-    const u64* pow10_ptr = t->pow10_double + 323 * 2 + 2;
+    const u64* pow10_ptr = pow10_double_table.pow10_double + 323 * 2 + 2;
     return (u64*)&pow10_ptr[k * 2];
 }
 namespace xjb {
 static inline char* xjb64(double v, char* buf) {
     // require buf size >= 33 byte
     const struct const_value_double* cv = &constants_double;
-    const struct double_table_t* t = &double_table;
+    //const struct double_table_t* t = &double_table;
+    //asm("" : "+r"(t));
 #if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))  // for arm64 processor , fewer instructions
                                                                        // MSVC not support inline asm
     asm("" : "+r"(cv));                                                // read constant values from memory to register
@@ -1254,7 +1361,8 @@ static inline char* xjb64(double v, char* buf) {
     u64 exp = (vi << 1) >> 53;
     i64 q = (i64)exp - 1075;
     u64 c = ((1ULL << 52) | sig);
-    // if( ((exp + 1) & 2047) <= 1)[[unlikely]]
+    //if( ((exp + 1) & 2047) <= 1) [[unlikely]]
+    //if( (u64)(exp - 1) >= (u64)(2047-1)) [[unlikely]]
     {
         if (exp == 0) [[unlikely]] {
             if (sig <= 1) {
@@ -1268,11 +1376,11 @@ static inline char* xjb64(double v, char* buf) {
             return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
     }
     // process_small_int_double(c, q, cv, is_exit_small_int, buf);
-    unsigned char h7_precalc = t->h7[exp];
+    unsigned char h7_precalc = h7_table.h7[exp];
     const int offset = 9;  //  offset in range [3,10] has same result.
-    u32 irregular = sig == 0;
+    bool irregular = sig == 0;
     i64 k = compute_k_double((i64)exp - 1075);
-    u64* p10 = get_pow10_ptr(t, k);
+    u64* p10 = get_pow10_ptr( k);
     u64 cb = c << h7_precalc;
     u64 pow10_hi = p10[0], pow10_lo = p10[1];  // 128bit pow10
     u64 hi64, lo64;
@@ -1284,12 +1392,14 @@ static inline char* xjb64(double v, char* buf) {
     u64 m_up = (hi64 >> offset) + up;  // m + up
     u64 up_down = up + down;
     u32 one = (u128_madd_hi64(dot_one, 10, cv->c4));  // round to nearest
+    if (dot_one == (1ULL << 62)) [[unlikely]]  // round to even
+        one = 2;                               // 0.25 * 10 = 2.5 -> 2
     if (irregular) [[unlikely]] {
         // irregular case : c is 2**52 , exp range is [1,2046];
         k = (i64)(q * 315653 - 131072) >> 20;
         i64 h = q + ((k * -217707 - 217707) >> 16);
         // u64 pow10_hi = t->pow10_double[293 * 2 - 2 + k * -2];
-        u64 pow10_hi = t->pow10_double[323 * 2 + 2 + k * 2];
+        u64 pow10_hi = pow10_double_table.pow10_double[323 * 2 + 2 + k * 2];
         u64 half_ulp = pow10_hi >> (-h);
         u64 dot_one = (pow10_hi << (53 + h));
         u64 up = (half_ulp > ~0 - dot_one);
@@ -1299,24 +1409,29 @@ static inline char* xjb64(double v, char* buf) {
         one = ((dot_one >> (53 + h)) * 5 + (1 << (9 - h))) >> (10 - h);
         if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
             one = ((((dot_one >> 54) * 5) >> 9) + 1);
+        if (dot_one == (1ULL << 62)) //[[unlikely]]  // round to even
+        one = 2;
     }
-    if (dot_one == (1ULL << 62)) [[unlikely]]  // round to even
-        one = 2;                               // 0.25 * 10 = 2.5 -> 2
+    // if (dot_one == (1ULL << 62)) [[unlikely]]  // round to even
+    //     one = 2;                               // 0.25 * 10 = 2.5 -> 2
     u64 D17 = m_up > (u64)cv->c3;              // (m_up >= (u64)1e15);
+    //u64 D17 = ((u64)cv->c3 - m_up) >> 63;
     u64 mr = D17 ? m_up : m_up * 10;           // remove the first digit zero
 
     i64 e10 = k + (15 + D17);
-    const i64 e10_DN = t->e10_DN;
-    const i64 e10_UP = t->e10_UP;
+    // const i64 e10_DN = e10_DN;
+    // const i64 e10_UP = e10_UP;
     const u64 interval = e10_UP - e10_DN + 1;
 
-#if defined(__aarch64__) || (defined(__x86_64__) && XJB_USE_AVX512IFMA_VBMI && XJB_NO_MEMMOVE)
-    u32 e10_3 = (i32)e10 + (-e10_DN);
-    u32 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
-#else
+// #if defined(__aarch64__) || (defined(__x86_64__) && XJB_USE_AVX512IFMA_VBMI && XJB_NO_MEMMOVE)
+//     u32 e10_3 = (i32)e10 + (-e10_DN);
+//     u32 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+// #else
+//     u64 e10_3 = e10 + (-e10_DN);
+//     u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+// #endif
     u64 e10_3 = e10 + (-e10_DN);
     u64 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
-#endif
 
 #if XJB_NO_MEMMOVE
     memset(buf, '0', 8);
@@ -1326,16 +1441,15 @@ static inline char* xjb64(double v, char* buf) {
 #if XJB_NO_MEMMOVE
                                     //,cv->move_shuffle_table[(2 * e10_data_ofs) + D17]
                                     ,
-                                    &(t->e10_variable_data[e10_data_ofs][32 + D17 * 16])
+                                    &(e10_variable_data_table.e10_variable_data[e10_data_ofs][32 + D17 * 16])
 #endif
     );
-    u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
-    u64 dot_pos = t->e10_variable_data[e10_data_ofs][17 + 1];
-    u64 move_pos = t->e10_variable_data[e10_data_ofs][17 + 2];
+    u64 first_sig_pos = (e10_variable_data_table.e10_variable_data)[e10_data_ofs][17 + 0];
+    u64 dot_pos = e10_variable_data_table.e10_variable_data[e10_data_ofs][17 + 1];
+    u64 move_pos = e10_variable_data_table.e10_variable_data[e10_data_ofs][17 + 2];
 #if XJB_NO_MEMMOVE
-    u64 one_offset = t->e10_variable_data[e10_data_ofs][17 + 3 + D17];
 #endif
-    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
+    u64 exp_pos = e10_variable_data_table.e10_variable_data[e10_data_ofs][s.dec_sig_len];
     char* buf_origin = buf;
     buf += first_sig_pos;
 
@@ -1350,6 +1464,7 @@ static inline char* xjb64(double v, char* buf) {
     one |= 0x30302e30;  // "0.00"
     memcpy(buf + 16, &s.trailing_byte, 4);
     buf_origin[dot_pos] = '.';
+    u64 one_offset = e10_variable_data_table.e10_variable_data[e10_data_ofs][17 + 3 + D17];
     memcpy(buf + one_offset, &one, 4);
 #else
     one |= 0x30303030;                // "0000"
@@ -1365,7 +1480,7 @@ static inline char* xjb64(double v, char* buf) {
 #endif
     {
         // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-        // if (buf[0] == '0')
+        //if (buf[0] == '0')
         if (m_up < (u64)1e14) [[unlikely]] {
             u64 lz = 0;
             while (buf[2 + lz] == '0')
@@ -1377,7 +1492,7 @@ static inline char* xjb64(double v, char* buf) {
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
     }
-    u64 exp_result = t->exp_result_double[e10 + 324];
+    u64 exp_result = exp_result_double_table.exp_result_double[e10 + 324];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
@@ -1487,9 +1602,9 @@ static inline char* xjb32(float v, char* buf) {
  * Export
  *============================================================================*/
 
-char* xjb_ftoa(float v, char* buf) {
-    return xjb::xjb32(v, buf);
-}
+// char* xjb_ftoa(float v, char* buf) {
+//     return xjb::xjb32(v, buf);
+// }
 char* xjb_ftoa(double v, char* buf) {
     return xjb::xjb64(v, buf);
 }

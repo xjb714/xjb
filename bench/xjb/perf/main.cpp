@@ -11,19 +11,14 @@
 #endif
 
 
-#include "../float_to_string/ftoa.cpp"
-//#include "../xjb_comp.cpp"
-// #include "xjb64.cpp"
-//  char *xjb64(double value, char *buffer);
-//  char *xjb32(float value, char *buffer);
-// #include "dtoa_xjb64_xjb32.cpp"
-//#include "dtoa_xjb_comp.cpp"
+//#include "../float_to_string/ftoa.cpp"
+#include "../float_to_string/ftoa.h"
 
 typedef uint64_t u64;
 
-std::random_device rd;
-std::mt19937_64 gen(rd());
-const u64 N = (1ull << 30); // data size
+static std::random_device rd;
+static std::mt19937_64 gen(rd());
+const u64 N = (1ull << 25); // data size
 #if PERF_DOUBLE_OR_FLOAT == FLOAT
     float *data;
 #else
@@ -117,22 +112,16 @@ int main()
         for (u64 i = 0; i < N; ++i)
         {
             // num = gen_double_filter_NaN_Inf();
-            random_num += random_seed;
-            //num = *(double*)&random_num;
-            
-            //double num = data[i];
-            //xjb64_32_comp::xjb64(num, buf);
+            random_num += random_seed; // random double value in all f64 range
 
-            // float num = *(float*)&random_num;
-            // xjb64_32_comp::xjb32(num,buf);
 #if PERF_DOUBLE_OR_FLOAT == FLOAT
-            float num = *(float*)&random_num;
-            //float num = data[i];
+            u64 rnd = random_num & (~0 - (1ULL << 30));
+            float num = *(float*)&rnd;
             xjb::xjb32(num,buf);
-            //xjb_comp::xjb32_comp(num, buf);
 #else
-            double num = *(double *)&random_num;
-            xjb::xjb64(num, buf);
+            u64 rnd = random_num ; // & (~0 - (1ULL << 62)); // avoid nan,inf,subnormal
+            double num = *(double *)&rnd;
+            xjb_ftoa(num, buf);
 #endif
         }
         auto c2 = get_cycle();
@@ -144,9 +133,13 @@ int main()
 #endif
 
 #if PERF_DOUBLE_OR_FLOAT == FLOAT
-        printf("data = %.8e \n buf = %s \n", *(float *)&random_num, buf);
+        u64 rnd = random_num & (~0 - (1ULL << 30));
+        float num = *(float *)&rnd;
+        printf("data = %.8e \n buf = %s \n", num, buf);
 #else
-        printf("data = %.16le \n buf = %s \n", *(double *)&random_num, buf);
+        u64 rnd = random_num ;// & (~0 - (1ULL << 62));
+        double num = *(double *)&rnd;
+        printf("data = %.16le \n buf = %s \n", num, buf);
 #endif
     }
 
