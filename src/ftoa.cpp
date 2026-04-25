@@ -325,19 +325,20 @@ static const struct const_value_float constants_float = {
     .m32_4 = {0x147b000, -100 + 0x10000, 0xce0, -10 + 0x100},
 };
 
+// size: 17728, align: 64
 struct double_table_t {
     static constexpr int e10_DN = -4;
     static constexpr int e10_UP = 15;
     static constexpr int max_dec_sig_len = 17;
     static constexpr int num_pow10 = 323 - (-293) + 1;
-    uint64_t pow10_double[(323 - (-293) + 1) * 2] = {};
-    uint64_t exp_result_double[324 + 308 + 1] = {};
-    alignas(64) unsigned char e10_variable_data[e10_UP - e10_DN + 1 + 1][64] = {};
+    uint64_t pow10_double[(323 - (-293) + 1) * 2] = {};  // 1234 * 8 = 9872 bytes
+    uint64_t exp_result_double[324 + 308 + 1] = {};      // 633 * 8 = 5064 bytes
+    alignas(64) unsigned char e10_variable_data[e10_UP - e10_DN + 1 + 1][XJB_NO_MEMMOVE ? 64 : 32] = {};
     unsigned char h7[2048] = {};
 
-    // uint8_t shuffle_table[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12,
-    // 13, 14, 15, 0}; uint8_t shuffle_table_big_endian[17] = {0, 7, 6, 5, 4, 3,
-    // 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8};
+    /* Assert size of per line in e10_variable_data is enough. */
+    static_assert(32 >= max_dec_sig_len + 5, "");
+
     constexpr double_table_t() {
         struct uint192 {
             uint64_t w0, w1, w2;
@@ -393,16 +394,18 @@ struct double_table_t {
                                                                : (dec_sig_len + 1 - (dec_sig_len == 1)));
                 e10_variable_data[tmp_data_ofs][dec_sig_len - 1] = exp_pos;
             }
-            uint8_t v = 0xf;
-            for (uint64_t j = 0; j < 16; ++j)
-                e10_variable_data[tmp_data_ofs][32 + 16 + j] = v--;
-            if (move_pos > dot_pos) {
-                for (uint64_t j = 15; j > dot_pos && j > 0; --j)
-                    e10_variable_data[tmp_data_ofs][j + 32 + 16] = e10_variable_data[tmp_data_ofs][j + 32 + 16 - 1];
-            }
-            for (uint64_t j = 0; j < 16; ++j) {
-                auto v = e10_variable_data[tmp_data_ofs][j + 32 + 16];
-                e10_variable_data[tmp_data_ofs][j + 32] = v ? (v - 1) : 15;
+            if (XJB_NO_MEMMOVE) {
+                uint8_t v = 0xf;
+                for (uint64_t j = 0; j < 16; ++j)
+                    e10_variable_data[tmp_data_ofs][32 + 16 + j] = v--;
+                if (move_pos > dot_pos) {
+                    for (uint64_t j = 15; j > dot_pos && j > 0; --j)
+                        e10_variable_data[tmp_data_ofs][j + 32 + 16] = e10_variable_data[tmp_data_ofs][j + 32 + 16 - 1];
+                }
+                for (uint64_t j = 0; j < 16; ++j) {
+                    auto v = e10_variable_data[tmp_data_ofs][j + 32 + 16];
+                    e10_variable_data[tmp_data_ofs][j + 32] = v ? (v - 1) : 15;
+                }
             }
         }
         for (int exp = 0; exp < 2048; ++exp) {
@@ -440,12 +443,17 @@ struct const_value_double {
     int32_t multipliers32[4] = {0x68db8bb, -10000 + 0x10000, 0x147b000, -100 + 0x10000};  // 16
     int16_t multipliers16[8] = {0xce0, -10 + 0x100, '0' + '0' * 256};                     // 16
 #endif
+#if XJB_USE_NEON
     uint8_t shuffle_table_neon[32] = {7, 6, 5, 4, 3, 2, 1, 0,  15, 14, 13, 12, 11, 10, 9, 8,
                                       6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9,  8, 7};
+#endif
+#if XJB_USE_NEON && XJB_NO_MEMMOVE
     uint8_t reverse_shuffle_table[17] = {0, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
+#endif
+#if (XJB_NOT_REMOVE_FIRST_ZERO && XJB_USE_SSSE3) || XJB_USE_NEON
     uint8_t shuffle_table[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0};
+#endif
 };
-
 
 struct float_table_t {
     static const int e10_DN = -3;
@@ -454,8 +462,12 @@ struct float_table_t {
     static const int num_pow10 = 44 - (-32) + 1;
     uint64_t pow10_float_reverse[44 - (-32) + 1] = {};
     uint32_t exp_result_float[45 + 38 + 1] = {};
-    unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][1 ? 16 : max_dec_sig_len + 3] = {};
+    unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][16] = {};
     unsigned char h37[256] = {};
+
+    /* Assert size of per line in e10_variable_data is enough. */
+    static_assert(16 >= max_dec_sig_len + 3, "");
+
     struct const_value_float constants_float = {
 #if defined(__aarch64__)
         .c1 = (((u64)('0' + '0' * 256) << (36)) + (((u64)1 << (36 - 1)) - 7)),
