@@ -203,10 +203,14 @@ int main() {
 
     out << "# bits(hex)  d  k\n";
 
+    uint32_t d_min = 99999999;
+    uint32_t d_max = 0;
     // 遍历所有正 FP16 数值 (排除 0x0000, 0x7C00..0x7FFF)
     for (uint32_t bits = 0x0001; bits <= 0x7BFF; ++bits) {
         try {
             auto [d, k] = f16_to_decimal(static_cast<uint16_t>(bits));
+            d_min = d > d_min ? d_min : d;
+            d_max = d > d_max ? d : d_max;
             out << "0x" << std::hex << std::uppercase << bits << std::dec
                 << " " << (int64_t)d << " " << k << "\n";
         } catch (const std::invalid_argument&) {
@@ -220,5 +224,6 @@ int main() {
 
     out.close();
     std::cout << "Results written to f16_decimal_results.txt" << std::endl;
+    printf("d_min = %u, d_max = %u\n",d_min,d_max);
     return 0;
 }
