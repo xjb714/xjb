@@ -22,19 +22,26 @@
  * Macros
  *============================================================================*/
 
+// Auto inducted: platform detect
+#if defined(__aarch64__) || defined(_M_ARM64)
+#    define XJB_IS_AARCH64 1
+#    define XJB_IS_X64 0
+#elif defined(__x86_64__) || defined(_M_X64)
+#    define XJB_IS_AARCH64 0
+#    define XJB_IS_X64 1
+#else
+#    define XJB_IS_AARCH64 0
+#    define XJB_IS_X64 0
+#endif
+
 /* Whether to use SIMD. */
 #ifndef XJB_USE_SIMD
 #    define XJB_USE_SIMD 1
 #endif
 
-/* Use avx512 for x86-64 if supported; 0: use sse2 for x86-64. */
-#ifndef XJB_USE_AVX512
-#    define XJB_USE_AVX512 1
-#endif
-
 /* Whether to use neon (aarch64). */
 #ifndef XJB_USE_NEON
-#    if XJB_USE_SIMD && defined(__aarch64__) && (defined(__ARM_NEON__) || defined(__ARM_NEON))
+#    if XJB_USE_SIMD && XJB_IS_AARCH64 && (defined(__ARM_NEON__) || defined(__ARM_NEON))
 #        include <arm_neon.h>
 #        define XJB_USE_NEON 1
 #    else
@@ -79,7 +86,8 @@
 
 /* Whether to enable avx512ifma & avx512vbmi. */
 #ifndef XJB_USE_AVX512IFMA_VBMI
-#    if XJB_USE_SSE2 && XJB_USE_AVX512 && defined(__AVX512F__) && defined(__AVX512IFMA__) && defined(__AVX512VBMI__)
+#    if XJB_USE_SSE2 && defined(__AVX512F__) && defined(__AVX512IFMA__) && defined(__AVX512VBMI__) && __AVX512F__ && \
+        __AVX512IFMA__ && __AVX512VBMI__
 #        define XJB_USE_AVX512IFMA_VBMI 1
 #    else
 #        define XJB_USE_AVX512IFMA_VBMI 0
@@ -88,27 +96,22 @@
 
 /* Whether to enable "no memmove" feature. */
 #ifndef XJB_NO_MEMMOVE
-#    if XJB_USE_SSE2
-// x86-64.
-#        if XJB_USE_AVX512IFMA_VBMI || XJB_USE_SSSE3
-#            define XJB_NO_MEMMOVE 1
-#        else
-#            define XJB_NO_MEMMOVE 0
-#        endif
-#    elif XJB_USE_NEON
-// aarch64. TODO.
+#    if XJB_USE_SSE2 && (XJB_USE_AVX512IFMA_VBMI || XJB_USE_SSSE3 || XJB_USE_SSE4_1)
+// On x86-64 processors, xjb's memmove can trigger store-to-load forwarding stalls.
+#        define XJB_NO_MEMMOVE 1
+#    elif XJB_USE_NEON && defined(__APPLE__) && defined(__arm64__)
+// On Apple Silicon processors, xjb's memmove can be regarded as a free performance gain.
 #        define XJB_NO_MEMMOVE 0
+#    elif XJB_USE_NEON
+// On other aarch64 implementations the performance characteristics of memmove may differ.
+#        define XJB_NO_MEMMOVE 1
 #    else
 #        define XJB_NO_MEMMOVE 0
 #    endif
-#endif  // XJB_NO_MEMMOVE
+#endif
 
 // Auto inducted: XJB_NOT_REMOVE_FIRST_ZERO.
-#if XJB_NO_MEMMOVE
-// Force XJB_NOT_REMOVE_FIRST_ZERO if XJB_NO_MEMMOVE is enabled.
-// If not forced we can cut move_shuffle_table into half.
-#    define XJB_NOT_REMOVE_FIRST_ZERO 1
-#elif XJB_USE_NEON || XJB_USE_SSSE3
+#if XJB_NO_MEMMOVE || XJB_USE_NEON || XJB_USE_SSSE3
 #    define XJB_NOT_REMOVE_FIRST_ZERO 1
 #else
 #    define XJB_NOT_REMOVE_FIRST_ZERO 0
@@ -116,6 +119,7 @@
 
 /* Some compiler checks. */
 
+// Is the compiler really GCC.
 #ifndef XJB_IS_REAL_GCC
 #    if defined(__GNUC__) && defined(__GNUC_MINOR__) && !defined(__clang__) && !defined(__llvm__) && \
         !defined(__INTEL_COMPILER) && !defined(__ICC)
@@ -123,17 +127,34 @@
 #    endif
 #endif
 
-#ifdef _MSC_VER
-#    include <intrin.h>  // __lzcnt64/_umul128/__umulh
+/* "assume" macro for better optimization. */
+#ifdef NDEBUG
+#    if defined(__GNUC__) || defined(__clang__)
+#        define xjb_assume(cond)             \
+            do {                             \
+                if (!(cond))                 \
+                    __builtin_unreachable(); \
+            } while (0)
+#    elif defined(_MSC_VER)
+#        define xjb_assume(cond) __assume(cond)
+#    else
+#        define xjb_assume(cond) ((void)0)
+#    endif
+#else
+#    define xjb_assume(cond) ((void)0)  // not use
 #endif
 
-#if defined(__SIZEOF_INT128__)
-typedef __uint128_t u128;  // msvc not support
+#ifdef _MSC_VER
+#    include <intrin.h>  // __lzcnt64/_umul128/__umulh
 #endif
 
 /*==============================================================================
  * Typedefs
  *============================================================================*/
+
+#if defined(__SIZEOF_INT128__)
+typedef __uint128_t u128;  // msvc not support
+#endif
 
 typedef uint64_t u64;
 typedef int64_t i64;
@@ -320,7 +341,7 @@ struct const_value_float {
 };
 
 static const struct const_value_float constants_float = {
-#if defined(__aarch64__)
+#if XJB_IS_AARCH64
     .c1 = (((u64)('0' + '0' * 256) << (36)) + (((u64)1 << (36 - 1)) - 7)),
 #else
     .c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
@@ -383,17 +404,21 @@ struct double_table_t {
         for (int e10 = e10_DN; e10 <= e10_UP + 1; e10++) {
             int tmp_data_ofs = e10 - e10_DN;
             u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
+            // For code audit.
+            if (first_sig_pos > 5)
+                throw "first_sig_pos is not larger than 5";
             u64 dot_pos = (0 <= e10 && e10 <= e10_UP) ? 1 + e10 : 1;
             u64 move_pos = dot_pos + (0 <= e10 || e10 < e10_DN);
             e10_variable_data[tmp_data_ofs][max_dec_sig_len + 0] = first_sig_pos;
             e10_variable_data[tmp_data_ofs][max_dec_sig_len + 1] = dot_pos;
             e10_variable_data[tmp_data_ofs][max_dec_sig_len + 2] = move_pos;
-            bool D17 = 0;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 3] =
-                15 + D17 + (move_pos > dot_pos && dot_pos <= 15 + D17);
-            D17 = 1;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 4] =
-                15 + D17 + (move_pos > dot_pos && dot_pos <= 15 + D17);
+            for (uint8_t D17 = 0; D17 <= 1; D17++) {
+                unsigned char one_offset = 15 + D17 + (move_pos > dot_pos && dot_pos <= 15 + D17);
+                e10_variable_data[tmp_data_ofs][max_dec_sig_len + 3 + D17] = one_offset;
+                // For code audit.
+                if (one_offset > 17)
+                    throw "one_offset is not larger than 17";
+            }
             for (int dec_sig_len = 1; dec_sig_len <= max_dec_sig_len; dec_sig_len++) {
                 u64 exp_pos = (e10_DN <= e10 && e10 <= -1)
                                   ? dec_sig_len
@@ -403,15 +428,16 @@ struct double_table_t {
             }
             if (XJB_NO_MEMMOVE) {
                 uint8_t v = 0xf;
-                for (uint64_t j = 0; j < 16; ++j)
-                    e10_variable_data[tmp_data_ofs][32 + 16 + j] = v--;
+                for (uint64_t j = 0; j < 0x10; ++j)
+                    e10_variable_data[tmp_data_ofs][0x20 + 0x10 + j] = v--;
                 if (move_pos > dot_pos) {
-                    for (uint64_t j = 15; j > dot_pos && j > 0; --j)
-                        e10_variable_data[tmp_data_ofs][j + 32 + 16] = e10_variable_data[tmp_data_ofs][j + 32 + 16 - 1];
+                    for (uint64_t j = 0xf; j > dot_pos && j > 0; --j)
+                        e10_variable_data[tmp_data_ofs][j + 0x20 + 0x10] =
+                            e10_variable_data[tmp_data_ofs][j + 0x20 + 0x10 - 1];
                 }
-                for (uint64_t j = 0; j < 16; ++j) {
-                    auto v = e10_variable_data[tmp_data_ofs][j + 32 + 16];
-                    e10_variable_data[tmp_data_ofs][j + 32] = v ? (v - 1) : 15;
+                for (uint64_t j = 0; j < 0x10; ++j) {
+                    auto v = e10_variable_data[tmp_data_ofs][j + 0x20 + 0x10];
+                    e10_variable_data[tmp_data_ofs][j + 0x20] = v ? (v - 1) : 0xf;
                 }
             }
         }
@@ -451,14 +477,17 @@ struct const_value_double {
     int16_t multipliers16[8] = {0xce0, -10 + 0x100, '0' + '0' * 256};                     // 16
 #endif
 #if XJB_USE_NEON
-    uint8_t shuffle_table_neon[32] = {7, 6, 5, 4, 3, 2, 1, 0,  15, 14, 13, 12, 11, 10, 9, 8,
-                                      6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9,  8, 7};
+    uint8_t shuffle_table_neon[32] = {
+        6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 7, 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8,
+    };
+    uint8_t shuffle_table_memmove[32] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0,
+                                         0, 1, 2, 3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 13, 14, 15};
 #endif
 #if XJB_USE_NEON && XJB_NO_MEMMOVE
     uint8_t reverse_shuffle_table[17] = {0, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
 #endif
 #if (XJB_NOT_REMOVE_FIRST_ZERO && XJB_USE_SSSE3) || XJB_USE_NEON
-    uint8_t shuffle_table[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0};
+    uint8_t shuffle_table[32] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0};
 #endif
 };
 
@@ -476,7 +505,7 @@ struct float_table_t {
     static_assert(16 >= max_dec_sig_len + 3, "");
 
     struct const_value_float constants_float = {
-#if defined(__aarch64__)
+#if XJB_IS_AARCH64
         .c1 = (((u64)('0' + '0' * 256) << (36)) + (((u64)1 << (36 - 1)) - 7)),
 #else
         .c1 = (((u64)('0' + '0' * 256) << (36 - 1)) + (((u64)1 << (36 - 2)) - 7)),
@@ -567,18 +596,27 @@ static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value, 
 }
 
 static inline uint64_t compute_double_dec_sig_len(uint64_t up_down, int tz, uint64_t D17) {
-    return cmov_branchless(up_down, (XJB_NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) - (tz), 15 + D17);
+    uint64_t ret = cmov_branchless(up_down, (XJB_NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) - (tz), 15 + D17);
+    xjb_assume(ret <= 16);
+    return ret;
 }
 
 static inline uint64_t compute_double_dec_sig_len_ssse3(uint64_t up_down, int tz, uint64_t D17) {
-    return cmov_branchless(up_down, (XJB_NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) - tz, 15 + D17);
+    uint64_t ret = cmov_branchless(up_down, (XJB_NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) - tz, 15 + D17);
+    xjb_assume(ret <= 16);
+    return ret;
 }
 
 static inline uint64_t compute_double_dec_sig_len_sse2(uint64_t up_down, int tz_add_48, uint64_t D17) {
-    return cmov_branchless(up_down, (0 ? 14 + D17 : 15) + 48 - tz_add_48, 15 + D17);
+    uint64_t ret = cmov_branchless(up_down, (0 ? 14 + D17 : 15) + 48 - tz_add_48, 15 + D17);
+    xjb_assume(ret <= 16);
+    return ret;
 }
+
 static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint64_t lz) {
-    return cmov_branchless(up_down, (7 - lz) - tz, 8 - lz);
+    uint64_t ret = cmov_branchless(up_down, (7 - lz) - tz, 8 - lz);
+    xjb_assume(ret <= 8);
+    return ret;
 }
 
 /*==============================================================================
@@ -636,7 +674,6 @@ static inline shortest_ascii16 to_ascii16_memmove_sse2(char* buf, uint64_t up_do
     __m128i little_endian_bcd = _mm_shuffle_epi32(bcd_swapped, _MM_SHUFFLE(0, 1, 2, 3));
 
 #    if XJB_NOT_REMOVE_FIRST_ZERO && XJB_USE_SSSE3
-    static_assert(!XJB_NO_MEMMOVE, "XJB_NO_MEMMOVE should not be defined");
     little_endian_bcd =
         _mm_shuffle_epi8(little_endian_bcd,
                          // D17?_mm_set_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
@@ -747,107 +784,62 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
     const uint64_t ZERO = 0x3030303030303030ull;
     uint32_t abcdefgh = umul128_hi64_xjb(m, cv->mul_const) >> (90 - 64);
     int64_t hundred_million = cv->hundred_million;
-#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
+#if XJB_IS_AARCH64 && (defined(__clang__) || defined(__GNUC__))
     asm("" : "+r"(hundred_million));
 #endif
     uint32_t ijklmnop = m + abcdefgh * hundred_million;
 
-#if XJB_USE_NEON && XJB_NO_MEMMOVE
-    //  src from :
+    //  src from:
     //  https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
-    //  bolg :
+    //  blog:
     //  https://dougallj.wordpress.com/2022/04/01/converting-integers-to-fixed-width-strings-faster-with-neon-simd-on-the-apple-m1/
     //  author : https://github.com/dougallj
+#if XJB_USE_NEON
+
+#    if XJB_NO_MEMMOVE
     uint64x1_t hundredmillions = {ijklmnop | ((uint64_t)abcdefgh << 32)};
+#    else
+    uint64x1_t hundredmillions = {abcdefgh | ((uint64_t)ijklmnop << 32)};
+#    endif
     int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
     int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
     int32x4_t extended = vshll_n_u16(tenthousands, 0);
-#    if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
+#    if XJB_IS_AARCH64 && (defined(__clang__) || defined(__GNUC__))
     asm("" : "+w"(extended));
 #    endif
     int32x4_t high_100 = vqdmulhq_s32(extended, vdupq_n_s32(cv->multipliers32[2]));
     int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(cv->multipliers32[3]));
     int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
     int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
-    // vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));
+#    if XJB_NO_MEMMOVE
+    // BCD_big_endian -> is_not_zero -> zeroes -> tz (rbit and lz)
     int8x16_t ascii16_swapped = vorrq_u8(BCD_big_endian, vdupq_n_s8('0'));
-    // int16x8_t BCD_little_endian = vqtbl1q_u8(BCD_big_endian,
-    //                                           vld1q_u8(&cv->reverse_shuffle_table[1]));
-    int8x16_t ascii16 = vqtbl1q_u8(ascii16_swapped, vld1q_u8(move_shuffler));
     uint16x8_t is_not_zero = vcgtzq_s8(BCD_big_endian);
+    int8x16_t ascii16 = vqtbl1q_u8(ascii16_swapped, vld1q_u8(move_shuffler));
     uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
-    // int tz = u64_lz_bits((__builtin_bitreverse64(zeroes) >> 4) | ( up_down -
-    // 1 )) >> 2; return {ascii16, 15 + D17 - tz, ascii16_swapped};
     int tz = u64_tz_bits(zeroes) >> 2;  // tz is slow on arm64 . tz = rbit and lz; two instruction.
-    return {ascii16, up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17,
-            vgetq_lane_s32(ascii16_swapped, 0)};
+    uint64_t dec_sig_len = up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17;
+    xjb_assume(dec_sig_len <= 16);
+    return {ascii16, dec_sig_len, vgetq_lane_s32(ascii16_swapped, 0)};
+#    else
 
     // int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     // int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    // ascii16 =
-    //     vqtbl1q_u8(vreinterpretq_u8_u16(ascii16),
-    //                vld1q_u8(&cv->shuffle_table[!D17]));  // remove left zero
-    // //vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));             // write 32byte
-    // '0'
-    // //vst1q_s8((int8_t*)(buf + 16), vdupq_n_s8('0'));
-    // uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
-    // uint64_t zeroes = vget_lane_u64(
-    //     vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
-    // // int tz = u64_lz_bits((zeroes >> 4) | ( up_down - 1 )) >> 2;
-    // // return {ascii16, 15 + D17 - tz};
-    // int tz = u64_lz_bits(zeroes) >> 2;
-    // return {
-    //     ascii16,
-    //     cmov_branchless(up_down,
-    //                     XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - (tz) : 15 -
-    //                     tz, 15 + D17)};
-// #endif  // endif XJB_USE_NEON
-#elif XJB_USE_NEON
-    //  src from :
-    //  https://gist.github.com/dougallj/b4f600ab30ef79bb6789bc3f86cd597a#file-convert-neon-cpp-L144-L169
-    //  bolg :
-    //  https://dougallj.wordpress.com/2022/04/01/converting-integers-to-fixed-width-strings-faster-with-neon-simd-on-the-apple-m1/
-    //  author : https://github.com/dougallj
-    uint64x1_t hundredmillions = {abcdefgh | ((uint64_t)ijklmnop << 32)};
-    int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
-    int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
-    int32x4_t extended = vshll_n_u16(tenthousands, 0);
-#    if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
-    asm("" : "+w"(extended));
-#    endif
-    int32x4_t high_100 = vqdmulhq_s32(extended, vdupq_n_s32(cv->multipliers32[2]));
-    int32x4_t hundreds = vmlaq_s32(extended, high_100, vdupq_n_s32(cv->multipliers32[3]));
-    int16x8_t high_10 = vqdmulhq_s16(hundreds, vdupq_n_s16(cv->multipliers16[0]));
-#    if 1
-    int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
-    int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
-    int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    ascii16 = vqtbl1q_u8(vreinterpretq_u8_u16(ascii16),
-                         vld1q_u8(&cv->shuffle_table[1 - D17]));  // remove left zero
-    vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));                      // write 32byte '0'
-    // vst1q_s8((int8_t*)(buf + 16), vdupq_n_s8('0'));
-    uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
-    uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
-    // int tz = u64_lz_bits((zeroes >> 4) | ( up_down - 1 )) >> 2;
-    // return {ascii16, 15 + D17 - tz};
-    u32 tz = u64_lz_bits(zeroes) >> 2;
-    return {ascii16, up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17};
-#    else
-    int16x8_t BCD_big_endian = vmlaq_s16(hundreds, high_10, vdupq_n_s16(cv->multipliers16[1]));
-    int8x16_t BCD_little_endian =
-        vqtbl1q_u8(vreinterpretq_u8_u16(BCD_big_endian), vld1q_u8(&cv->shuffle_table_neon[D17 ? 0 : 16]));
-    int16x8_t ascii16 = vorrq_u8(BCD_little_endian, vdupq_n_s8('0'));
-    vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));  // write 32byte '0'
-    // vst1q_s8((int8_t*)(buf + 16), vdupq_n_s8('0'));
-    uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
-    uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
-    // int tz = u64_lz_bits((zeroes >> 4) | ( up_down - 1 )) >> 2;
-    // return {ascii16, 15 + D17 - tz};
-    int tz = u64_lz_bits(zeroes) >> 2;
-    return {ascii16, up_down ? 15 - tz : 15 + D17};
-#    endif
+    // ascii16 = vqtbl1q_u8(vreinterpretq_u8_u16(ascii16),
+    //                      vld1q_u8(&cv->shuffle_table_memmove[(15 + D17) & 16]));  // remove left zero
 
-#endif  // endif XJB_USE_NEON
+    int8x16_t BCD_little_endian = vqtbl1q_u8(vreinterpretq_u8_u16(BCD_big_endian),
+                                             vld1q_u8(&cv->shuffle_table_neon[(15 + D17) & 16]));  // remove left zero
+    int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+    vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));  // write 32byte '0'
+    uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
+    uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
+    u32 tz = u64_lz_bits(zeroes) >> 2;
+    uint32_t dec_sig_len = up_down ? ((0) ? (14 + D17) - tz : 15 - tz) : 15 + D17;
+    xjb_assume(dec_sig_len <= 16);
+    return {ascii16, dec_sig_len};
+#    endif  // endif XJB_USE_NEON
+#endif
 
 #if XJB_USE_SSE2
     // method 1 : AVX512IFMA, AVX512VBMI
@@ -884,8 +876,6 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 #            if XJB_NOT_REMOVE_FIRST_ZERO && XJB_USE_SSSE3
     little_endian_bcd =
         _mm_shuffle_epi8(little_endian_bcd,
-                         // D17?_mm_set_epi8(15,14,13,12,11,10,9,8,7,6,5,4,3,2,1,0)
-                         //    :_mm_set_epi8(0,15,14,13,12,11,10,9,8,7,6,5,4,3,2,1));
                          _mm_loadu_si128((const __m128i*)(&(cv->shuffle_table[D17 ? 0 : 1]))));  // remove left zero
 #            endif
 
@@ -1087,7 +1077,7 @@ static inline char* write_1_to_16_digit(u64 x, char* buf, const struct const_val
         int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
         int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
         int32x4_t extended = vshll_n_u16(tenthousands, 0);
-#    if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))
+#    if XJB_IS_AARCH64 && (defined(__clang__) || defined(__GNUC__))
         // asm ("" : "+w"(extended));
 #    endif
         int32x4_t hundreds = vmlaq_s32(extended, vqdmulhq_s32(extended, vdupq_n_s32(cv->multipliers32[2])),
@@ -1244,7 +1234,7 @@ static inline char* process_small_int_double(const u64 c, const i64 q, const str
 }
 static inline i64 compute_k_double(i64 q) {
     // return floor(q*log10(2));
-#if defined(__SIZEOF_INT128__) && defined(__aarch64__)
+#if defined(__SIZEOF_INT128__) && XJB_IS_AARCH64
     // arm64 : smulh ; x64 : imul
     return ((i64)q * (u128)(78913ull << (64 - 18))) >> 64;
 #else
@@ -1261,9 +1251,9 @@ static inline char* xjb64(double v, char* buf) {
     // require buf size >= 33 byte
     const struct const_value_double* cv = &constants_double;
     const struct double_table_t* t = &double_table;
-#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))  // for arm64 processor , fewer instructions
-                                                                       // MSVC not support inline asm
-    asm("" : "+r"(cv));                                                // read constant values from memory to register
+#if XJB_IS_AARCH64 && (defined(__clang__) || defined(__GNUC__))  // for arm64 processor , fewer instructions
+                                                                 // MSVC not support inline asm
+    asm("" : "+r"(cv));                                          // read constant values from memory to register
 #endif
     u64 vi;
     memcpy(&vi, &v, sizeof(v));
@@ -1273,7 +1263,9 @@ static inline char* xjb64(double v, char* buf) {
     u64 exp = (vi << 1) >> 53;
     i64 q = (i64)exp - 1075;
     u64 c = ((1ULL << 52) | sig);
-    // if( ((exp + 1) & 2047) <= 1)[[unlikely]]
+#if XJB_IS_X64
+    if (((exp + 1) & 2047) <= 1) [[unlikely]]
+#endif
     {
         if (exp == 0) [[unlikely]] {
             if (sig <= 1) {
@@ -1301,8 +1293,8 @@ static inline char* xjb64(double v, char* buf) {
     bool up = half_ulp > ~0 - dot_one;
     bool down = half_ulp > dot_one;
     u64 m_up = (hi64 >> offset) + up;  // m + up
-    u64 up_down = up + down;
-    u32 one = (u128_madd_hi64(dot_one, 10, cv->c4));  // round to nearest
+    u32 up_down = up + down;
+    u32 one = (u128_madd_hi64(dot_one, 10, dot_one == (1ULL << 62) ? 0 : cv->c4));  // round to nearest,even
     if (irregular) [[unlikely]] {
         // irregular case : c is 2**52 , exp range is [1,2046];
         k = (i64)(q * 315653 - 131072) >> 20;
@@ -1318,18 +1310,20 @@ static inline char* xjb64(double v, char* buf) {
         one = ((dot_one >> (53 + h)) * 5 + (1 << (9 - h))) >> (10 - h);
         if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
             one = ((((dot_one >> 54) * 5) >> 9) + 1);
+        if (dot_one == (1ULL << 62))  // round to even
+            one = 2;
     }
-    if (dot_one == (1ULL << 62)) [[unlikely]]  // round to even
-        one = 2;                               // 0.25 * 10 = 2.5 -> 2
-    u64 D17 = m_up > (u64)cv->c3;              // (m_up >= (u64)1e15);
-    u64 mr = D17 ? m_up : m_up * 10;           // remove the first digit zero
+    // if (dot_one == (1ULL << 62)) [[unlikely]]  // round to even
+    //     one = 2;                               // 0.25 * 10 = 2.5 -> 2
+    u64 D17 = m_up > (u64)cv->c3;     // (m_up >= (u64)1e15);
+    u64 mr = D17 ? m_up : m_up * 10;  // remove the first digit zero
 
     i64 e10 = k + (15 + D17);
     const i64 e10_DN = t->e10_DN;
     const i64 e10_UP = t->e10_UP;
     const u64 interval = e10_UP - e10_DN + 1;
 
-#if defined(__aarch64__) || (defined(__x86_64__) && XJB_USE_AVX512IFMA_VBMI && XJB_NO_MEMMOVE)
+#if XJB_IS_AARCH64 || (XJB_IS_X64 && XJB_USE_AVX512IFMA_VBMI && XJB_NO_MEMMOVE)
     u32 e10_3 = (i32)e10 + (-e10_DN);
     u32 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
 #else
@@ -1338,12 +1332,15 @@ static inline char* xjb64(double v, char* buf) {
 #endif
 
 #if XJB_NO_MEMMOVE
+#    if XJB_USE_NEON
+    // In case the compiler fails to find the optimization chance
+    vst1_s8((int8_t*)buf, vdup_n_s8('0'));
+#    else
     memset(buf, '0', 8);
+#    endif
 #endif
-    shortest_ascii16 s = to_ascii16(buf, XJB_NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17,
-                                    cv
+    shortest_ascii16 s = to_ascii16(buf, XJB_NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv
 #if XJB_NO_MEMMOVE
-                                    //,cv->move_shuffle_table[(2 * e10_data_ofs) + D17]
                                     ,
                                     &(t->e10_variable_data[e10_data_ofs][32 + D17 * 16])
 #endif
@@ -1355,7 +1352,7 @@ static inline char* xjb64(double v, char* buf) {
     u64 one_offset = t->e10_variable_data[e10_data_ofs][17 + 3 + D17];
 #endif
     u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
-    char* buf_origin = buf;
+    char* const buf_origin = buf;
     buf += first_sig_pos;
 
 #if XJB_USE_NEON_OR_SSE2
@@ -1365,21 +1362,28 @@ static inline char* xjb64(double v, char* buf) {
     memcpy(buf + 8, &(s.lo), 8);
 #endif
 
-#if XJB_NO_MEMMOVE
-    one |= 0x30302e30;  // "0.00"
+#if XJB_NO_MEMMOVE && XJB_IS_AARCH64
+    // aarch64: 0x30302e30 is not a valid immediate
+    one |= 0x30303030;  // "0000"
+    // first_sig_pos max = 5, one_offset max = 17, requires at least 21 bytes
     memcpy(buf + 16, &s.trailing_byte, 4);
-    buf_origin[dot_pos] = '.';
     memcpy(buf + one_offset, &one, 4);
+    buf_origin[dot_pos] = '.';
+#elif XJB_NO_MEMMOVE
+    one |= 0x30302e30;  // "0.00"
+    // first_sig_pos max = 5, one_offset max = 17, requires at least 21 bytes
+    memcpy(buf + 16, &s.trailing_byte, 4);  // [16, 20)
+    buf_origin[dot_pos] = '.';
+    memcpy(buf + one_offset, &one, 4);  // [17, 21)
 #else
     one |= 0x30303030;                // "0000"
     memcpy(&buf[15 + D17], &one, 4);  // write one to buffer
-    memmove(&buf[move_pos], &buf[dot_pos],
-            16);  // dot_pos+first_sig_pos+sign max = 16+1 = 17; require
-                  // 17+16=33 byte buffer
+    memmove(&buf[move_pos], &buf[dot_pos], 16);
+    // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 bytes
     buf_origin[dot_pos] = '.';
 #endif
 
-#if defined(__aarch64__)
+#if XJB_IS_AARCH64
     if (exp == 0) [[unlikely]]
 #endif
     {
@@ -1402,13 +1406,14 @@ static inline char* xjb64(double v, char* buf) {
     u64 exp_len = exp_result >> 56;
     return buf + exp_len;
 }
+
 static inline char* xjb32(float v, char* buf) {
     // require buf size >= 17 byte
     const struct float_table_t* t = &float_table;
     const struct const_value_float* c = &t->constants_float;
-#if defined(__aarch64__) && (defined(__clang__) || defined(__GNUC__))  // for arm64 processor , fewer instructions ,
-                                                                       // MSVC not support inline asm
-    asm("" : "+r"(c));                                                 // read constant values from memory to register
+#if XJB_IS_AARCH64 && (defined(__clang__) || defined(__GNUC__))  // for arm64 processor , fewer instructions ,
+                                                                 // MSVC not support inline asm
+    asm("" : "+r"(c));                                           // read constant values from memory to register
 #endif
     u32 vi;
     memcpy(&vi, &v, 4);
@@ -1429,7 +1434,7 @@ static inline char* xjb32(float v, char* buf) {
     u32 h37_precalc = t->h37[exp];
     bool irregular = sig == 0;
     const int BIT = 36;
-#if defined(__SIZEOF_INT128__) && defined(__aarch64__)     // for arm64 processor , fewer instructions
+#if defined(__SIZEOF_INT128__) && XJB_IS_AARCH64           // for arm64 processor , fewer instructions
     i64 k = ((i64)exp_bin * (u128)(1233ull << 52)) >> 64;  // signed multiplication
 #else
     i64 k = (exp_bin * 1233) >> 12;
@@ -1446,7 +1451,7 @@ static inline char* xjb32(float v, char* buf) {
     u64 dot_one_36bit = hi64 & (((u64)1 << BIT) - 1);
     u32 m_up = (hi64 + half_ulp) >> BIT;
     u32 up_down = m_up > (u32)((hi64 - (half_ulp >> 0)) >> BIT);
-#if defined(__aarch64__)
+#if XJB_IS_AARCH64
     u32 one =
         (dot_one_36bit * 10 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT);  // for arm64 : madd instruction faster.
 #else
@@ -1476,7 +1481,7 @@ static inline char* xjb32(float v, char* buf) {
     memmove(&buf[move_pos], &buf[dot_pos],
             8);  // the index (first_sig_pos + dot_pos + sign) max = 7+1=8,
     buf_origin[dot_pos] = '.';
-#if defined(__aarch64__)  // for arm64 processor , fewer instructions
+#if XJB_IS_AARCH64  // for arm64 processor , fewer instructions
     if (exp == 0) [[unlikely]]
 #endif
         if (m_up < 100000) [[unlikely]] {

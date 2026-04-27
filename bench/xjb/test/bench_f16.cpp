@@ -1,13 +1,14 @@
-#include <string.h>
-
 #include <algorithm>
-#include <cassert>
+#include <chrono>
 #include <cstdint>
+#include <cstring>
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <random>
 #include <sstream>
 #include <string>
+
 // ==================== 128位分数类（同前） ====================
 struct Fraction {
     __int128 num, den;
@@ -82,10 +83,6 @@ struct FP16Components {
 FP16Components f16_to_components(uint16_t bits) {
     int exp = (bits >> 10) & 0x1F;
     int frac = bits & 0x3FF;
-    // if (exp == 0 && frac == 0)
-    //     throw std::invalid_argument("+0 excluded");
-    // if (exp == 31)
-    //     throw std::invalid_argument("inf/NaN excluded");
 
     FP16Components comp;
     comp.bits = bits;
@@ -158,116 +155,24 @@ std::pair<uint32_t, int> f16_to_decimal(uint16_t bits) {
     if (A > (Fraction(1) - n) || (A == (Fraction(1) - n) && c % 2 == 0))
         one = 10;
     __int128 d = ten + one;
-    return {d, k};
+    return {static_cast<uint32_t>(d), k};
 }
 
-// ==================== 字符串转换 ====================
-
-// 将 __int128 转换为十进制字符串
-// std::string int128_to_string(__int128 x) {
-//     if (x == 0) return "0";
-//     bool neg = (x < 0);
-//     if (neg) x = -x;
-//     std::string s;
-//     while (x > 0) {
-//         s.push_back('0' + (char)(x % 10));
-//         x /= 10;
-//     }
-//     if (neg) s.push_back('-');
-//     std::reverse(s.begin(), s.end());
-//     return s;
-// }
-
-// // 计算十进制位数
-// int len10(__int128 x) {
-//     if (x == 0) return 0;
-//     return int128_to_string(x).length();
-// }
-
-// 将 (d, k) 转换为最简字符串（固定点/科学记数法）
-// std::string decimal_to_string(uint32_t d, int k) {
-
-//     //len range = [1, 5];
-//     //d range = [6, 19990];
-//     uint32_t len = 1 + (d>=10) + (d>=100) + (d>=1000) + (d>=10000);
-//     uint32_t sig_len = 5;
-
-//     // 去掉尾随零，同时调整指数
-//     // __int128 sig = d;
-//     // int tz = 0;
-//     // while (sig > 0 && sig % 10 == 0) {
-//     //     sig /= 10;
-//     //     ++tz;
-//     // }
-//     // int e10 = k + tz;                     // 实际指数
-//     // std::string sig_str = int128_to_string(sig);
-//     // int len = (int)sig_str.length();
-
-//     // // 固定点范围（可调整，这里采用类似于 float 的 -3 ~ 5）
-//     // const int FIXED_MIN = -3;
-//     // const int FIXED_MAX = 5;
-
-//     // if (e10 >= FIXED_MIN && e10 <= FIXED_MAX) {
-//     //     // 固定点表示
-//     //     if (e10 >= 0) {
-//     //         // 整数部分：sig 后加 e10 个零
-//     //         std::string result = sig_str;
-//     //         result.append(e10, '0');
-//     //         return result;
-//     //     } else {
-//     //         // 小数：需要在前面补零或插入小数点
-//     //         int abs_e10 = -e10;
-//     //         if (abs_e10 >= len) {
-//     //             // 0.000...xxx
-//     //             std::string result = "0.";
-//     //             result.append(abs_e10 - len, '0');
-//     //             result += sig_str;
-//     //             return result;
-//     //         } else {
-//     //             // 在 len + e10 位置插入小数点 (e10 < 0)
-//     //             int dot_pos = len + e10;
-//     //             std::string result = sig_str.substr(0, dot_pos);
-//     //             result += ".";
-//     //             result += sig_str.substr(dot_pos);
-//     //             return result;
-//     //         }
-//     //     }
-//     // } else {
-//     //     // 科学记数法：d.ddd...e±EE
-//     //     // 将有效数字调整为 [1, 10) 范围
-//     //     int new_exp = e10 + (len - 1);   // 对应 sig / 10^{len-1} * 10^{new_exp}
-//     //     std::string result;
-//     //     result += sig_str[0];            // 整数部分
-//     //     if (len > 1) {
-//     //         result += ".";
-//     //         result += sig_str.substr(1); // 小数部分
-//     //     }
-//     //     result += "e";
-//     //     if (new_exp >= 0) result += "+";
-//     //     result += std::to_string(new_exp);
-//     //     return result;
-//     // }
-// }
-
-// 完整的 FP16 -> 字符串接口
-// std::string fp16_to_string(uint16_t bits) {
-//     auto [d, k] = f16_to_decimal(bits);
-//     return decimal_to_string(d, k);
-// }
-
+// ==================== BCD 辅助 ====================
 static inline uint32_t to_bcd4(uint32_t d) {
     // convert binary to little_endian bcd;
     // require d range [0,9999];
     uint64_t abcd = d;
     uint64_t ab_cd = (abcd << 16) + (1 - (100 << 16)) * (((abcd * 0x147b) >> 19));
     uint64_t a_b_c_d = (ab_cd << 8) + (1 - (10 << 8)) * (((ab_cd * 0x67) >> 10) & 0x000f000f);
-    return a_b_c_d;
+    return static_cast<uint32_t>(a_b_c_d);
 }
 
+// ==================== xjb16 核心转换函数 ====================
 char* xjb16(uint16_t bits, char* buf) {
     // same result as str(numpy.float16(v)) in python.
     // v has 16bits binary representation = bits
-    
+
     // 16 = 1 + 5 + 10; sign + exp + sig
     *buf = '-';
     buf += bits >> (10 + 5);
@@ -347,45 +252,50 @@ char* xjb16(uint16_t bits, char* buf) {
     return buf + exp_len;
 }
 
-// ==================== 主程序 ====================
+// ==================== 性能测试主程序 ====================
 int main() {
-    std::ofstream out("f16_string_results.txt");
-    if (!out) {
-        std::cerr << "Cannot open output file." << std::endl;
-        return 1;
-    }
+    // 生成 N = 2^20 个随机 FP16 值，排除 inf 和 nan
+    constexpr size_t N = 1 << 20;
+    std::vector<uint16_t> values;
+    values.reserve(N);
 
-    uint16_t bits = 2048;
-    auto [d, k] = f16_to_decimal(bits);
-    std::cout << "d: " << d << ", k: " << k << std::endl;
-    bits = 5120;
-    auto [d2, k2] = f16_to_decimal(bits);
-    std::cout << "d: " << d2 << ", k: " << k2 << std::endl;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<uint16_t> dist(0, 65535);
 
-    static char buf[16];
-    // 输出格式：16进制位 -> 字符串
-    for (uint32_t bits = 0x0000; bits <= (0x7FFF); ++bits) {
-        try {
-            // auto [d, k] = f16_to_decimal(bits);
-
-            memset(buf, 0, 16);
-            char* buf_end = xjb16(bits, buf);
-            std::string str = std::string(buf, buf_end);
-            // out << bits << " : 0x" << std::hex << std::uppercase << bits << std::dec << " " << d << " " << k << " "
-            //     << str << "\n";
-            out << bits << " " << str << "\n";
-            // std::string str = fp16_to_string(static_cast<uint16_t>(bits));
-            // out << "0x" << std::hex << std::uppercase << bits << std::dec
-            //     << " -> " << str << "\n";
-        } catch (const std::invalid_argument&) {
-            continue;  // 跳过 +0, inf, NaN
-        } catch (const std::exception& e) {
-            std::cerr << "Error processing 0x" << std::hex << bits << ": " << e.what() << std::endl;
-            return 1;
+    while (values.size() < N) {
+        uint16_t bits = dist(gen);
+        uint16_t exp = (bits >> 10) & 0x1F;
+        if (exp != 31) {          // 排除 exp == 31 (inf/nan)
+            values.push_back(bits);
         }
     }
 
-    out.close();
-    std::cout << "Results written to f16_string_results.txt" << std::endl;
+    // 缓冲区复用，避免多次分配栈内存影响测量（测量的是转换逻辑本身）
+    char buffer[32];   // 足够大，xjb16 最多写十几个字符
+
+    // 预热：调用一次确保缓存和分支预测稳定
+    (void)xjb16(values[0], buffer);
+
+    // 开始计时
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // 执行 N 次转换，并将结果通过 volatile 防止优化
+    volatile char sink = 0;
+    for (uint16_t bits : values) {
+        char* end = xjb16(bits, buffer);
+        // 强制编译器认为结果被使用（防止循环被完全优化掉）
+        sink += buffer[0] + (end - buffer);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration_us = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    double avg_ns = (duration_us * 1000.0) / N;
+
+    // 输出结果
+    std::cout << "Total operations: " << N << "\n";
+    std::cout << "Total time: " << duration_us << " us\n";
+    std::cout << "Average time per call: " << avg_ns << " ns\n";
+
     return 0;
 }
