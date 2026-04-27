@@ -324,7 +324,7 @@ typedef struct {
     uint64_t hi;
     uint64_t lo;
 #endif
-    uint64_t dec_sig_len;  // range : [1,17] - 1 = [0,16]
+    uint64_t dec_sig_len_sub1;  // range : [1,17] - 1 = [0,16]
 #if XJB_NO_MEMMOVE
     int32_t trailing_byte;
 #endif
@@ -332,7 +332,7 @@ typedef struct {
 
 typedef struct {
     uint64_t ascii;
-    uint64_t dec_sig_len;  // range : [1,9] - 1 = [0,8]
+    uint64_t dec_sig_len_sub1;  // range : [1,9] - 1 = [0,8]
 } shortest_ascii8;
 
 struct const_value_float {
@@ -368,8 +368,12 @@ struct double_table_t {
     static constexpr int e10_UP = 15;
     static constexpr int max_dec_sig_len = 17;
     static constexpr int num_pow10 = 323 - (-293) + 1;
-    uint64_t pow10_double[(323 - (-293) + 1) * 2] = {};  // 1234 * 8 = 9872 bytes
-    uint64_t exp_result_double[324 + 308 + 1] = {};      // 633 * 8 = 5064 bytes
+    static constexpr int max_first_sig_pos = 5;
+    static constexpr int max_one_offset = 17;
+    static constexpr int max_buffer_requirement = XJB_NO_MEMMOVE ? 32 : 33;
+    static constexpr int max_valid_output_len = 24;
+    uint64_t pow10_double[num_pow10 * 2] = {};       // 1234 * 8 = 9872 bytes
+    uint64_t exp_result_double[324 + 308 + 1] = {};  // 633 * 8 = 5064 bytes
     alignas(64) unsigned char e10_variable_data[e10_UP - e10_DN + 1 + 1][XJB_NO_MEMMOVE ? 64 : 32] = {};
     unsigned char h7[2048] = {};
 
@@ -412,41 +416,44 @@ struct double_table_t {
         }
         for (int e10 = e10_DN; e10 <= e10_UP + 1; e10++) {
             int tmp_data_ofs = e10 - e10_DN;
+            auto& current_line = e10_variable_data[tmp_data_ofs];
             u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
             // For code audit.
-            if (first_sig_pos > 5)
-                throw "first_sig_pos is not larger than 5";
+            if (first_sig_pos > max_first_sig_pos)
+                throw "first_sig_pos is not larger than max_first_sig_pos";
             u64 dot_pos = (0 <= e10 && e10 <= e10_UP) ? 1 + e10 : 1;
             u64 move_pos = dot_pos + (0 <= e10 || e10 < e10_DN);
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 0] = first_sig_pos;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 1] = dot_pos;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 2] = move_pos;
+            current_line[max_dec_sig_len + 0] = first_sig_pos;
+            current_line[max_dec_sig_len + 1] = dot_pos;
+            current_line[max_dec_sig_len + 2] = move_pos;
             for (uint8_t D17 = 0; D17 <= 1; D17++) {
                 unsigned char one_offset = 15 + D17 + (move_pos > dot_pos && dot_pos <= 15 + D17);
-                e10_variable_data[tmp_data_ofs][max_dec_sig_len + 3 + D17] = one_offset;
+                current_line[max_dec_sig_len + 3 + D17] = one_offset;
                 // For code audit.
-                if (one_offset > 17)
-                    throw "one_offset is not larger than 17";
+                if (one_offset > max_one_offset)
+                    throw "one_offset is not larger than max_one_offset";
             }
             for (int dec_sig_len = 1; dec_sig_len <= max_dec_sig_len; dec_sig_len++) {
                 u64 exp_pos = (e10_DN <= e10 && e10 <= -1)
                                   ? dec_sig_len
                                   : (0 <= e10 && e10 <= e10_UP ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
                                                                : (dec_sig_len + 1 - (dec_sig_len == 1)));
-                e10_variable_data[tmp_data_ofs][dec_sig_len - 1] = exp_pos;
+                current_line[dec_sig_len - 1] = exp_pos;
+                if (first_sig_pos + exp_pos + 8 > max_buffer_requirement) {
+                    throw "first_sig_pos + exp_pos + 8 is not larger than max_buffer_requirement";
+                }
             }
             if (XJB_NO_MEMMOVE) {
                 uint8_t v = 0xf;
                 for (uint64_t j = 0; j < 0x10; ++j)
-                    e10_variable_data[tmp_data_ofs][0x20 + 0x10 + j] = v--;
+                    current_line[0x20 + 0x10 + j] = v--;
                 if (move_pos > dot_pos) {
                     for (uint64_t j = 0xf; j > dot_pos && j > 0; --j)
-                        e10_variable_data[tmp_data_ofs][j + 0x20 + 0x10] =
-                            e10_variable_data[tmp_data_ofs][j + 0x20 + 0x10 - 1];
+                        current_line[j + 0x20 + 0x10] = current_line[j + 0x20 + 0x10 - 1];
                 }
                 for (uint64_t j = 0; j < 0x10; ++j) {
-                    auto v = e10_variable_data[tmp_data_ofs][j + 0x20 + 0x10];
-                    e10_variable_data[tmp_data_ofs][j + 0x20] = v ? (v - 1) : 0xf;
+                    auto v = current_line[j + 0x20 + 0x10];
+                    current_line[j + 0x20] = v ? (v - 1) : 0xf;
                 }
             }
         }
@@ -554,15 +561,16 @@ struct float_table_t {
             u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
             u64 dot_pos = (0 <= e10 && e10 <= e10_UP) ? 1 + e10 : 1;
             u64 move_pos = dot_pos + ((0 <= e10 || e10 < e10_DN));
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 0] = first_sig_pos;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 1] = dot_pos;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 2] = move_pos;
+            auto& current_line = e10_variable_data[tmp_data_ofs];
+            current_line[max_dec_sig_len + 0] = first_sig_pos;
+            current_line[max_dec_sig_len + 1] = dot_pos;
+            current_line[max_dec_sig_len + 2] = move_pos;
             for (int dec_sig_len = 1; dec_sig_len <= max_dec_sig_len; dec_sig_len++) {
                 u64 exp_pos = (e10_DN <= e10 && e10 <= -1)
                                   ? dec_sig_len
                                   : (0 <= e10 && e10 <= e10_UP ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
                                                                : (dec_sig_len + 1 - (dec_sig_len == 1)));
-                e10_variable_data[tmp_data_ofs][dec_sig_len - 1] = exp_pos;
+                current_line[dec_sig_len - 1] = exp_pos;
             }
         }
         for (int exp = 0; exp < 256; exp++) {
@@ -808,9 +816,9 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
     int8x16_t ascii16 = vqtbl1q_u8(ascii16_swapped, vld1q_u8(move_shuffler));
     uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
     int tz = u64_tz_bits(zeroes) >> 2;  // tz is slow on arm64 . tz = rbit and lz; two instruction.
-    uint64_t dec_sig_len = up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17;
-    assume(dec_sig_len <= 16);
-    return {ascii16, dec_sig_len, vgetq_lane_s32(ascii16_swapped, 0)};
+    uint64_t dec_sig_len_sub1 = up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17;
+    assume(dec_sig_len_sub1 <= 16);
+    return {ascii16, dec_sig_len_sub1, vgetq_lane_s32(ascii16_swapped, 0)};
 #    else
     int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
@@ -820,9 +828,9 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
     uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
     uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
     u32 tz = u64_lz_bits(zeroes) >> 2;
-    uint64_t dec_sig_len = up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17;
-    assume(dec_sig_len <= 16);
-    return {ascii16, dec_sig_len};
+    uint64_t dec_sig_len_sub1 = up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17;
+    assume(dec_sig_len_sub1 <= 16);
+    return {ascii16, dec_sig_len_sub1};
 #    endif  // endif XJB_USE_NEON
 
 #elif XJB_USE_AVX512IFMA_VBMI
@@ -1229,6 +1237,10 @@ static inline char* xjb64(double v, char* buf) {
                                                                  // MSVC not support inline asm
     asm("" : "+r"(cv));                                          // read constant values from memory to register
 #endif
+#ifndef NDEBUG
+    char* const real_origin_buf = buf;
+#endif
+
     u64 vi;
     memcpy(&vi, &v, sizeof(v));
     *buf = '-';
@@ -1317,8 +1329,8 @@ static inline char* xjb64(double v, char* buf) {
 #if XJB_NO_MEMMOVE
     u64 one_offset = t->e10_variable_data[e10_data_ofs][17 + 3 + D17];
 #endif
-    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
-    char* buf_origin = buf;
+    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len_sub1];
+    char* const buf_origin = buf;
     buf += first_sig_pos;
 
 #if XJB_USE_NEON_OR_SSE2
@@ -1351,7 +1363,9 @@ static inline char* xjb64(double v, char* buf) {
 #endif
 
 #if XJB_IS_AARCH64
-    if (exp == 0) [[unlikely]]
+    if (exp == 0 && m_up < (u64)1e14) [[unlikely]]
+#else
+    if (m_up < (u64)1e14) [[unlikely]]
 #endif
     {
         // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
@@ -1363,6 +1377,7 @@ static inline char* xjb64(double v, char* buf) {
             lz += 2;
             e10 -= lz - 1;
             buf[0] = buf[lz];
+            assert((buf - real_origin_buf) + (lz + 1) + 16 <= double_table_t::max_buffer_requirement);
             memmove(&buf[2], &buf[lz + 1], 16);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
@@ -1371,6 +1386,7 @@ static inline char* xjb64(double v, char* buf) {
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
+    assert((buf + exp_len) - real_origin_buf <= double_table_t::max_valid_output_len);
     return buf + exp_len;
 }
 
@@ -1440,7 +1456,7 @@ static inline char* xjb32(float v, char* buf) {
     u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
     u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
     u64 move_pos = t->e10_variable_data[e10_data_ofs][9 + 2];
-    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
+    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len_sub1];
     char* buf_origin = (char*)buf;
     buf += first_sig_pos;
     memcpy(buf, &(s.ascii), 8);
