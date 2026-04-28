@@ -19,13 +19,13 @@
 // ---------------------------------------------------------------------------
 
 static std::string dtoa(double value) {
-  char buffer[64] = {};
+  char buffer[33] = {};
   char* end = xjb::xjb64(value, buffer);
   return {buffer, static_cast<size_t>(end - buffer)};
 }
 
 static std::string ftoa(float value) {
-  char buffer[64] = {};
+  char buffer[17] = {};
   char* end = xjb::xjb32(value, buffer);
   return {buffer, static_cast<size_t>(end - buffer)};
 }
@@ -204,6 +204,11 @@ TEST(dtoa_test, single_candidate) {
 TEST(dtoa_test, no_underrun) {
   // Regression: must not write before the buffer start.
   dtoa(9.061488e+15);
+}
+
+TEST(dtoa_test, no_overrun) {
+  EXPECT_EQ(dtoa(-1.2345678901234567e+123), "-1.2345678901234567e+123");
+  EXPECT_EQ(dtoa(-1.3588129002659584e-245), "-1.3588129002659584e-245");
 }
 
 // ===================================================================
