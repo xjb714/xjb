@@ -45,9 +45,9 @@ cp:
 	sudo perf stat -d ./main_c
 # /////////////////////////////
 
-
-
-
+mca: # machine code analysis
+	clang++ -O3 -std=c++20 ../float_to_string/ftoa.cpp -S -o ftoa.s -march=native
+	llvm-mca -march=aarch64 --all-stats ./ftoa.s > mca.txt --iterations=1000 --timeline --bottleneck-analysis
 
 # generate assembly code
 # /////////////////////////////

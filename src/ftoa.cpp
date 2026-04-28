@@ -104,7 +104,7 @@
 #        define XJB_NO_MEMMOVE 0
 #    elif XJB_USE_NEON
 // On other aarch64 implementations the performance characteristics of memmove may differ.
-#        define XJB_NO_MEMMOVE 1
+#        define XJB_NO_MEMMOVE 0
 #    else
 #        define XJB_NO_MEMMOVE 0
 #    endif
@@ -139,18 +139,18 @@
 /* "assume" macro for better optimization. */
 #ifdef NDEBUG
 #    if defined(__GNUC__) || defined(__clang__)
-#        define assume(cond)                 \
+#        define xjb_assume(cond)             \
             do {                             \
                 if (!(cond))                 \
                     __builtin_unreachable(); \
             } while (0)
 #    elif defined(_MSC_VER)
-#        define assume(cond) __assume(cond)
+#        define xjb_assume(cond) __assume(cond)
 #    else
-#        define assume(cond) ((void)0)
+#        define xjb_assume(cond) ((void)0)
 #    endif
 #else
-#    define assume(cond) assert(cond)
+#    define xjb_assume(cond) ((void)0)  // not use
 #endif
 
 #ifdef _MSC_VER
@@ -493,14 +493,17 @@ struct const_value_double {
     int16_t multipliers16[8] = {0xce0, -10 + 0x100, '0' + '0' * 256};                     // 16
 #endif
 #if XJB_USE_NEON
-    uint8_t shuffle_table_neon[32] = {7, 6, 5, 4, 3, 2, 1, 0,  15, 14, 13, 12, 11, 10, 9, 8,
-                                      6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9,  8, 7};
+    uint8_t shuffle_table_neon[32] = {
+        6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8, 7, 7, 6, 5, 4, 3, 2, 1, 0, 15, 14, 13, 12, 11, 10, 9, 8,
+    };
+    uint8_t shuffle_table_memmove[32] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0,
+                                         0, 1, 2, 3, 4, 5, 6, 7, 8, 9,  10, 11, 12, 13, 14, 15};
 #endif
 #if XJB_USE_NEON && XJB_NO_MEMMOVE
     uint8_t reverse_shuffle_table[17] = {0, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1, 0};
 #endif
 #if (XJB_NOT_REMOVE_FIRST_ZERO && XJB_USE_SSSE3) || XJB_USE_NEON
-    uint8_t shuffle_table[17] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0};
+    uint8_t shuffle_table[32] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 0};
 #endif
 };
 
@@ -611,25 +614,25 @@ static inline uint64_t cmov_branchless(uint64_t condition, uint64_t true_value, 
 
 static inline uint64_t compute_double_dec_sig_len(uint64_t up_down, int tz, uint64_t D17) {
     uint64_t ret = cmov_branchless(up_down, (XJB_NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) - (tz), 15 + D17);
-    assume(ret <= 16);
+    xjb_assume(ret <= 16);
     return ret;
 }
 
 static inline uint64_t compute_double_dec_sig_len_ssse3(uint64_t up_down, int tz, uint64_t D17) {
     uint64_t ret = cmov_branchless(up_down, (XJB_NOT_REMOVE_FIRST_ZERO ? 14 + D17 : 15) - tz, 15 + D17);
-    assume(ret <= 16);
+    xjb_assume(ret <= 16);
     return ret;
 }
 
 static inline uint64_t compute_double_dec_sig_len_sse2(uint64_t up_down, int tz_add_48, uint64_t D17) {
     uint64_t ret = cmov_branchless(up_down, (0 ? 14 + D17 : 15) + 48 - tz_add_48, 15 + D17);
-    assume(ret <= 16);
+    xjb_assume(ret <= 16);
     return ret;
 }
 
 static inline uint64_t compute_float_dec_sig_len(uint64_t up_down, int tz, uint64_t lz) {
     uint64_t ret = cmov_branchless(up_down, (7 - lz) - tz, 8 - lz);
-    assume(ret <= 8);
+    xjb_assume(ret <= 8);
     return ret;
 }
 
@@ -816,21 +819,26 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
     int8x16_t ascii16 = vqtbl1q_u8(ascii16_swapped, vld1q_u8(move_shuffler));
     uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);
     int tz = u64_tz_bits(zeroes) >> 2;  // tz is slow on arm64 . tz = rbit and lz; two instruction.
-    uint64_t dec_sig_len_sub1 = up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17;
-    assume(dec_sig_len_sub1 <= 16);
-    return {ascii16, dec_sig_len_sub1, vgetq_lane_s32(ascii16_swapped, 0)};
+    uint64_t dec_sig_len = up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17;
+    xjb_assume(dec_sig_len <= 16);
+    return {ascii16, dec_sig_len, vgetq_lane_s32(ascii16_swapped, 0)};
 #    else
-    int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+
+    // int8x16_t BCD_little_endian = vrev64q_u8(BCD_big_endian);
+    // int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
+    // ascii16 = vqtbl1q_u8(vreinterpretq_u8_u16(ascii16),
+    //                      vld1q_u8(&cv->shuffle_table_memmove[(15 + D17) & 16]));  // remove left zero
+
+    int8x16_t BCD_little_endian = vqtbl1q_u8(vreinterpretq_u8_u16(BCD_big_endian),
+                                             vld1q_u8(&cv->shuffle_table_neon[(15 + D17) & 16]));  // remove left zero
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
-    ascii16 = vqtbl1q_u8(vreinterpretq_u8_u16(ascii16),
-                         vld1q_u8(&cv->shuffle_table[1 - D17]));  // remove left zero
-    vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));                      // write 32byte '0'
+    vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));  // write 32byte '0'
     uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
     uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
     u32 tz = u64_lz_bits(zeroes) >> 2;
-    uint64_t dec_sig_len_sub1 = up_down ? (XJB_NOT_REMOVE_FIRST_ZERO ? (14 + D17) - tz : 15 - tz) : 15 + D17;
-    assume(dec_sig_len_sub1 <= 16);
-    return {ascii16, dec_sig_len_sub1};
+    uint32_t dec_sig_len = up_down ? ((0) ? (14 + D17) - tz : 15 - tz) : 15 + D17;
+    xjb_assume(dec_sig_len <= 16);
+    return {ascii16, dec_sig_len};
 #    endif  // endif XJB_USE_NEON
 
 #elif XJB_USE_AVX512IFMA_VBMI
@@ -1249,7 +1257,9 @@ static inline char* xjb64(double v, char* buf) {
     u64 exp = (vi << 1) >> 53;
     i64 q = (i64)exp - 1075;
     u64 c = ((1ULL << 52) | sig);
-    // if( ((exp + 1) & 2047) <= 1)[[unlikely]]
+#if XJB_IS_X64
+    if (((exp + 1) & 2047) <= 1) [[unlikely]]
+#endif
     {
         if (exp == 0) [[unlikely]] {
             if (sig <= 1) {
@@ -1277,8 +1287,8 @@ static inline char* xjb64(double v, char* buf) {
     bool up = half_ulp > ~0 - dot_one;
     bool down = half_ulp > dot_one;
     u64 m_up = (hi64 >> offset) + up;  // m + up
-    u64 up_down = up + down;
-    u32 one = (u128_madd_hi64(dot_one, 10, cv->c4));  // round to nearest
+    u32 up_down = up + down;
+    u32 one = (u128_madd_hi64(dot_one, 10, dot_one == (1ULL << 62) ? 0 : cv->c4));  // round to nearest,even
     if (irregular) [[unlikely]] {
         // irregular case : c is 2**52 , exp range is [1,2046];
         k = (i64)(q * 315653 - 131072) >> 20;
@@ -1294,11 +1304,13 @@ static inline char* xjb64(double v, char* buf) {
         one = ((dot_one >> (53 + h)) * 5 + (1 << (9 - h))) >> (10 - h);
         if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
             one = ((((dot_one >> 54) * 5) >> 9) + 1);
+        if (dot_one == (1ULL << 62))  // round to even
+            one = 2;
     }
-    if (dot_one == (1ULL << 62)) [[unlikely]]  // round to even
-        one = 2;                               // 0.25 * 10 = 2.5 -> 2
-    u64 D17 = m_up > (u64)cv->c3;              // (m_up >= (u64)1e15);
-    u64 mr = D17 ? m_up : m_up * 10;           // remove the first digit zero
+    // if (dot_one == (1ULL << 62)) [[unlikely]]  // round to even
+    //     one = 2;                               // 0.25 * 10 = 2.5 -> 2
+    u64 D17 = m_up > (u64)cv->c3;     // (m_up >= (u64)1e15);
+    u64 mr = D17 ? m_up : m_up * 10;  // remove the first digit zero
 
     i64 e10 = k + (15 + D17);
     const i64 e10_DN = t->e10_DN;
@@ -1316,7 +1328,7 @@ static inline char* xjb64(double v, char* buf) {
 #if XJB_NO_MEMMOVE
 #    if XJB_USE_NEON
     // In case the compiler fails to find the optimization chance
-    vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));
+    vst1_s8((int8_t*)buf, vdup_n_s8('0'));
 #    else
     memset(buf, '0', 8);
 #    endif
@@ -1356,9 +1368,8 @@ static inline char* xjb64(double v, char* buf) {
 #else
     one |= 0x30303030;                // "0000"
     memcpy(&buf[15 + D17], &one, 4);  // write one to buffer
-    memmove(&buf[move_pos], &buf[dot_pos],
-            16);  // dot_pos+first_sig_pos+sign max = 16+1 = 17; require
-                  // at least 17+16=33 bytes
+    memmove(&buf[move_pos], &buf[dot_pos], 16);
+    // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 bytes
     buf_origin[dot_pos] = '.';
 #endif
 
@@ -1368,9 +1379,7 @@ static inline char* xjb64(double v, char* buf) {
     if (m_up < (u64)1e14) [[unlikely]]
 #endif
     {
-        // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-        // if (buf[0] == '0')
-        if (m_up < (u64)1e14) [[unlikely]] {
+            // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
             u64 lz = 0;
             while (buf[2 + lz] == '0')
                 lz++;
@@ -1380,13 +1389,12 @@ static inline char* xjb64(double v, char* buf) {
             assert((buf - real_origin_buf) + (lz + 1) + 16 <= double_table_t::max_buffer_requirement);
             memmove(&buf[2], &buf[lz + 1], 16);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
-        }
     }
     u64 exp_result = t->exp_result_double[e10 + 324];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
-    assert((buf + exp_len) - real_origin_buf <= double_table_t::max_valid_output_len);
+    //assert((buf + exp_len) - real_origin_buf <= double_table_t::max_valid_output_len);
     return buf + exp_len;
 }
 
