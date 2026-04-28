@@ -1275,7 +1275,7 @@ static inline char* xjb64(double v, char* buf) {
     // process_small_int_double(c, q, cv, is_exit_small_int, buf);
     unsigned char h7_precalc = t->h7[exp];
     const int offset = 9;  //  offset in range [3,10] has same result.
-    u32 irregular = sig == 0;
+    bool irregular = sig == 0;
     i64 k = compute_k_double((i64)exp - 1075);
     u64* p10 = get_pow10_ptr(t, k);
     u64 cb = c << h7_precalc;
@@ -1374,11 +1374,9 @@ static inline char* xjb64(double v, char* buf) {
 #endif
 
 #if XJB_IS_AARCH64
-    if (exp == 0 && m_up < (u64)1e14) [[unlikely]]
-#else
-    if (m_up < (u64)1e14) [[unlikely]]
+    if (exp == 0) [[unlikely]]  // fewer instructions
 #endif
-    {
+        if (m_up < (u64)1e14) [[unlikely]] {
             // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
             u64 lz = 0;
             while (buf[2 + lz] == '0')
@@ -1386,15 +1384,15 @@ static inline char* xjb64(double v, char* buf) {
             lz += 2;
             e10 -= lz - 1;
             buf[0] = buf[lz];
-            assert((buf - real_origin_buf) + (lz + 1) + 16 <= double_table_t::max_buffer_requirement);
+            // assert((buf - real_origin_buf) + (lz + 1) + 16 <= double_table_t::max_buffer_requirement);
             memmove(&buf[2], &buf[lz + 1], 16);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
-    }
+        }
     u64 exp_result = t->exp_result_double[e10 + 324];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
-    //assert((buf + exp_len) - real_origin_buf <= double_table_t::max_valid_output_len);
+    // assert((buf + exp_len) - real_origin_buf <= double_table_t::max_valid_output_len);
     return buf + exp_len;
 }
 

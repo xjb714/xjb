@@ -22,7 +22,7 @@
  * Macros
  *============================================================================*/
 
-// Auto inducted: platform detect
+// Auto inferred: platform detect
 #if defined(__aarch64__) || defined(_M_ARM64)
 #    define XJB_IS_AARCH64 1
 #    define XJB_IS_X64 0
@@ -59,7 +59,7 @@
 #    endif
 #endif
 
-// Auto inducted: XJB_USE_NEON_OR_SSE2
+// Auto inferred: XJB_USE_NEON_OR_SSE2
 #if XJB_USE_SSE2 || XJB_USE_NEON
 #    define XJB_USE_NEON_OR_SSE2 1
 #else
@@ -110,7 +110,16 @@
 #    endif
 #endif
 
-// Auto inducted: XJB_NOT_REMOVE_FIRST_ZERO.
+// Auto inferred: XJB_NO_MEMMOVE related macros
+#if XJB_NO_MEMMOVE
+#    define XJB_SHUFFLER_PARAM , move_shuffler
+#    define XJB_SHUFFLER_DECL , const u8* move_shuffler
+#else
+#    define XJB_SHUFFLER_PARAM
+#    define XJB_SHUFFLER_DECL
+#endif
+
+// Auto inferred: XJB_NOT_REMOVE_FIRST_ZERO.
 #if XJB_NO_MEMMOVE || XJB_USE_NEON || XJB_USE_SSSE3
 #    define XJB_NOT_REMOVE_FIRST_ZERO 1
 #else
@@ -315,7 +324,7 @@ typedef struct {
     uint64_t hi;
     uint64_t lo;
 #endif
-    uint64_t dec_sig_len;  // range : [1,17] - 1 = [0,16]
+    uint64_t dec_sig_len_sub1;  // range : [1,17] - 1 = [0,16]
 #if XJB_NO_MEMMOVE
     int32_t trailing_byte;
 #endif
@@ -323,7 +332,7 @@ typedef struct {
 
 typedef struct {
     uint64_t ascii;
-    uint64_t dec_sig_len;  // range : [1,9] - 1 = [0,8]
+    uint64_t dec_sig_len_sub1;  // range : [1,9] - 1 = [0,8]
 } shortest_ascii8;
 
 struct const_value_float {
@@ -359,8 +368,12 @@ struct double_table_t {
     static constexpr int e10_UP = 15;
     static constexpr int max_dec_sig_len = 17;
     static constexpr int num_pow10 = 323 - (-293) + 1;
-    uint64_t pow10_double[(323 - (-293) + 1) * 2] = {};  // 1234 * 8 = 9872 bytes
-    uint64_t exp_result_double[324 + 308 + 1] = {};      // 633 * 8 = 5064 bytes
+    static constexpr int max_first_sig_pos = 5;
+    static constexpr int max_one_offset = 17;
+    static constexpr int max_buffer_requirement = XJB_NO_MEMMOVE ? 32 : 33;
+    static constexpr int max_valid_output_len = 24;
+    uint64_t pow10_double[num_pow10 * 2] = {};       // 1234 * 8 = 9872 bytes
+    uint64_t exp_result_double[324 + 308 + 1] = {};  // 633 * 8 = 5064 bytes
     alignas(64) unsigned char e10_variable_data[e10_UP - e10_DN + 1 + 1][XJB_NO_MEMMOVE ? 64 : 32] = {};
     unsigned char h7[2048] = {};
 
@@ -403,41 +416,44 @@ struct double_table_t {
         }
         for (int e10 = e10_DN; e10 <= e10_UP + 1; e10++) {
             int tmp_data_ofs = e10 - e10_DN;
+            auto& current_line = e10_variable_data[tmp_data_ofs];
             u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
             // For code audit.
-            if (first_sig_pos > 5)
-                throw "first_sig_pos is not larger than 5";
+            if (first_sig_pos > max_first_sig_pos)
+                throw "first_sig_pos is not larger than max_first_sig_pos";
             u64 dot_pos = (0 <= e10 && e10 <= e10_UP) ? 1 + e10 : 1;
             u64 move_pos = dot_pos + (0 <= e10 || e10 < e10_DN);
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 0] = first_sig_pos;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 1] = dot_pos;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 2] = move_pos;
+            current_line[max_dec_sig_len + 0] = first_sig_pos;
+            current_line[max_dec_sig_len + 1] = dot_pos;
+            current_line[max_dec_sig_len + 2] = move_pos;
             for (uint8_t D17 = 0; D17 <= 1; D17++) {
                 unsigned char one_offset = 15 + D17 + (move_pos > dot_pos && dot_pos <= 15 + D17);
-                e10_variable_data[tmp_data_ofs][max_dec_sig_len + 3 + D17] = one_offset;
+                current_line[max_dec_sig_len + 3 + D17] = one_offset;
                 // For code audit.
-                if (one_offset > 17)
-                    throw "one_offset is not larger than 17";
+                if (one_offset > max_one_offset)
+                    throw "one_offset is not larger than max_one_offset";
             }
             for (int dec_sig_len = 1; dec_sig_len <= max_dec_sig_len; dec_sig_len++) {
                 u64 exp_pos = (e10_DN <= e10 && e10 <= -1)
                                   ? dec_sig_len
                                   : (0 <= e10 && e10 <= e10_UP ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
                                                                : (dec_sig_len + 1 - (dec_sig_len == 1)));
-                e10_variable_data[tmp_data_ofs][dec_sig_len - 1] = exp_pos;
+                current_line[dec_sig_len - 1] = exp_pos;
+                if (first_sig_pos + exp_pos + 8 > max_buffer_requirement) {
+                    throw "first_sig_pos + exp_pos + 8 is not larger than max_buffer_requirement";
+                }
             }
             if (XJB_NO_MEMMOVE) {
                 uint8_t v = 0xf;
                 for (uint64_t j = 0; j < 0x10; ++j)
-                    e10_variable_data[tmp_data_ofs][0x20 + 0x10 + j] = v--;
+                    current_line[0x20 + 0x10 + j] = v--;
                 if (move_pos > dot_pos) {
                     for (uint64_t j = 0xf; j > dot_pos && j > 0; --j)
-                        e10_variable_data[tmp_data_ofs][j + 0x20 + 0x10] =
-                            e10_variable_data[tmp_data_ofs][j + 0x20 + 0x10 - 1];
+                        current_line[j + 0x20 + 0x10] = current_line[j + 0x20 + 0x10 - 1];
                 }
                 for (uint64_t j = 0; j < 0x10; ++j) {
-                    auto v = e10_variable_data[tmp_data_ofs][j + 0x20 + 0x10];
-                    e10_variable_data[tmp_data_ofs][j + 0x20] = v ? (v - 1) : 0xf;
+                    auto v = current_line[j + 0x20 + 0x10];
+                    current_line[j + 0x20] = v ? (v - 1) : 0xf;
                 }
             }
         }
@@ -548,15 +564,16 @@ struct float_table_t {
             u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
             u64 dot_pos = (0 <= e10 && e10 <= e10_UP) ? 1 + e10 : 1;
             u64 move_pos = dot_pos + ((0 <= e10 || e10 < e10_DN));
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 0] = first_sig_pos;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 1] = dot_pos;
-            e10_variable_data[tmp_data_ofs][max_dec_sig_len + 2] = move_pos;
+            auto& current_line = e10_variable_data[tmp_data_ofs];
+            current_line[max_dec_sig_len + 0] = first_sig_pos;
+            current_line[max_dec_sig_len + 1] = dot_pos;
+            current_line[max_dec_sig_len + 2] = move_pos;
             for (int dec_sig_len = 1; dec_sig_len <= max_dec_sig_len; dec_sig_len++) {
                 u64 exp_pos = (e10_DN <= e10 && e10 <= -1)
                                   ? dec_sig_len
                                   : (0 <= e10 && e10 <= e10_UP ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
                                                                : (dec_sig_len + 1 - (dec_sig_len == 1)));
-                e10_variable_data[tmp_data_ofs][dec_sig_len - 1] = exp_pos;
+                current_line[dec_sig_len - 1] = exp_pos;
             }
         }
         for (int exp = 0; exp < 256; exp++) {
@@ -630,9 +647,7 @@ alignas(64) constexpr float_table_t float_table;
  * Implementations
  *============================================================================*/
 
-#if XJB_NO_MEMMOVE
-
-#    if XJB_USE_SSE4_1
+#if XJB_USE_SSE4_1 && XJB_NO_MEMMOVE
 static inline shortest_ascii16 to_ascii16_no_memmove_sse41(char* buf, uint64_t up_down, uint64_t D17, __m128i y,
                                                            __m128i move_shuffler) {
     __m128i z = _mm_add_epi64(y, _mm_mullo_epi32(_mm_set1_epi32((1 << 16) - 100),
@@ -646,9 +661,9 @@ static inline shortest_ascii16 to_ascii16_no_memmove_sse41(char* buf, uint64_t u
     int tz = u64_tz_bits(mask);
     return {ascii16, compute_double_dec_sig_len_ssse3(up_down, tz, D17), _mm_cvtsi128_si32(ascii16_swapped)};
 }
-#    endif
+#endif
 
-#    if XJB_USE_SSSE3
+#if XJB_USE_SSSE3 && XJB_NO_MEMMOVE
 static inline shortest_ascii16 to_ascii16_no_memmove_ssse3(uint64_t up_down, uint64_t D17, __m128i y,
                                                            __m128i move_shuffler) {
     __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epu16(y, _mm_set1_epi16(0x147b)), 3);
@@ -662,7 +677,6 @@ static inline shortest_ascii16 to_ascii16_no_memmove_ssse3(uint64_t up_down, uin
     int tz = u64_tz_bits(mask);
     return {ascii16, compute_double_dec_sig_len_ssse3(up_down, tz, D17), _mm_cvtsi128_si32(ascii16_swapped)};
 }
-#    endif
 #endif
 
 #if XJB_USE_SSE2 && !XJB_NO_MEMMOVE
@@ -673,13 +687,9 @@ static inline shortest_ascii16 to_ascii16_memmove_sse2(char* buf, uint64_t up_do
     __m128i bcd_swapped = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
     __m128i little_endian_bcd = _mm_shuffle_epi32(bcd_swapped, _MM_SHUFFLE(0, 1, 2, 3));
 
-#    if XJB_NOT_REMOVE_FIRST_ZERO && XJB_USE_SSSE3
+#    if XJB_NOT_REMOVE_FIRST_ZERO
     little_endian_bcd =
         _mm_shuffle_epi8(little_endian_bcd,
-                         // D17?_mm_set_epi8(15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1,
-                         // 0)
-                         //    :_mm_set_epi8(0, 15, 14, 13, 12, 11, 10, 9, 8, 7,  6,  5,  4,  3,
-                         //    2, 1));
                          _mm_loadu_si128((const __m128i*)(&(cv->shuffle_table[D17 ? 0 : 1]))));  // remove left zero
 #    endif
 
@@ -705,13 +715,7 @@ static inline shortest_ascii16 to_ascii16_sse_fallback(char* buf, const uint64_t
 #if XJB_USE_SSE2
 static inline shortest_ascii16 to_ascii16_no_avx512(char* buf, const uint64_t m, const uint64_t up_down,
                                                     const uint64_t D17, const struct const_value_double* cv,
-                                                    uint32_t abcdefgh, uint32_t ijklmnop
-#    if XJB_NO_MEMMOVE
-                                                    ,
-                                                    const u8* move_shuffler
-#    endif
-) {
-
+                                                    uint32_t abcdefgh, uint32_t ijklmnop XJB_SHUFFLER_DECL) {
     __m128i x = _mm_unpacklo_epi64(_mm_cvtsi32_si128(ijklmnop), _mm_cvtsi32_si128(abcdefgh));
     __m128i y = _mm_add_epi64(x, _mm_mul_epu32(_mm_set1_epi64x((1ULL << 32) - 10000),
                                                _mm_srli_epi64(_mm_mul_epu32(x, _mm_set1_epi64x(109951163)), 40)));
@@ -731,15 +735,17 @@ static inline shortest_ascii16 to_ascii16_no_avx512(char* buf, const uint64_t m,
     return to_ascii16_sse_fallback(buf, up_down, D17, cv, y);
 #        endif
 
-#    else  // SSE2
+#    else
     return to_ascii16_sse_fallback(buf, up_down, D17, cv, y);
 
-#    endif  // SSE2
+#    endif
 }
 #endif  // XJB_USE_SSE2
+
 static inline uint64_t rotateRight64(uint64_t x, int s) {
     return (x >> s) | (x << (64 - s));
 }
+
 static inline uint32_t countZeros(uint64_t x) {
     const uint64_t maxUint64 = ~0ULL;
     const uint64_t div1e8m = 0xc767074b22e90e21ULL;
@@ -774,12 +780,7 @@ static inline uint32_t countZeros(uint64_t x) {
 }
 
 static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uint64_t up_down, const uint64_t D17,
-                                          const struct const_value_double* cv
-#if XJB_NO_MEMMOVE
-                                          ,
-                                          const u8* move_shuffler
-#endif
-) {
+                                          const struct const_value_double* cv XJB_SHUFFLER_DECL) {
     // m range : [1, 1e16 - 1] ; m = abcdefgh * 10^8 + ijklmnop
     const uint64_t ZERO = 0x3030303030303030ull;
     uint32_t abcdefgh = umul128_hi64_xjb(m, cv->mul_const) >> (90 - 64);
@@ -804,7 +805,7 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
     int32x2_t high_10000 = vshr_n_u32(vqdmulh_s32(hundredmillions, vdup_n_s32(cv->multipliers32[0])), 9);
     int32x2_t tenthousands = vmla_s32(hundredmillions, high_10000, vdup_n_s32(cv->multipliers32[1]));
     int32x4_t extended = vshll_n_u16(tenthousands, 0);
-#    if XJB_IS_AARCH64 && (defined(__clang__) || defined(__GNUC__))
+#    if defined(__clang__) || defined(__GNUC__)
     asm("" : "+w"(extended));
 #    endif
     int32x4_t high_100 = vqdmulhq_s32(extended, vdupq_n_s32(cv->multipliers32[2]));
@@ -839,11 +840,9 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
     xjb_assume(dec_sig_len <= 16);
     return {ascii16, dec_sig_len};
 #    endif  // endif XJB_USE_NEON
-#endif
 
-#if XJB_USE_SSE2
+#elif XJB_USE_AVX512IFMA_VBMI
     // method 1 : AVX512IFMA, AVX512VBMI
-#    if XJB_USE_AVX512IFMA_VBMI
     const __m512i bcstq_h = _mm512_set1_epi64(abcdefgh);
     const __m512i bcstq_l = _mm512_set1_epi64(ijklmnop);
     const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
@@ -858,7 +857,8 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
     __m512i highbits_h = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_h);
     __m512i highbits_l = _mm512_madd52hi_epu64(zero, zmmTen, lowbits_l);
 
-#        if XJB_NO_MEMMOVE
+#    if XJB_NO_MEMMOVE
+    // XJB_USE_AVX512IFMA_VBMI && XJB_NO_MEMMOVE
     const __m512i permb_const_reverse = _mm512_castsi128_si512(
         _mm_setr_epi8(0x78, 0x70, 0x68, 0x60, 0x58, 0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
     __m512i bcd_r = _mm512_permutex2var_epi8(highbits_h, permb_const_reverse, highbits_l);
@@ -868,37 +868,28 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
     int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(bcd_swapped, _mm_setzero_si128()));
     int tz = u64_tz_bits(mask);
     return {ascii16, compute_double_dec_sig_len_ssse3(up_down, tz, D17), _mm_cvtsi128_si32(ascii16_swapped)};
-#        else
+#    else
+    // XJB_USE_AVX512IFMA_VBMI && !XJB_NO_MEMMOVE
     const __m512i permb_const = _mm512_castsi128_si512(
         _mm_set_epi8(0x78, 0x70, 0x68, 0x60, 0x58, 0x50, 0x48, 0x40, 0x38, 0x30, 0x28, 0x20, 0x18, 0x10, 0x08, 0x00));
     __m512i bcd = _mm512_permutex2var_epi8(highbits_h, permb_const, highbits_l);
     __m128i little_endian_bcd = _mm512_castsi512_si128(bcd);
-#            if XJB_NOT_REMOVE_FIRST_ZERO && XJB_USE_SSSE3
+    static_assert(XJB_NOT_REMOVE_FIRST_ZERO, "XJB_NOT_REMOVE_FIRST_ZERO is inferred to be true here");
     little_endian_bcd =
         _mm_shuffle_epi8(little_endian_bcd,
                          _mm_loadu_si128((const __m128i*)(&(cv->shuffle_table[D17 ? 0 : 1]))));  // remove left zero
-#            endif
-
     __m128i little_endian_ascii = _mm_add_epi8(little_endian_bcd, _mm_set1_epi8('0'));
     _mm_storeu_si128((__m128i*)buf, _mm_set1_epi8('0'));  // write 32byte '0'
     _mm_storeu_si128((__m128i*)(buf + 16), _mm_set1_epi8('0'));
     int mask = _mm_movemask_epi8(_mm_cmpgt_epi8(little_endian_bcd, _mm512_castsi512_si128(zero)));
     int tz = u64_lz_bits(mask);
     return {little_endian_ascii, compute_double_dec_sig_len_sse2(up_down, tz, D17)};
-#        endif
+#    endif
 
-#    else  // x86-64, no AVX512
-    return to_ascii16_no_avx512(buf, m, up_down, D17, cv, abcdefgh, ijklmnop
-#        if XJB_NO_MEMMOVE
-                                ,
-                                move_shuffler
-#        endif
-    );
-
-#    endif  // XJB_USE_SSE2
-#endif      // endif XJB_USE_SSE2
-
-#if !XJB_USE_NEON_OR_SSE2
+#elif XJB_USE_SSE2  // x86-64, no AVX512
+    return to_ascii16_no_avx512(buf, m, up_down, D17, cv, abcdefgh, ijklmnop XJB_SHUFFLER_PARAM);
+#else
+    static_assert(!XJB_USE_NEON_OR_SSE2, "");
     uint64_t abcd_efgh = abcdefgh + (0x100000000 - 10000) * ((abcdefgh * 0x68db8bbull) >> 40);
     uint64_t ijkl_mnop = ijklmnop + (0x100000000 - 10000) * ((ijklmnop * 0x68db8bbull) >> 40);
     uint64_t ab_cd_ef_gh = abcd_efgh + (0x10000 - 100) * (((abcd_efgh * 0x147b) >> 19) & 0x7f0000007f);
@@ -919,10 +910,20 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
 #endif
 }
 
+static inline shortest_ascii8 to_ascii8_final(u64 abcdefgh_BCD, uint32_t lz, uint32_t up_down) {
+    const uint64_t ZERO = 0x3030303030303030;
+    u32 tz = u64_lz_bits(abcdefgh_BCD) >> 3;
+    abcdefgh_BCD = abcdefgh_BCD >> (lz << 3);
+    abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64_xjb(abcdefgh_BCD);
+    // when m = 0, abcdefgh_BCD = 0, tz = u64_lz_bits(0) >> 3, this is an UB,
+    // but up_down is always 0, so we can dont care about it. when up_down = 0,
+    // the tz is not used. so next line is always correct.
+    return {abcdefgh_BCD | ZERO, cmov_branchless(up_down, (7 ^ lz) - tz, 8 - lz)};  // 7^lz == 7-lz
+}
+
 static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down, uint32_t& lz,
                                         const struct const_value_float* c = nullptr) {
     // m range : [0, 1e8 - 1] ; m = abcdefgh
-    const uint64_t ZERO = 0x3030303030303030;
 #if XJB_USE_NEON
     int32x2_t tenthousands = vcreate_u64(m + c->m * ((m * (u128)c->div10000) >> 64));
     int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->m32_4[0])), c->m32_4[1]);
@@ -933,11 +934,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down
     u64 hgfedcba_BCD = vget_lane_u64(BCD_big_endian, 0);
     u64 abcdefgh_BCD =
         byteswap64_xjb(vget_lane_u64(BCD_big_endian, 0));  // big_endian to little_endian , reverse 8 bytes
-#endif
-
-#if XJB_USE_SSE2
-
-#    if XJB_USE_AVX512IFMA_VBMI
+#elif XJB_USE_AVX512IFMA_VBMI
     __m512i bcstq_l = _mm512_set1_epi64(m);
     const __m512i zmmzero = _mm512_castsi128_si512(_mm_cvtsi64_si128(0x1A1A400));
     const __m512i ifma_const =
@@ -950,26 +947,24 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down
     __m512i highbits_l7 = _mm512_mullo_epi64(lowbits_l, _mm512_set1_epi64(10 << 4));
     __m512i bcd = _mm512_permutexvar_epi8(permb_const7, highbits_l7);
     u64 abcdefgh_BCD = _mm_cvtsi128_si64(_mm512_castsi512_si128(bcd));
-#    else
+#elif XJB_USE_SSE2
     u64 aabb_ccdd_merge = (m << 32) + (1 - (10000ull << 32)) * ((m * (u128)1844674407370956) >> 64);
     __m128i y = _mm_set1_epi64x(aabb_ccdd_merge);
-#        if XJB_USE_SSE4_1
+#    if XJB_USE_SSE4_1
     __m128i z = _mm_sub_epi32(
         _mm_slli_epi32(y, 16),
         _mm_mullo_epi32(_mm_set1_epi32((100 << 16) - 1), _mm_srli_epi32(_mm_mulhi_epi16(y, _mm_set1_epi32(10486)), 4)));
-#        else
+#    else
     __m128i y_div_100 = _mm_srli_epi16(_mm_mulhi_epi16(y, _mm_set1_epi16(0x147b)), 3);
     __m128i y_mod_100 = _mm_sub_epi16(y, _mm_mullo_epi16(y_div_100, _mm_set1_epi16(100)));
     __m128i z = _mm_or_si128(y_div_100, _mm_slli_epi32(y_mod_100, 16));
-#        endif
+#    endif
     __m128i z_div_10 = _mm_mulhi_epi16(z, _mm_set1_epi16(0x199a));
     __m128i tmp = _mm_sub_epi16(_mm_slli_epi16(z, 8), _mm_mullo_epi16(_mm_set1_epi16(2559), z_div_10));
     u64 abcdefgh_BCD = _mm_cvtsi128_si64(tmp);
-#    endif
 
-#endif  // endif XJB_USE_SSE2
-
-#if !XJB_USE_NEON_OR_SSE2
+#else
+    static_assert(!XJB_USE_NEON_OR_SSE2, "");
     i64 aabb_ccdd_merge = (m << 32) + (1 - (10000ull << 32)) * ((m * 109951163) >> 40);
     i64 aa_bb_cc_dd_merge = (aabb_ccdd_merge << 16) +
                             (1 - (100ull << 16)) * (((aabb_ccdd_merge * 10486) >> 20) & ((0x7FULL << 32) | 0x7FULL));
@@ -977,14 +972,9 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down
         (aa_bb_cc_dd_merge << 8) + (1 - (10ull << 8)) * (((aa_bb_cc_dd_merge * 103) >> 10) &
                                                          ((0xFULL << 48) | (0xFULL << 32) | (0xFULL << 16) | 0xFULL));
 #endif
-    u32 tz = u64_lz_bits(abcdefgh_BCD) >> 3;
-    abcdefgh_BCD = abcdefgh_BCD >> (lz << 3);
-    abcdefgh_BCD = is_little_endian() ? abcdefgh_BCD : byteswap64_xjb(abcdefgh_BCD);
-    // when m = 0, abcdefgh_BCD = 0, tz = u64_lz_bits(0) >> 3, this is an UB,
-    // but up_down is always 0, so we can dont care about it. when up_down = 0,
-    // the tz is not used. so next line is always correct.
-    return {abcdefgh_BCD | ZERO, cmov_branchless(up_down, (7 ^ lz) - tz, 8 - lz)};  // 7^lz == 7-lz
+    return to_ascii8_final(abcdefgh_BCD, lz, up_down);
 }
+
 static inline char* write_1_to_16_digit(u64 x, char* buf, const struct const_value_double* cv) {
     // require 1 <= x < 1e16
     const u64 ZERO = 0x3030303030303030;
@@ -1255,6 +1245,10 @@ static inline char* xjb64(double v, char* buf) {
                                                                  // MSVC not support inline asm
     asm("" : "+r"(cv));                                          // read constant values from memory to register
 #endif
+#ifndef NDEBUG
+    char* const real_origin_buf = buf;
+#endif
+
     u64 vi;
     memcpy(&vi, &v, sizeof(v));
     *buf = '-';
@@ -1281,7 +1275,7 @@ static inline char* xjb64(double v, char* buf) {
     // process_small_int_double(c, q, cv, is_exit_small_int, buf);
     unsigned char h7_precalc = t->h7[exp];
     const int offset = 9;  //  offset in range [3,10] has same result.
-    u32 irregular = sig == 0;
+    bool irregular = sig == 0;
     i64 k = compute_k_double((i64)exp - 1075);
     u64* p10 = get_pow10_ptr(t, k);
     u64 cb = c << h7_precalc;
@@ -1338,20 +1332,16 @@ static inline char* xjb64(double v, char* buf) {
 #    else
     memset(buf, '0', 8);
 #    endif
+    const u8* move_shuffler = &(t->e10_variable_data[e10_data_ofs][32 + D17 * 16]);
 #endif
-    shortest_ascii16 s = to_ascii16(buf, XJB_NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv
-#if XJB_NO_MEMMOVE
-                                    ,
-                                    &(t->e10_variable_data[e10_data_ofs][32 + D17 * 16])
-#endif
-    );
+    shortest_ascii16 s = to_ascii16(buf, XJB_NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv XJB_SHUFFLER_PARAM);
     u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
     u64 dot_pos = t->e10_variable_data[e10_data_ofs][17 + 1];
     u64 move_pos = t->e10_variable_data[e10_data_ofs][17 + 2];
 #if XJB_NO_MEMMOVE
     u64 one_offset = t->e10_variable_data[e10_data_ofs][17 + 3 + D17];
 #endif
-    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
+    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len_sub1];
     char* const buf_origin = buf;
     buf += first_sig_pos;
 
@@ -1384,26 +1374,25 @@ static inline char* xjb64(double v, char* buf) {
 #endif
 
 #if XJB_IS_AARCH64
-    if (exp == 0) [[unlikely]]
+    if (exp == 0) [[unlikely]]  // fewer instructions
 #endif
-    {
-        // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
-        // if (buf[0] == '0')
         if (m_up < (u64)1e14) [[unlikely]] {
+            // some subnormal number : range (5e-324,1e-309) = [1e-323,1e-309)
             u64 lz = 0;
             while (buf[2 + lz] == '0')
                 lz++;
             lz += 2;
             e10 -= lz - 1;
             buf[0] = buf[lz];
+            // assert((buf - real_origin_buf) + (lz + 1) + 16 <= double_table_t::max_buffer_requirement);
             memmove(&buf[2], &buf[lz + 1], 16);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
-    }
     u64 exp_result = t->exp_result_double[e10 + 324];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
+    // assert((buf + exp_len) - real_origin_buf <= double_table_t::max_valid_output_len);
     return buf + exp_len;
 }
 
@@ -1473,7 +1462,7 @@ static inline char* xjb32(float v, char* buf) {
     u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
     u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
     u64 move_pos = t->e10_variable_data[e10_data_ofs][9 + 2];
-    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len];
+    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len_sub1];
     char* buf_origin = (char*)buf;
     buf += first_sig_pos;
     memcpy(buf, &(s.ascii), 8);
