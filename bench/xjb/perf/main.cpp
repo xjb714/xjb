@@ -24,7 +24,7 @@ const u64 N = (1ull << 25); // data size
 #else
     double *data;
 #endif
-u64 get_cycle()
+static u64 get_cycle()
 {
 #ifdef __amd64__
     uint64_t low, high;
@@ -34,13 +34,13 @@ u64 get_cycle()
     return 0;
 #endif
 }
-auto getns()
+static auto getns()
 {
     auto now = std::chrono::high_resolution_clock::now();
     auto nanos = std::chrono::duration_cast<std::chrono::nanoseconds>(now.time_since_epoch()).count();
     return nanos;
 }
-double gen_double_filter_NaN_Inf()
+static double gen_double_filter_NaN_Inf()
 {
     unsigned long long rnd,rnd_abs;
     do{
@@ -50,7 +50,7 @@ double gen_double_filter_NaN_Inf()
     while (rnd_abs >= (0x7ffull << 52)); // nan or inf
     return *(double *)&rnd;
 }
-double gen_double_filter_NaN_Inf_subnormal()
+static double gen_double_filter_NaN_Inf_subnormal()
 {
     unsigned long long rnd,rnd_abs;
     do{
@@ -60,7 +60,7 @@ double gen_double_filter_NaN_Inf_subnormal()
     while (rnd_abs >= (0x7ffull << 52) && rnd_abs < (1ull << 52) ); // nan or inf or subnormal
     return *(double *)&rnd;
 }
-float gen_float_filter_NaN_Inf()
+static float gen_float_filter_NaN_Inf()
 {
     unsigned int rnd,rnd_abs;
     do{
@@ -70,7 +70,7 @@ float gen_float_filter_NaN_Inf()
     while (rnd_abs >= (0xffu << 23)); // nan or inf
     return *(float *)&rnd;
 }
-float gen_float_filter_NaN_Inf_subnormal()
+static float gen_float_filter_NaN_Inf_subnormal()
 {
     unsigned int rnd,rnd_abs;
     do{
@@ -80,7 +80,7 @@ float gen_float_filter_NaN_Inf_subnormal()
     while (rnd_abs >= (0xffu << 23) && rnd_abs < (1u << 23) ); // nan or inf or subnormal
     return *(float *)&rnd;
 }
-void init_data()
+static void init_data()
 {
 #if PERF_DOUBLE_OR_FLOAT == FLOAT
     data = new float[N];

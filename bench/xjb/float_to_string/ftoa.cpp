@@ -104,7 +104,7 @@
 #        define XJB_NO_MEMMOVE 0
 #    elif XJB_USE_NEON
 // On other aarch64 implementations the performance characteristics of memmove may differ.
-#        define XJB_NO_MEMMOVE 1
+#        define XJB_NO_MEMMOVE 0
 #    else
 #        define XJB_NO_MEMMOVE 0
 #    endif
