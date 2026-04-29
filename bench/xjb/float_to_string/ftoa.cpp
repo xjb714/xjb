@@ -51,7 +51,7 @@
 
 /* Whether to use sse2 (x64). */
 #ifndef XJB_USE_SSE2
-#    if XJB_USE_SIMD && (defined(__GNUC__) && defined(__SSE2__) && defined(__amd64__))
+#    if XJB_USE_SIMD && defined(__SSE2__) && __SSE2__
 #        include <immintrin.h>
 #        define XJB_USE_SSE2 1
 #    else
