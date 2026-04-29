@@ -473,15 +473,15 @@ static inline char *d2e_xjb(double v, char *buffer)
     const u64 *f64_pow10_ptr = (u64 *)&_10en[1 + 324];
     const u64 *power_ptr = (u64 *)&powers_ten_reverse[343 - Precision];
     const u64 *exp_ptr = (u64 *)&exp_result.data[324];
-    i64 e10_tmp = (e2 * 78913) >> 18;                     // == floor(e2*log10(2))
+    i64 e10_tmp = ((i64)e2 * (u128)(78913ull << (64 - 18))) >> 64;                     // == floor(e2*log10(2))
     i64 e10 = e10_tmp + (vi_abs >= f64_pow10_ptr[e10_tmp]); // e10_tmp or e10_tmp+1
     u64 pow10_f = power_ptr[e10];
-    i64 shift = 61 - e2 - (((Precision - e10) * 217707) >> 16);
+    u32 shift = 61 - e2 - ((Precision * 217707 - e10 * 217707) >> 16);
     u64 m = umul128_hi64_xjb(f, pow10_f);
     u64 m2 = (m >> shift) + 1;
-    u64 h9 = m2 / (u64)2e8;
-    u64 h1 = m2 / (u64)2e16;
-    u64 first_digit = h1 | ('0' + ((int)'.' << 8));
+    u32 h9 = m2 / (u64)2e8;
+    u32 h1 = m2 / (u64)2e16;
+    u32 first_digit = h1 | ('0' + ((int)'.' << 8));
     memcpy(buffer, &first_digit, 2);
     u64 abcdefgh = h9 + h1 * (i64)-1e8;
     u64 ijklmnop = (m2 >> 1) + h9 * (i64)-1e8;
