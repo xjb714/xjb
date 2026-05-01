@@ -1,6 +1,6 @@
-GCC = g++
-ICPX = icpx
-CLANG = clang++
+GCC = g++-16 -DNDEBUG
+ICPX = icpx -DNDEBUG
+CLANG = clang++ -DNDEBUG
 
 
 # with no-PIC
