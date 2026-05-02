@@ -1545,9 +1545,9 @@ static inline char* xjb32(float v, char* buf) {
  * Export
  *============================================================================*/
 
-// char* xjb_ftoa(float v, char* buf) {
-//     return xjb::xjb32(v, buf);
-// }
+char* xjb_ftoa(float v, char* buf) {
+    return xjb::xjb32(v, buf);
+}
 char* xjb_ftoa(double v, char* buf) {
     return xjb::xjb64(v, buf);
 }
