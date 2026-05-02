@@ -157,6 +157,65 @@ std::pair<uint32_t, int> f16_to_decimal(uint16_t bits) {
     __int128 d = ten + one;
     return {static_cast<uint32_t>(d), k};
 }
+//std::pair<__int128, int> 
+std::pair<uint32_t, int> f16_to_decimal_opt(uint16_t bits) {
+    uint32_t exp = (bits >> 10) & ((1 << 5) - 1);
+    uint32_t sig = bits & ((1 << 10) - 1);
+    uint32_t sig_bin = sig | (1 << 10);
+    int32_t exp_bin = exp - ((1 << 4) - 1) - 10;
+    if (exp == 0) [[unlikely]] {
+        // if (sig == 0)
+        //     return (char*)memcpy(buf, "0.0", 4) + 3;
+        exp_bin = 1 - ((1 << 4) - 1) - 10;
+        sig_bin = sig;
+    }
+    static uint32_t pow10_lut[10]={
+0xa3d70a3e , // -2
+0xcccccccd , // -1
+0x80000000 , // 0
+0xa0000000 , // 1
+0xc8000000 , // 2
+0xfa000000 , // 3
+0x9c400000 , // 4
+0xc3500000 , // 5
+0xf4240000 , // 6
+0x98968000 , // 7
+    };
+    const int offset = 4;
+    const int BIT = 16;
+    bool irregular = (sig == 0) ;
+    int k = (exp_bin * 1233 - (irregular?512:0) ) >> 12;
+    // exp_bin range : [1-25,31-25] ; k range : [-8,1] ; -k-1 range : [-2,7]
+
+    //get pow10
+    uint64_t pow10 = pow10_lut[-k-1 + 2];
+    int h = exp_bin + ((k * -1701 + (-1701)) >> 9);
+    uint64_t cb = sig_bin << (BIT + 1 + h);// h + 16
+    uint64_t all = (cb * pow10) >> (BIT+1+31-BIT);//12+h+16+32<64
+    uint64_t half_ulp = (pow10 >> (33 - (BIT + 1 + h))) + ((sig + 1) & 1);
+    uint64_t dot_one = all & (((uint64_t)1 << BIT) - 1);
+    uint32_t shorter = (all + half_ulp) >> BIT;
+    uint32_t up_down = shorter > (uint32_t)((all - (half_ulp >> 0)) >> BIT);
+    uint32_t longer = (all * 10 + ((1ULL << (BIT - 1)) - 7) + ((all >> (BIT - 4)) & 15)) >> BIT;
+    uint32_t d = ((all - half_ulp) >> BIT) < ((all + half_ulp) >> BIT) ? shorter*10 : longer;
+    // up_down = ((all + half_ulp) >> BIT) > ((all - half_ulp) >> BIT);
+    // return {up_down ? shorter : longer, k};
+    // dec[0] = shorter;
+    // dec[1] = up_down ? 0 : longer - shorter * 10;
+    if(irregular) [[unlikely]]
+    {
+        if(exp_bin == 8 - 25){
+            d += 2; //0->2
+        }
+        if(exp_bin == 9 - 25)
+        {
+            d += 1;//2->3
+        }
+    }
+    //dec[2] = k;
+    return {d, k};
+}
+
 
 // ==================== BCD 辅助 ====================
 static inline uint32_t to_bcd4(uint32_t d) {
@@ -190,7 +249,7 @@ char* xjb16(uint16_t bits, char* buf) {
         return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
 
     uint16_t bits_abs = bits & ((1 << 15) - 1);
-    auto [d, k] = f16_to_decimal(bits_abs);
+    auto [d, k] = f16_to_decimal_opt(bits_abs);
     int tz = -1;
     int mul = 1;
     int d_div = d;

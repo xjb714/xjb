@@ -128,7 +128,8 @@ int compute_k(int q, bool is_regular) {
 }
 
 // -------------------- 算法1：计算 (d, k) --------------------
-std::pair<__int128, int> f16_to_decimal(uint16_t bits) {
+//std::pair<__int128, int>
+void f16_to_decimal(uint16_t bits,int* dec) {
     auto comp = f16_to_components(bits);
     __int128 c = comp.c;
     int q = comp.q;
@@ -187,41 +188,94 @@ std::pair<__int128, int> f16_to_decimal(uint16_t bits) {
     if (A > (Fraction(1) - n) || (A == (Fraction(1) - n) && c % 2 == 0)) {
         one = 10;
     }
-    __int128 d = ten + one;
-    return {d, k};
+    //__int128 d = ten + one;
+    //return {d, k};
+    dec[0] = m + (one / 10);
+    dec[1] = one % 10;
+    dec[2] = k;
 }
 
-// -------------------- 主程序 --------------------
-int main() {
-    std::ofstream out("f16_decimal_results.txt");
-    if (!out) {
-        std::cerr << "Cannot open output file." << std::endl;
-        return 1;
+//std::pair<__int128, int> 
+void f16_to_decimal_opt(uint16_t bits,int* dec) {
+    uint32_t exp = (bits >> 10) & ((1 << 5) - 1);
+    uint32_t sig = bits & ((1 << 10) - 1);
+    uint32_t sig_bin = sig | (1 << 10);
+    int32_t exp_bin = exp - ((1 << 4) - 1) - 10;
+    if (exp == 0) [[unlikely]] {
+        // if (sig == 0)
+        //     return (char*)memcpy(buf, "0.0", 4) + 3;
+        exp_bin = 1 - ((1 << 4) - 1) - 10;
+        sig_bin = sig;
     }
+    static uint32_t pow10_lut[10]={
+0xa3d70a3e , // -2
+0xcccccccd , // -1
+0x80000000 , // 0
+0xa0000000 , // 1
+0xc8000000 , // 2
+0xfa000000 , // 3
+0x9c400000 , // 4
+0xc3500000 , // 5
+0xf4240000 , // 6
+0x98968000 , // 7
+    };
+    const int offset = 4;
+    const int BIT = 16;
+    bool irregular = (sig == 0) ;
+    int k = (exp_bin * 1233 - (irregular?512:0) ) >> 12;
+    // exp_bin range : [1-25,31-25] ; k range : [-8,1] ; -k-1 range : [-2,7]
 
-    out << "# bits(hex)  d  k\n";
+    //get pow10
+    uint64_t pow10 = pow10_lut[-k-1 + 2];
+    int h = exp_bin + ((k * -1701 + (-1701)) >> 9);
+    uint64_t cb = sig_bin << (BIT + 1 + h);// h + 16
+    uint64_t all = (cb * pow10) >> (BIT+1+31-BIT);//12+h+16+32<64
+    uint64_t half_ulp = (pow10 >> (33 - (BIT + 1 + h))) + ((sig + 1) & 1);
+    uint64_t dot_one = all & (((uint64_t)1 << BIT) - 1);
+    uint32_t shorter = (all + half_ulp) >> BIT;
+    uint32_t up_down = shorter > (uint32_t)((all - (half_ulp >> 0)) >> BIT);
+    uint32_t longer = (all * 10 + ((1ULL << (BIT - 1)) - 7) + ((all >> (BIT - 4)) & 15)) >> BIT;
+    //d = ((all - half_ulp) >> BIT) < ((all + half_ulp) >> BIT) ? shorter : longer;
+    up_down = ((all + half_ulp) >> BIT) > ((all - half_ulp) >> BIT);
+    
+    dec[0] = shorter;
+    dec[1] = up_down ? 0 : longer - shorter * 10;
+    if(irregular) [[unlikely]]
+    {
+        if(exp_bin == 8 - 25){
+            dec[1] = 2;
+        }
+        if(exp_bin == 9 - 25)
+        {
+            dec[1] = 3;
+        }
+    }
+    dec[2] = k;
+}
 
-    uint32_t d_min = 99999999;
-    uint32_t d_max = 0;
-    // 遍历所有正 FP16 数值 (排除 0x0000, 0x7C00..0x7FFF)
+int main() {
+    int error = 0;
     for (uint32_t bits = 0x0001; bits <= 0x7BFF; ++bits) {
         try {
-            auto [d, k] = f16_to_decimal(static_cast<uint16_t>(bits));
-            d_min = d > d_min ? d_min : d;
-            d_max = d > d_max ? d : d_max;
-            out << "0x" << std::hex << std::uppercase << bits << std::dec
-                << " " << (int64_t)d << " " << k << "\n";
+            int dec[3];
+            int dec_opt[3];
+            f16_to_decimal(bits, dec);
+            f16_to_decimal_opt(bits, dec_opt);
+            if(dec[0] != dec_opt[0] || dec[1] != dec_opt[1] || dec[2] != dec_opt[2]) {
+                //if(0)
+                std::cerr << "Mismatch for 0x" << std::hex << std::uppercase << bits << ": "
+                          << "dec = (" << dec[0] << ", " << dec[1] << ", " << dec[2] << ") vs "
+                          << "dec_opt = (" << dec_opt[0] << ", " << dec_opt[1] << ", " << dec_opt[2] << ")\n";
+                error++;
+            }
+            // std::cout << "0x" << std::hex << std::uppercase << bits << std::dec
+            //     << " -> d: " << dec[0] << ", one: " << dec[1] << ", k: " << dec[2] << "\n";
         } catch (const std::invalid_argument&) {
-            // 跳过 +0, inf, NaN
-            continue;
+            continue;  // 跳过 +0, inf, NaN
         } catch (const std::exception& e) {
             std::cerr << "Error processing 0x" << std::hex << bits << ": " << e.what() << std::endl;
             return 1;
         }
     }
-
-    out.close();
-    std::cout << "Results written to f16_decimal_results.txt" << std::endl;
-    printf("d_min = %u, d_max = %u\n",d_min,d_max);
-    return 0;
+    std::cout << "Total errors: " << error << std::endl;
 }

@@ -1,8 +1,52 @@
-#schubfach32 xjb32
-
 import math
 log2_10 = math.log2(10)
+log10_2 = math.log10(2)
+
+#xjb16
+# q range:[1-25,30-25]
+q_min = 0+1-25
+q_max = 30-25
+# -k-1
+nk1_max = -math.floor(q_min * log10_2) - 1
+nk1_min = -math.floor(q_max * log10_2) - 1
+print("generate xjb16 lut:")
+BIT=32-1
+ans=0
+i=0
+while 1:
+    if(i*log2_10>=BIT):
+        ans=i
+        break
+    i=i+1
+print("xjb16 ans = ",ans) #10
+for i in range(nk1_min,nk1_max+1,1):
+    e10 = abs(i)
+    e2 = abs(math.floor(i*log2_10) - BIT)
+    round_up = 0 # if(i>=0 and i<=27) else 1
+    if(i<0):
+        num = (2**e2//10**e10)
+        round_up = 1
+    elif(i >= ans):
+        # i >= ans is always false
+        num = 10**e10//2**e2
+        round_up = 0 if(num * (2**e2) == 10**e10) else 1
+    else:
+        num = 10**e10*2**e2
+    result = num + round_up
+    print(hex(result),", //",i,end='\n')
+
+#schubfach32 xjb32
+
 print("generate xjb32 lut:")
+BIT=64-1
+ans=0
+i=0
+while 1:
+    if(i*log2_10>=BIT):
+        ans=i
+        break
+    i=i+1
+print("xjb32 ans = ",ans)# 19
 #for i in range(-32,45,1): # [-32,44]
 for i in range(44,-33,-1): # [44,-32]
     e10 = abs(i)
