@@ -1662,6 +1662,22 @@ static inline char* xjb16(uint16_t bits, char* buf) {
     memcpy(buf, &exp_result, 8);
     return buf + exp_len;
 }
+static inline char* xjb128(uint64_t v_hi64, uint64_t v_lo64, char* buf) {
+    // todo
+    // v = {v_hi64, v_lo64} ; v_hi64 is the highest 64bits, v_lo64 is the lowest 64bits
+
+    // 128 bit = 1 + 15 + 112; sign + exp + sig
+    
+    return buf;
+}
+static inline char* xjb256(uint64_t* v,char* buf){
+    // todo
+    // v = {v[0], v[1], v[2], v[3]} ; v[0] is the highest 64bits, v[3] is the lowest 64bits
+
+    // 256 bit = 1 + 19 + 236; sign + exp + sig
+
+    return buf;
+}
 }  // end of namespace xjb
 
 /*==============================================================================
@@ -1676,4 +1692,10 @@ char* xjb_ftoa(float v, char* buf) {
 }
 char* xjb_ftoa(double v, char* buf) {
     return xjb::xjb64(v, buf);
+}
+char* xjb_ftoa(uint64_t v_hi64, uint64_t v_lo64, char* buf) {
+    return xjb::xjb128(v_hi64, v_lo64, buf);
+}
+char* xjb_ftoa(uint64_t* v, char* buf) {
+    return xjb::xjb256(v, buf);
 }

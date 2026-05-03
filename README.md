@@ -147,7 +147,7 @@ Special thanks to the following contributors and inspirations:
 ## Roadmap
 
 - [ ] Big-endian support
-- [ ] f16 support
+- [x] f16 support
 - [x] f32 support
 - [x] f64 support
 - [ ] f128 support
