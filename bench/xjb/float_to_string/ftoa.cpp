@@ -1288,7 +1288,8 @@ static inline char* xjb64(double v, char* buf) {
     u32 up_down;//range : [0, 1]
     // decimal result : d * 10**k = (m_up * 10 + (up_down ? 0 : one)) * 10**k
     // d * 10**k satisfy Steele & White principle
-    if (!irregular) [[likely]] 
+    
+    //if (!irregular) [[likely]] 
     {
         u64 hi64, lo64, pow10_hi, pow10_lo;
         k = compute_k_double((i64)exp - 1075);
@@ -1302,7 +1303,9 @@ static inline char* xjb64(double v, char* buf) {
         up_down = up + down;
         u64 half = (dot_one == (1ULL << 62)) ? 0 : cv->c4; // branch is faster
         one = u128_madd_hi64(dot_one, 10, half);// example: 0.34 * 10 + 0.5 = 3.9 -> 3
-    }else{
+    }
+    if(irregular) [[unlikely]]
+    {
         // irregular case : c is 2**52 , exp range is [1,2046];
         k = (i64)(q * 315653 - 131072) >> 20;
         i64 h = q + ((k * -217707 - 217707) >> 16);

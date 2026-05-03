@@ -162,7 +162,7 @@ std::pair<uint32_t, int> f16_to_decimal(uint16_t bits) {
 }
 
 //std::pair<__int128, int> 
-std::pair<uint32_t, int> f16_to_decimal_opt(uint16_t bits) {
+static inline std::pair<uint32_t, int> f16_to_decimal_opt(uint16_t bits) {
     uint32_t exp = (bits >> 10) & ((1 << 5) - 1);
     uint32_t sig = bits & ((1 << 10) - 1);
     uint32_t sig_bin = sig | (1 << 10);
@@ -173,7 +173,7 @@ std::pair<uint32_t, int> f16_to_decimal_opt(uint16_t bits) {
         exp_bin = 1 - ((1 << 4) - 1) - 10;
         sig_bin = sig;
     }
-    static uint32_t pow10_lut[10]={
+    static const uint32_t pow10_lut[10]={
 0xa3d70a3e , // -2
 0xcccccccd , // -1
 0x80000000 , // 0
@@ -188,7 +188,7 @@ std::pair<uint32_t, int> f16_to_decimal_opt(uint16_t bits) {
     const int offset = 4;
     const int BIT = 16;
     bool irregular = (sig == 0) ;
-    int k = (exp_bin * 1233 - (irregular?512:0) ) >> 12;
+    int k = (exp_bin * 1233 - (irregular ? 512 : 0) ) >> 12;
     // exp_bin range : [1-25,31-25] ; k range : [-8,1] ; -k-1 range : [-2,7]
 
     //get pow10
