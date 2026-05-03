@@ -185,7 +185,7 @@ static inline std::pair<uint32_t, int> f16_to_decimal_opt(uint16_t bits) {
 0xf4240000 , // 6
 0x98968000 , // 7
     };
-    const int offset = 4;
+    //const int offset = 4;
     const int BIT = 16;
     bool irregular = (sig == 0) ;
     int k = (exp_bin * 1233 - (irregular ? 512 : 0) ) >> 12;
@@ -195,7 +195,7 @@ static inline std::pair<uint32_t, int> f16_to_decimal_opt(uint16_t bits) {
     uint64_t pow10 = pow10_lut[-k-1 + 2];
     int h = exp_bin + ((k * -1701 + (-1701)) >> 9);
     uint64_t cb = sig_bin << (BIT + 1 + h);// h + 16
-    uint64_t all = (cb * pow10) >> (BIT+1+31-BIT);//12+h+16+32<64
+    uint64_t all = (cb * pow10) >> (BIT + 1 + 31 - BIT);//12+h+16+32<64
     uint64_t half_ulp = (pow10 >> (33 - (BIT + 1 + h))) + ((sig + 1) & 1);
     uint64_t dot_one = all & (((uint64_t)1 << BIT) - 1);
     uint32_t shorter = (all + half_ulp) >> BIT;
@@ -324,7 +324,7 @@ static inline uint32_t to_bcd4(uint32_t d) {
     return a_b_c_d;
 }
 
-char* xjb16(uint16_t bits, char* buf) {
+char* xjb16_old(uint16_t bits, char* buf) {
     // same result as str(numpy.float16(v)) in python.
     // v has 16bits binary representation = bits
     
@@ -335,13 +335,15 @@ char* xjb16(uint16_t bits, char* buf) {
     uint32_t sig = bits & ((1 << 10) - 1);
     uint32_t sig_bin = sig | (1 << 10);
     int32_t exp_bin = exp - ((1 << 4) - 1) - 10;
+    // 1/32 = 3.125%
     if (exp == 0) [[unlikely]] {
         if (sig == 0)
             return (char*)memcpy(buf, "0.0", 4) + 3;
         exp_bin = 1 - ((1 << 4) - 1) - 10;
         sig_bin = sig;
     }
-    if (exp == 31) [[unlikely]]
+    // 1/32 = 3.125% may cause high branch misprediction
+     if (exp == 31) [[unlikely]]
         return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
 
     uint16_t bits_abs = bits & ((1 << 15) - 1);
@@ -404,6 +406,111 @@ char* xjb16(uint16_t bits, char* buf) {
         exp_result = 0;
     uint32_t exp_len = (FIXED_MIN <= e10 && e10 <= FIXED_MAX) ? 0 : 4;
     memcpy(buf, &exp_result, 4);
+    return buf + exp_len;
+}
+
+
+char* xjb16(uint16_t bits, char* buf) {
+    // same result as str(numpy.float16(v)) in python.
+    // v has 16bits binary representation = bits
+
+    // 16 bit = 1 + 5 + 10; sign + exp + sig
+    *buf = '-';
+    buf += bits >> (10 + 5);
+    uint32_t exp = (bits >> 10) & ((1 << 5) - 1);
+    uint32_t sig = bits & ((1 << 10) - 1);
+    uint32_t sig_bin = sig | (1 << 10);
+    int32_t exp_bin = exp - ((1 << 4) - 1) - 10;
+    if (exp == 0) [[unlikely]] {
+        if (sig <= 1) {
+            const char* str = sig ? "6e-08\0\0" : "0.0\0\0\0\0";
+            return (char*)memcpy(buf, str, 8) + (sig ? 5 : 3);
+        }
+        exp_bin = 1 - ((1 << 4) - 1) - 10;
+        sig_bin = sig;
+    }
+    if (exp == 31) [[unlikely]]
+        return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
+    static const uint32_t pow10_lut[10] = {
+        0xa3d70a3e,  // -2
+        0xcccccccd,  // -1
+        0x80000000,  // 0
+        0xa0000000,  // 1
+        0xc8000000,  // 2
+        0xfa000000,  // 3
+        0x9c400000,  // 4
+        0xc3500000,  // 5
+        0xf4240000,  // 6
+        0x98968000,  // 7
+    };
+    const int BIT = 16;
+    bool irregular = (sig == 0);
+    int k = (exp_bin * 1233 - (irregular ? 512 : 0)) >> 12;
+    // exp_bin range : [1-25,31-25] ; k range : [-8,1] ; -k-1 range : [-2,7]
+    uint64_t pow10 = pow10_lut[-k - 1 + 2];
+    int h = exp_bin + ((k * -1701 + (-1701)) >> 9);
+    uint64_t cb = sig_bin << (BIT + 1 + h);
+    uint32_t all = (cb * pow10) >> 32;
+    uint32_t half_ulp = (pow10 >> (33 - (BIT + 1 + h))) + ((sig + 1) & 1);
+    uint32_t dot_one = all & (((uint64_t)1 << BIT) - 1);
+    uint32_t shorter = (all + half_ulp) >> BIT;
+    uint32_t up_down = shorter > (uint32_t)((all - (half_ulp >> 0)) >> BIT);
+    uint32_t one = (dot_one * 10 + ((1ULL << (BIT - 1)) - 7) + ((dot_one >> (BIT - 4)) & 15)) >> BIT;
+    if (irregular) [[unlikely]] {
+        if (exp_bin == 8 - 25) {
+            up_down = 0;
+        }
+        if (exp_bin == 9 - 25) {
+            one = 3;
+        }
+    }
+    bool D5 = shorter >= 1000;
+    memcpy(buf, "00000000", 8);
+    uint32_t abcd = shorter;
+    uint32_t ab_cd = (abcd << 16) + (1 - (100 << 16)) * (((abcd * 0x147b) >> 19));
+    uint32_t a_b_c_d = (ab_cd << 8) + (1 - (10 << 8)) * (((ab_cd * 0x67) >> 10) & 0xf000f);
+    uint32_t bcd = a_b_c_d;
+    uint32_t ascii = bcd | 0x30303030;
+    uint32_t tz = __builtin_clz(bcd) / 8;                   // bcd != 0
+    uint32_t dec_sig_len = up_down ? 3 + D5 - tz : 4 + D5;  // [1, 5];
+    const int FIXED_MIN = -4;                               // same as in python
+    const int FIXED_MAX = 2;
+    int e10 = k + (3 + D5);
+    uint32_t first_sig_pos = (FIXED_MIN <= e10 && e10 <= -1) ? 1 - e10 : 0;
+    uint32_t dot_pos = (0 <= e10 && e10 <= FIXED_MAX) ? 1 + e10 : 1;
+    uint32_t move_pos = dot_pos + ((0 <= e10 || e10 < FIXED_MIN));
+    uint32_t exp_pos = (FIXED_MIN <= e10 && e10 <= -1)
+                           ? dec_sig_len
+                           : (0 <= e10 && e10 <= FIXED_MAX ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
+                                                           : (dec_sig_len + 1 - (dec_sig_len == 1)));
+    char* buf_origin = buf;
+    buf += first_sig_pos;
+    ascii = D5 ? ascii : (ascii >> 8);
+    memcpy(buf, &ascii, 4);
+    one |= 0x30303030;
+    memcpy(buf + (3 + D5), &one, 4);
+    memmove(&buf[move_pos], &buf[dot_pos], 8);  // the index (first_sig_pos + dot_pos + sign) max = 7+1=8,
+    buf_origin[dot_pos] = '.';
+    // if (exp == 0) [[unlikely]]  // fewer instructions
+    if (shorter < 100) [[unlikely]] {
+        uint32_t lz = 0;
+        while (buf[2 + lz] == '0')
+            lz++;
+        lz += 2;
+        e10 -= lz - 1;
+        buf[0] = buf[lz];
+        memmove(&buf[2], &buf[lz + 1], 4);
+        exp_pos = exp_pos - lz + (exp_pos - lz != 1);
+    }
+    buf += exp_pos;
+    int e10_neg = e10 < 0;
+    uint32_t e10_abs = e10_neg ? -e10 : e10;
+    uint32_t exp_result =
+        'e' + ((e10_neg ? (uint32_t)'-' : (uint32_t)'+') << 8) + ((uint32_t)'0' << 16) + ((e10_abs + '0') << 24);
+    if (FIXED_MIN <= e10 && e10 <= FIXED_MAX)
+        exp_result = 0;
+    uint32_t exp_len = (FIXED_MIN <= e10 && e10 <= FIXED_MAX) ? 0 : 4;
+    memcpy(buf, &exp_result, 8);
     return buf + exp_len;
 }
 
