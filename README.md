@@ -2,7 +2,15 @@
 
 xjb is a high-performance algorithm for converting floating-point numbers (float/double) to strings, designed for speed and correctness. It provides single-file implementations for both general use and JSON-specific formatting.
 
-## 1.Key Features
+## Background
+
+In the field of floating-point number printing, Steele & White established several key principles in their seminal paper "How to Print Floating-Point Numbers Accurately":
+
+1. **Information Preservation**: The conversion must produce a decimal string that, when parsed back, yields the original floating-point number or the closest possible value.
+2. **Shortest Representation**: Use the minimal number of digits necessary to uniquely identify the floating-point number.
+3. **Proper Rounding**: When multiple representations are equally valid, choose the one that rounds correctly.
+
+## 1. Key Features
 
 - **High Performance**: Optimized algorithm with low branch prediction failure rate and SIMD acceleration
 - **Correctness**: Satisfies `RFC8259` and ECMAScript standards for JSON number formatting
@@ -10,13 +18,13 @@ xjb is a high-performance algorithm for converting floating-point numbers (float
 - **Versatility**: Support for both float (IEEE754-binary32) and double (IEEE754-binary64) types
 - **Modern Design**: Low instruction dependency and high IPC (Instructions Per Cycle)
 
-## 2.Implementation Files
+## 2. Implementation Files
 
-### Core Implementations
+### 2.1 Core Implementations
 - **General float/double to string**: `src/ftoa.cpp`
 - **JSON-specific formatting**: `src/ftoa_json.cpp` (satisfies RFC8259 and ECMAScript standards)
 
-### Algorithm Variants
+### 2.2 Algorithm Variants
 
 #### Float to Decimal Conversion Algorithms
 - **xjb32**: For float (IEEE754-binary32) - `bench/xjb/float_to_decimal/xjb32_i.cpp`
@@ -26,14 +34,14 @@ xjb is a high-performance algorithm for converting floating-point numbers (float
 - **Full lookup table**: `bench/xjb/float_to_string/ftoa.cpp`
 - **Compressed lookup table**: `bench/xjb/float_to_string/ftoa_comp.cpp`
 
-### Lookup Table Sizes
+### 2.3 Lookup Table Sizes
 
 | Type    | Full Table (ftoa.cpp) | Compressed Table (ftoa_comp.cpp) |
 |---------|----------------------|-----------------------------------|
 | float   | 1352 bytes           | 64 bytes                          |
 | double  | 15336 bytes          | 368 bytes                         |
 
-## 3.Usage Examples
+## 3. Usage Examples
 
 Here are some examples of how the double to string algorithm handles various inputs:
 
@@ -53,7 +61,7 @@ Here are some examples of how the double to string algorithm handles various inp
 | NaN       | "nan"        |
 | Inf       | "inf"        |
 
-## 4.Algorithm Characteristics
+## 4. Algorithm Characteristics
 
 xjb is based on the schubfach algorithm and inspired by other state-of-the-art algorithms like yy, dragonbox, and grisu. Key characteristics include:
 
@@ -64,7 +72,7 @@ xjb is based on the schubfach algorithm and inspired by other state-of-the-art a
 5. **High Instruction Level Parallelism**: Low dependency between instructions
 6. **Efficient Instruction Count**: Minimizes the number of operations
 
-## 5.Algorithm Correctness
+## 5. Algorithm Correctness
 Algorithm Principle Introduction Document : [xjb](xjb.pdf)  
 To verify the correctness of the algorithm, run the following command:
 
@@ -73,7 +81,7 @@ cd bench
 make check
 ```
 
-## 6.Benchmark Results
+## 6. Benchmark Results
 
 Benchmark tests are located in the `bench` directory. Build the benchmark program with `make` and run `bench/main.cpp` to test performance.
 
@@ -107,7 +115,7 @@ on AMD R7-7840H:
 
 For detailed benchmark results and charts, please refer to the `bench` directory.
 
-## Related Algorithms
+## 7. Related Algorithms
 
 | Algorithm               | Description                                                                 |
 |-------------------------|-----------------------------------------------------------------------------|
@@ -125,7 +133,7 @@ For detailed benchmark results and charts, please refer to the `bench` directory
 | [jnum](https://github.com/lengjingzju/json/blob/master/jnum.c) | Jing Leng's algorithm                                                     |
 | [uscale](https://github.com/rsc/fpfmt) | Russ Cox's algorithm ,[document](https://research.swtch.com/fp)                  |
 
-## Acknowledgements
+## 8. Acknowledgements
 
 Special thanks to the following contributors and inspirations:
 
@@ -139,24 +147,25 @@ Special thanks to the following contributors and inspirations:
 
 - **Victor Zverovich** ([@vitaut](https://github.com/vitaut)) - Author of the zmij algorithm and fmt library. Parts of this implementation are derived from zmij.
 
-## Projects Using xjb
+## 9. Projects Using xjb
 
 - [ssrJSON](https://github.com/Antares0982/ssrJSON) - A SIMD-boosted high-performance Python JSON parsing library
 - [jsoniter-scala](https://github.com/plokhotnyuk/jsoniter-scala) - Scala macros for compile-time generation of fast JSON codecs
 
-## Roadmap
+## 10. Roadmap
 
 - [ ] Big-endian support
 - [x] f16 support
 - [x] f32 support
 - [x] f64 support
+- [ ] f80 support
 - [ ] f128 support
 - [ ] f256 support
 
-## Contributing
+## 11. Contributing
 
 Contributions are welcome! Please feel free to submit issues or pull requests to help improve this project.
 
-## License
+## 12. License
 
 [MIT License](LICENSE)
