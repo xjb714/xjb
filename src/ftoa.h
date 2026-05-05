@@ -18,7 +18,7 @@
 /**
  * Convert a float to string
  * @param v The float value to convert
- * @param buf The buffer to write the result to (must be at least 17 bytes)
+ * @param buf The buffer to write the result to (must be at least 21 bytes)
  * @return A pointer to the end of the written string (including the null terminator)
  */
 char* xjb_ftoa(float v, char* buf);
