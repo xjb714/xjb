@@ -51,7 +51,7 @@
 
 /* Whether to use sse2 (x64). */
 #ifndef XJB_USE_SSE2
-#    if XJB_USE_SIMD && (defined(__GNUC__) && defined(__SSE2__) && defined(__amd64__))
+#    if XJB_USE_SIMD && defined(__SSE2__) && __SSE2__
 #        include <immintrin.h>
 #        define XJB_USE_SSE2 1
 #    else
@@ -256,6 +256,23 @@ static inline int u64_lz_bits(uint64_t x) {
     return n;
 #endif
 }
+static inline int u32_lz_bits(uint32_t x) {
+#if defined(__has_builtin) && __has_builtin(__builtin_clz)
+    return __builtin_clz(x);
+#elif defined(_MSC_VER) && defined(__AVX2__)
+    // Use lzcnt only on AVX2-capable CPUs that have this BMI instruction.
+    return __lzcnt(x);
+#elif defined(_MSC_VER)
+    unsigned long idx;
+    _BitScanReverse(&idx, x);  // Fallback to the BSR instruction.
+    return 31 - idx;
+#else
+    int n = 32;
+    for (; x > 0; x >>= 1)
+        --n;
+    return n;
+#endif
+}
 
 static inline int u64_tz_bits(uint64_t x) {
 #if defined(__has_builtin) && __has_builtin(__builtin_ctzll)
@@ -390,6 +407,8 @@ struct double_table_t {
             int e10 = i - 293;
             pow10_double[(num_pow10 - 1 - i) * 2 + 0] = e10 == 0 ? 1ULL << 63 : current.w2 + (e10 >= 0 && e10 <= 27);
             pow10_double[(num_pow10 - 1 - i) * 2 + 1] = current.w1 + 1;
+            // pow10_double[(num_pow10 - 1 - i) ] = e10 == 0 ? 1ULL << 63 : current.w2 + (e10 >= 0 && e10 <= 27);
+            // pow10_double[(num_pow10 - 1 - i)  + num_pow10] = current.w1 + 1;
             uint64_t h0 = umul128_hi64_fallback(current.w0, ten);
             uint64_t h1 = umul128_hi64_fallback(current.w1, ten);
             uint64_t c0 = h0 + current.w1 * ten;
@@ -1228,13 +1247,16 @@ static inline i64 compute_k_double(i64 q) {
     // arm64 : smulh ; x64 : imul
     return ((i64)q * (u128)(78913ull << (64 - 18))) >> 64;
 #else
-    return ((i64)q * 78913) >> 18;
+    return (q * 78913) >> 18;
 #endif
 }
-static inline u64* get_pow10_ptr(const struct double_table_t* t, const i64 k) {
-    // return pointer of 10**(-k-1)
+static inline void get_pow10(const struct double_table_t* t, const i64 k, u64* pow10_hi, u64* pow10_lo) {
     const u64* pow10_ptr = t->pow10_double + 323 * 2 + 2;
-    return (u64*)&pow10_ptr[k * 2];
+    *pow10_hi = pow10_ptr[k * 2 + 0];
+    *pow10_lo = pow10_ptr[k * 2 + 1];
+
+    // *pow10_hi = t->pow10_double[323 + 1 + k];
+    // *pow10_lo = t->pow10_double[323 + 1 + k + t->num_pow10];
 }
 namespace xjb {
 static inline char* xjb64(double v, char* buf) {
@@ -1256,7 +1278,7 @@ static inline char* xjb64(double v, char* buf) {
     u64 sig = vi & ((1ULL << 52) - 1);
     u64 exp = (vi << 1) >> 53;
     i64 q = (i64)exp - 1075;
-    u64 c = ((1ULL << 52) | sig);
+    u64 c = sig | (1ULL << 52);
 #if XJB_IS_X64
     if (((exp + 1) & 2047) <= 1) [[unlikely]]
 #endif
@@ -1276,37 +1298,77 @@ static inline char* xjb64(double v, char* buf) {
     unsigned char h7_precalc = t->h7[exp];
     const int offset = 9;  //  offset in range [3,10] has same result.
     bool irregular = sig == 0;
-    i64 k = compute_k_double((i64)exp - 1075);
-    u64* p10 = get_pow10_ptr(t, k);
-    u64 cb = c << h7_precalc;
-    u64 pow10_hi = p10[0], pow10_lo = p10[1];  // 128bit pow10
-    u64 hi64, lo64;
-    mul_u128_u64_high128(pow10_hi, pow10_lo, cb, &hi64, &lo64);
-    u64 dot_one = (hi64 << (64 - offset)) | (lo64 >> offset);
-    u64 half_ulp = (pow10_hi >> ((1 + offset) - h7_precalc)) + ((c + 1) & 1);
-    bool up = half_ulp > ~0 - dot_one;
-    bool down = half_ulp > dot_one;
-    u64 m_up = (hi64 >> offset) + up;  // m + up
-    u32 up_down = up + down;
-    u32 one = (u128_madd_hi64(dot_one, 10, dot_one == (1ULL << 62) ? 0 : cv->c4));  // round to nearest,even
+
+    i64 k;
+    u64 m_up;     // range : [1, 10**16 - 1]
+    u32 one;      // range [0, 9]
+    u32 up_down;  // range : [0, 1]
+    // decimal result : d * 10**k = (m_up * 10 + (up_down ? 0 : one)) * 10**k
+    // d * 10**k satisfy Steele & White principle
+
+    // if (!irregular) [[likely]]
+    {
+        u64 hi64, lo64, pow10_hi, pow10_lo;
+        k = compute_k_double((i64)exp - 1075);
+        get_pow10(t, k, &pow10_hi, &pow10_lo);
+        mul_u128_u64_high128(pow10_hi, pow10_lo, c << h7_precalc, &hi64, &lo64);
+        u64 dot_one = (hi64 << (64 - offset)) | (lo64 >> offset);
+        u64 half_ulp = (pow10_hi >> ((1 + offset) - h7_precalc)) + ((c + 1) & 1);
+        bool up = half_ulp > ~0 - dot_one;
+        bool down = half_ulp > dot_one;
+        m_up = (hi64 >> offset) + up;  // m + up
+        up_down = up + down;
+        u64 half = (dot_one == (1ULL << 62)) ? 0 : cv->c4;  // branch is faster
+        one = u128_madd_hi64(dot_one, 10, half);            // example: 0.34 * 10 + 0.5 = 3.9 -> 3
+    }
     if (irregular) [[unlikely]] {
         // irregular case : c is 2**52 , exp range is [1,2046];
         k = (i64)(q * 315653 - 131072) >> 20;
         i64 h = q + ((k * -217707 - 217707) >> 16);
-        // u64 pow10_hi = t->pow10_double[293 * 2 - 2 + k * -2];
         u64 pow10_hi = t->pow10_double[323 * 2 + 2 + k * 2];
         u64 half_ulp = pow10_hi >> (-h);
         u64 dot_one = (pow10_hi << (53 + h));
-        u64 up = (half_ulp > ~0 - dot_one);
-        u64 down = ((half_ulp >> 1) > dot_one);
+        u64 up = half_ulp > ~0 - dot_one;
+        u64 down = (half_ulp >> 1) > dot_one;
         m_up = (pow10_hi >> (11 - h)) + up;
         up_down = up + down;
         one = ((dot_one >> (53 + h)) * 5 + (1 << (9 - h))) >> (10 - h);
-        if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
-            one = ((((dot_one >> 54) * 5) >> 9) + 1);
+        if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > ((half_ulp >> 55) * 5))
+            one = (((dot_one >> 54) * 5) >> 9) + 1;
         if (dot_one == (1ULL << 62))  // round to even
             one = 2;
     }
+
+    // i64 k = compute_k_double((i64)exp - 1075);
+    // u64* p10 = get_pow10_ptr(t, k);
+    // u64 cb = c << h7_precalc;
+    // u64 pow10_hi = p10[0], pow10_lo = p10[1];  // 128bit pow10
+    // u64 hi64, lo64;
+    // mul_u128_u64_high128(pow10_hi, pow10_lo, cb, &hi64, &lo64);
+    // u64 dot_one = (hi64 << (64 - offset)) | (lo64 >> offset);
+    // u64 half_ulp = (pow10_hi >> ((1 + offset) - h7_precalc)) + ((c + 1) & 1);
+    // bool up = half_ulp > ~0 - dot_one;
+    // bool down = half_ulp > dot_one;
+    // u64 m_up = (hi64 >> offset) + up;  // m + up
+    // u32 up_down = up + down; // up_down = 0 or 1
+    // u32 one = (u128_madd_hi64(dot_one, 10, dot_one == (1ULL << 62) ? dot_one : cv->c4));  // round to nearest,even
+    // if (irregular) [[unlikely]] {
+    //     // irregular case : c is 2**52 , exp range is [1,2046];
+    //     k = (i64)(q * 315653 - 131072) >> 20;
+    //     i64 h = q + ((k * -217707 - 217707) >> 16);
+    //     u64 pow10_hi = t->pow10_double[323 * 2 + 2 + k * 2];
+    //     u64 half_ulp = pow10_hi >> (-h);
+    //     u64 dot_one = (pow10_hi << (53 + h));
+    //     u64 up = (half_ulp > ~0 - dot_one);
+    //     u64 down = ((half_ulp >> 1) > dot_one);
+    //     m_up = (pow10_hi >> (11 - h)) + up;
+    //     up_down = up + down;
+    //     one = ((dot_one >> (53 + h)) * 5 + (1 << (9 - h))) >> (10 - h);
+    //     if ((((dot_one >> 54) * 5) & ((1 << 9) - 1)) > (((half_ulp >> 55) * 5)))
+    //         one = ((((dot_one >> 54) * 5) >> 9) + 1);
+    //     if (dot_one == (1ULL << 62))  // round to even
+    //         one = 2;
+    // }
     // if (dot_one == (1ULL << 62)) [[unlikely]]  // round to even
     //     one = 2;                               // 0.25 * 10 = 2.5 -> 2
     u64 D17 = m_up > (u64)cv->c3;     // (m_up >= (u64)1e15);
@@ -1317,7 +1379,7 @@ static inline char* xjb64(double v, char* buf) {
     const i64 e10_UP = t->e10_UP;
     const u64 interval = e10_UP - e10_DN + 1;
 
-#if XJB_IS_AARCH64 || (XJB_IS_X64 && XJB_USE_AVX512IFMA_VBMI && XJB_NO_MEMMOVE)
+#if XJB_IS_AARCH64
     u32 e10_3 = (i32)e10 + (-e10_DN);
     u32 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
 #else
@@ -1337,9 +1399,10 @@ static inline char* xjb64(double v, char* buf) {
     shortest_ascii16 s = to_ascii16(buf, XJB_NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv XJB_SHUFFLER_PARAM);
     u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
     u64 dot_pos = t->e10_variable_data[e10_data_ofs][17 + 1];
-    u64 move_pos = t->e10_variable_data[e10_data_ofs][17 + 2];
 #if XJB_NO_MEMMOVE
     u64 one_offset = t->e10_variable_data[e10_data_ofs][17 + 3 + D17];
+#else
+    u64 move_pos = t->e10_variable_data[e10_data_ofs][17 + 2];
 #endif
     u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len_sub1];
     char* const buf_origin = buf;
@@ -1362,14 +1425,15 @@ static inline char* xjb64(double v, char* buf) {
 #elif XJB_NO_MEMMOVE
     one |= 0x30302e30;  // "0.00"
     // first_sig_pos max = 5, one_offset max = 17, requires at least 21 bytes
-    memcpy(buf + 16, &s.trailing_byte, 4);  // [16, 20)
+    memcpy(buf + 16, &s.trailing_byte, 4);  // write range : [16, 19]
     buf_origin[dot_pos] = '.';
-    memcpy(buf + one_offset, &one, 4);  // [17, 21)
+    memcpy(buf + one_offset, &one, 4);  // one_offset range: [15,17]; write range: [15,20]
 #else
     one |= 0x30303030;                // "0000"
     memcpy(&buf[15 + D17], &one, 4);  // write one to buffer
     memmove(&buf[move_pos], &buf[dot_pos], 16);
     // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 bytes
+    assert(dot_pos + first_sig_pos + 1 + 16 <= double_table_t::max_buffer_requirement);
     buf_origin[dot_pos] = '.';
 #endif
 
@@ -1384,7 +1448,7 @@ static inline char* xjb64(double v, char* buf) {
             lz += 2;
             e10 -= lz - 1;
             buf[0] = buf[lz];
-            // assert((buf - real_origin_buf) + (lz + 1) + 16 <= double_table_t::max_buffer_requirement);
+            assert((buf - real_origin_buf) + (lz + 1) + 16 <= double_table_t::max_buffer_requirement);
             memmove(&buf[2], &buf[lz + 1], 16);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
@@ -1392,7 +1456,7 @@ static inline char* xjb64(double v, char* buf) {
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
-    // assert((buf + exp_len) - real_origin_buf <= double_table_t::max_valid_output_len);
+    assert((buf + exp_len) - real_origin_buf <= double_table_t::max_valid_output_len);
     return buf + exp_len;
 }
 
@@ -1494,15 +1558,177 @@ static inline char* xjb32(float v, char* buf) {
     memcpy(buf, &exp_result_u64, 8);
     return buf + (exp_result_u64 & 4);  // 'e' is 0b01100101
 }
+static inline char* xjb16(uint16_t bits, char* buf) {
+    // this function is not a final version, not optimized for performance.
+    // same result as str(numpy.float16(v)) in python.
+    // v has 16bits binary representation = bits
+
+    // 16 bit = 1 + 5 + 10; sign + exp + sig
+    *buf = '-';
+    buf += bits >> (10 + 5);
+    uint32_t exp = (bits >> 10) & ((1 << 5) - 1);
+    uint32_t sig = bits & ((1 << 10) - 1);
+    uint32_t sig_bin = sig | (1 << 10);
+    int32_t exp_bin = exp - ((1 << 4) - 1) - 10;
+    if (exp == 0) [[unlikely]] {
+        if (sig <= 1) {
+            const char* str = sig ? "6e-08\0\0" : "0.0\0\0\0\0";
+            return (char*)memcpy(buf, str, 8) + (sig ? 5 : 3);
+        }
+        exp_bin = 1 - ((1 << 4) - 1) - 10;
+        sig_bin = sig;
+    }
+    if (exp == 31) [[unlikely]]
+        return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
+    static const uint32_t pow10_lut[10] = {
+        0xa3d70a3e,  // -2
+        0xcccccccd,  // -1
+        0x80000000,  // 0
+        0xa0000000,  // 1
+        0xc8000000,  // 2
+        0xfa000000,  // 3
+        0x9c400000,  // 4
+        0xc3500000,  // 5
+        0xf4240000,  // 6
+        0x98968000,  // 7
+    };
+    const int BIT = 16;
+    bool irregular = (sig == 0);
+    int k = (exp_bin * 1233 - (irregular ? 512 : 0)) >> 12;
+    // exp_bin range : [1-25,31-25] ; k range : [-8,1] ; -k-1 range : [-2,7]
+    uint64_t pow10 = pow10_lut[-k - 1 + 2];
+    int h = exp_bin + ((k * -1701 + (-1701)) >> 9);
+    uint64_t cb = sig_bin << (BIT + 1 + h);
+    uint32_t all = (cb * pow10) >> 32;
+    uint32_t half_ulp = (pow10 >> (33 - (BIT + 1 + h))) + ((sig + 1) & 1);
+    uint32_t dot_one = all & (((uint64_t)1 << BIT) - 1);
+    uint32_t shorter = (all + half_ulp) >> BIT;
+    uint32_t up_down = shorter > (uint32_t)((all - (half_ulp >> 0)) >> BIT);
+    uint32_t one = (dot_one * 10 + ((1ULL << (BIT - 1)) - 7) + ((dot_one >> (BIT - 4)) & 15)) >> BIT;
+    if (irregular) [[unlikely]] {
+        if (exp_bin == 8 - 25) {
+            up_down = 0;
+        }
+        if (exp_bin == 9 - 25) {
+            one = 3;
+        }
+    }
+    bool D5 = shorter >= 1000;
+    memcpy(buf, "00000000", 8);
+    uint32_t abcd = shorter;
+    uint32_t ab_cd = (abcd << 16) + (1 - (100 << 16)) * (((abcd * 0x147b) >> 19));
+    uint32_t a_b_c_d = (ab_cd << 8) + (1 - (10 << 8)) * (((ab_cd * 0x67) >> 10) & 0xf000f);
+    uint32_t bcd = a_b_c_d;
+    uint32_t ascii = bcd | 0x30303030;
+    uint32_t tz = u32_lz_bits(bcd) / 8;                     // bcd != 0
+    uint32_t dec_sig_len = up_down ? 3 + D5 - tz : 4 + D5;  // [1, 5];
+    const int FIXED_MIN = -4;                               // same as in python
+    const int FIXED_MAX = 2;
+    int e10 = k + (3 + D5);
+    uint32_t first_sig_pos = (FIXED_MIN <= e10 && e10 <= -1) ? 1 - e10 : 0;
+    uint32_t dot_pos = (0 <= e10 && e10 <= FIXED_MAX) ? 1 + e10 : 1;
+    uint32_t move_pos = dot_pos + ((0 <= e10 || e10 < FIXED_MIN));
+    uint32_t exp_pos = (FIXED_MIN <= e10 && e10 <= -1)
+                           ? dec_sig_len
+                           : (0 <= e10 && e10 <= FIXED_MAX ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
+                                                           : (dec_sig_len + 1 - (dec_sig_len == 1)));
+    char* buf_origin = buf;
+    buf += first_sig_pos;
+    ascii = D5 ? ascii : (ascii >> 8);
+    memcpy(buf, &ascii, 4);
+    one |= 0x30303030;
+    memcpy(buf + (3 + D5), &one, 4);
+    memmove(&buf[move_pos], &buf[dot_pos], 8);  // the index (first_sig_pos + dot_pos + sign) max = 7+1=8,
+    buf_origin[dot_pos] = '.';
+    // if (exp == 0) [[unlikely]]  // fewer instructions
+    if (shorter < 100) [[unlikely]] {
+        uint32_t lz = 0;
+        while (buf[2 + lz] == '0')
+            lz++;
+        lz += 2;
+        e10 -= lz - 1;
+        buf[0] = buf[lz];
+        memmove(&buf[2], &buf[lz + 1], 4);
+        exp_pos = exp_pos - lz + (exp_pos - lz != 1);
+    }
+    buf += exp_pos;
+    int e10_neg = e10 < 0;
+    uint32_t e10_abs = e10_neg ? -e10 : e10;
+    uint32_t exp_result =
+        'e' + ((e10_neg ? (uint32_t)'-' : (uint32_t)'+') << 8) + ((uint32_t)'0' << 16) + ((e10_abs + '0') << 24);
+    if (FIXED_MIN <= e10 && e10 <= FIXED_MAX)
+        exp_result = 0;
+    uint32_t exp_len = (FIXED_MIN <= e10 && e10 <= FIXED_MAX) ? 0 : 4;
+    memcpy(buf, &exp_result, 8);
+    return buf + exp_len;
+}
+static inline char* xjb80(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
+    // todo
+    // v = {v_hi16, v_lo64} ; v_hi16 is the highest 16bits, v_lo64 is the lowest 64bits
+
+    // 80 bit = 1 + 15 + 64; sign + exp + sig
+    buf[0] = '-';
+    buf += v_hi16 >> 15;
+    u64 sig = v_lo64;
+    u64 exp = v_hi16 & ((1 << 15) - 1);
+    u64 sig_bin_hi64 = 1;
+    u64 sig_bin_lo64 = sig;
+    //u64 sig_bin = sig | ((u128)1 << 64); // need u128
+    i64 exp_bin = (i64)exp - ((1 << 14) - 1) - 64;
+    if (exp == 0) [[unlikely]] {
+        if (sig == 0)
+            return (char*)memcpy(buf, "0.0\0\0\0\0\0", 8) + 3;
+        exp_bin = 1 - ((1 << 14) - 1) - 64;
+        sig_bin_hi64 = 0;
+    }
+    if (exp == 32767) [[unlikely]]
+        return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
+    
+    i64 k = 0;// floor(exp_bin*log10(2))
+    //get_pow10 : 10**(-k-1)
+    //compute m_up and up_down, one;
+
+
+
+    return buf;
+}
+static inline char* xjb128(uint64_t v_hi64, uint64_t v_lo64, char* buf) {
+    // todo
+    // v = {v_hi64, v_lo64} ; v_hi64 is the highest 64bits, v_lo64 is the lowest 64bits
+
+    // 128 bit = 1 + 15 + 112; sign + exp + sig
+    
+    return buf;
+}
+static inline char* xjb256(uint64_t* v,char* buf){
+    // todo
+    // v = {v[0], v[1], v[2], v[3]} ; v[0] is the highest 64bits, v[3] is the lowest 64bits
+
+    // 256 bit = 1 + 19 + 236; sign + exp + sig
+
+    return buf;
+}
 }  // end of namespace xjb
 
 /*==============================================================================
  * Export
  *============================================================================*/
 
+char* xjb_ftoa(uint16_t bits, char* buf) {
+    return xjb::xjb16(bits, buf);
+}
 char* xjb_ftoa(float v, char* buf) {
     return xjb::xjb32(v, buf);
 }
 char* xjb_ftoa(double v, char* buf) {
     return xjb::xjb64(v, buf);
+}
+char* xjb_ftoa(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
+    return xjb::xjb80(v_hi16, v_lo64, buf);
+}
+char* xjb_ftoa(uint64_t v_hi64, uint64_t v_lo64, char* buf) {
+    return xjb::xjb128(v_hi64, v_lo64, buf);
+}
+char* xjb_ftoa(uint64_t* v, char* buf) {
+    return xjb::xjb256(v, buf);
 }
