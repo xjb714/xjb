@@ -530,6 +530,9 @@ struct float_table_t {
     static const int e10_DN = -3;
     static const int e10_UP = 6;
     static const int max_dec_sig_len = 9;
+    static constexpr int max_first_sig_pos = 4;
+    static constexpr int max_valid_output_len = 15;
+    static constexpr int max_buffer_requirement = 21;
     static const int num_pow10 = 44 - (-32) + 1;
     uint64_t pow10_float_reverse[44 - (-32) + 1] = {};
     uint32_t exp_result_float[45 + 38 + 1] = {};
@@ -581,6 +584,9 @@ struct float_table_t {
         for (int e10 = e10_DN; e10 <= e10_UP + 1; e10++) {
             int tmp_data_ofs = e10 - e10_DN;
             u64 first_sig_pos = (e10_DN <= e10 && e10 <= -1) ? 1 - e10 : 0;
+            if (first_sig_pos > max_first_sig_pos) {
+                throw "first_sig_pos is not larger than max_first_sig_pos";
+            }
             u64 dot_pos = (0 <= e10 && e10 <= e10_UP) ? 1 + e10 : 1;
             u64 move_pos = dot_pos + ((0 <= e10 || e10 < e10_DN));
             auto& current_line = e10_variable_data[tmp_data_ofs];
@@ -593,6 +599,9 @@ struct float_table_t {
                                   : (0 <= e10 && e10 <= e10_UP ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
                                                                : (dec_sig_len + 1 - (dec_sig_len == 1)));
                 current_line[dec_sig_len - 1] = exp_pos;
+                if (first_sig_pos + exp_pos + 8 > max_buffer_requirement) {
+                    throw "first_sig_pos + exp_pos + 8 is not larger than max_buffer_requirement";
+                }
             }
         }
         for (int exp = 0; exp < 256; exp++) {
@@ -1461,7 +1470,10 @@ static inline char* xjb64(double v, char* buf) {
 }
 
 static inline char* xjb32(float v, char* buf) {
-    // require buf size >= 17 byte
+    // require buf size >= 21 byte
+#ifndef NDEBUG
+    char* const real_origin_buf = buf;
+#endif
     const struct float_table_t* t = &float_table;
     const struct const_value_float* c = &t->constants_float;
 #if XJB_IS_AARCH64 && (defined(__clang__) || defined(__GNUC__))  // for arm64 processor , fewer instructions ,
@@ -1547,6 +1559,7 @@ static inline char* xjb32(float v, char* buf) {
             e10 -= lz - 1;
             buf[0] = buf[lz];
             memmove(&buf[2], &buf[lz + 1], 8);
+            assert((buf - real_origin_buf) + (lz + 1) + 8 <= float_table_t::max_buffer_requirement);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
     u32 exp_result_u32 = t->exp_result_float[45 + e10];
@@ -1556,6 +1569,8 @@ static inline char* xjb32(float v, char* buf) {
     u64 exp_result_u64 = is_little_endian() ? exp_result_u32 : (u64)exp_result_u32 << 32;
     buf += exp_pos;
     memcpy(buf, &exp_result_u64, 8);
+    assert((buf - real_origin_buf) + 8 <= float_table_t::max_buffer_requirement);
+    assert(buf + (exp_result_u64 & 4) - real_origin_buf <= float_table_t::max_valid_output_len);
     return buf + (exp_result_u64 & 4);  // 'e' is 0b01100101
 }
 static inline char* xjb16(uint16_t bits, char* buf) {
@@ -1671,7 +1686,7 @@ static inline char* xjb80(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
     buf += v_hi16 >> 15;
     u64 sig = v_lo64;
     u64 exp = v_hi16 & ((1 << 15) - 1);
-    u64 sig_bin_hi64 = 1;
+    u64 sig_bin_hi64 = 1;//sig_bin has 65 bit;
     u64 sig_bin_lo64 = sig;
     //u64 sig_bin = sig | ((u128)1 << 64); // need u128
     i64 exp_bin = (i64)exp - ((1 << 14) - 1) - 64;

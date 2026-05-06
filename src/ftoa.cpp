@@ -1686,7 +1686,7 @@ static inline char* xjb80(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
     buf += v_hi16 >> 15;
     u64 sig = v_lo64;
     u64 exp = v_hi16 & ((1 << 15) - 1);
-    u64 sig_bin_hi64 = 1;
+    u64 sig_bin_hi64 = 1;//sig_bin has 65 bit;
     u64 sig_bin_lo64 = sig;
     //u64 sig_bin = sig | ((u128)1 << 64); // need u128
     i64 exp_bin = (i64)exp - ((1 << 14) - 1) - 64;
