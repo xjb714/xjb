@@ -19,6 +19,7 @@
  * Convert a float to string
  * @param v The float value to convert
  * @param buf The buffer to write the result to (must be at least 21 bytes)
+ *            Maximum effective written length for float is 15 bytes.
  * @return A pointer to the end of the written string (including the null terminator)
  */
 char* xjb_ftoa(float v, char* buf);
@@ -27,6 +28,7 @@ char* xjb_ftoa(float v, char* buf);
  * Convert a double to string
  * @param v The double value to convert
  * @param buf The buffer to write the result to (must be at least 33 bytes)
+ *            Maximum effective written length for double is 24 bytes.
  * @return A pointer to the end of the written string (including the null terminator)
  */
 char* xjb_ftoa(double v, char* buf);
