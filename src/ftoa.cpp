@@ -1643,10 +1643,11 @@ static inline char* xjb16(uint16_t bits, char* buf) {
     uint32_t first_sig_pos = (FIXED_MIN <= e10 && e10 <= -1) ? 1 - e10 : 0;
     uint32_t dot_pos = (0 <= e10 && e10 <= FIXED_MAX) ? 1 + e10 : 1;
     uint32_t move_pos = dot_pos + ((0 <= e10 || e10 < FIXED_MIN));
-    uint32_t exp_pos = (FIXED_MIN <= e10 && e10 <= -1)
-                           ? dec_sig_len
-                           : (0 <= e10 && e10 <= FIXED_MAX ? (e10 + 3 > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
-                                                           : (dec_sig_len + 1 - (dec_sig_len == 1)));
+    uint32_t exp_pos =
+        (FIXED_MIN <= e10 && e10 <= -1)
+            ? dec_sig_len
+            : (0 <= e10 && e10 <= FIXED_MAX ? ((uint32_t)(e10 + 3) > dec_sig_len + 1 ? e10 + 3 : dec_sig_len + 1)
+                                            : (dec_sig_len + 1 - (dec_sig_len == 1)));
     char* buf_origin = buf;
     buf += first_sig_pos;
     ascii = D5 ? ascii : (ascii >> 8);
@@ -1674,7 +1675,7 @@ static inline char* xjb16(uint16_t bits, char* buf) {
     if (FIXED_MIN <= e10 && e10 <= FIXED_MAX)
         exp_result = 0;
     uint32_t exp_len = (FIXED_MIN <= e10 && e10 <= FIXED_MAX) ? 0 : 4;
-    memcpy(buf, &exp_result, 8);
+    memcpy(buf, &exp_result, 4);
     return buf + exp_len;
 }
 static inline char* xjb80(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
@@ -1686,9 +1687,9 @@ static inline char* xjb80(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
     buf += v_hi16 >> 15;
     u64 sig = v_lo64;
     u64 exp = v_hi16 & ((1 << 15) - 1);
-    u64 sig_bin_hi64 = 1;//sig_bin has 65 bit;
+    u64 sig_bin_hi64 = 1;  // sig_bin has 65 bit;
     u64 sig_bin_lo64 = sig;
-    //u64 sig_bin = sig | ((u128)1 << 64); // need u128
+    // u64 sig_bin = sig | ((u128)1 << 64); // need u128
     i64 exp_bin = (i64)exp - ((1 << 14) - 1) - 64;
     if (exp == 0) [[unlikely]] {
         if (sig == 0)
@@ -1698,12 +1699,10 @@ static inline char* xjb80(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
     }
     if (exp == 32767) [[unlikely]]
         return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
-    
-    i64 k = 0;// floor(exp_bin*log10(2))
-    //get_pow10 : 10**(-k-1)
-    //compute m_up and up_down, one;
 
-
+    i64 k = 0;  // floor(exp_bin*log10(2))
+    // get_pow10 : 10**(-k-1)
+    // compute m_up and up_down, one;
 
     return buf;
 }
@@ -1712,10 +1711,10 @@ static inline char* xjb128(uint64_t v_hi64, uint64_t v_lo64, char* buf) {
     // v = {v_hi64, v_lo64} ; v_hi64 is the highest 64bits, v_lo64 is the lowest 64bits
 
     // 128 bit = 1 + 15 + 112; sign + exp + sig
-    
+
     return buf;
 }
-static inline char* xjb256(uint64_t* v,char* buf){
+static inline char* xjb256(uint64_t* v, char* buf) {
     // todo
     // v = {v[0], v[1], v[2], v[3]} ; v[0] is the highest 64bits, v[3] is the lowest 64bits
 
@@ -1747,3 +1746,4 @@ char* xjb_ftoa(uint64_t v_hi64, uint64_t v_lo64, char* buf) {
 char* xjb_ftoa(uint64_t* v, char* buf) {
     return xjb::xjb256(v, buf);
 }
+
