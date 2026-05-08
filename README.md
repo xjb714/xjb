@@ -79,83 +79,46 @@ The following algorithmic process is derived from a variant of the Schubfach alg
 ------
 ### algorithm : The xjb Algorithm for Float-to-Decimal Conversion
 
-**Input**   : $c,q$ ; Floating-point components  $c$  (significand) and  $q$  (exponent)
+**Input**   : $c,q$ ; Floating-point components  $c$  (significand) and  $q$  (exponent)  
 **Output**  : $d,k$ ; Decimal representation  $d \cdot 10^k$  satisfying the SW principle
 
 1.  $c \cdot 2^q \gets v$ 
-
 2.  $\text{if } v \text{ is regular}$ 
-
 3.  $\quad k \gets \lfloor q \cdot \log_{10}(2) \rfloor$ 
-
 4.  $\text{else}$ 
-
 5.  $\quad k \gets \lfloor q \cdot \log_{10}(2) - \log_{10}(4/3) \rfloor$ 
-
 6.  $\text{end if}$ 
-
 7.  $m \gets \lfloor v \cdot 10^{-k-1} \rfloor$ 
-
 8.  $n \gets v \cdot 10^{-k-1} - m$ 
-
 9.  $ten \gets 10m$ 
-
 10.  $\delta \gets 10n - \lfloor 10n \rfloor$  // fractional part of  $10n$ 
-
 11.  $\text{if } \delta = 0.5$ 
-
 12.  $\quad \text{if } \lfloor 10n \rfloor \bmod 2 = 0$ 
-
 13.  $\quad\quad one \gets \lfloor 10n \rfloor$  // round to even
-
 14.  $\quad \text{else}$ 
-
 15.  $\quad\quad one \gets \lfloor 10n \rfloor + 1$ 
-
 16.  $\quad \text{end if}$ 
-
 17.  $\text{elif } \delta < 0.5$ 
-
 18.  $\quad one \gets \lfloor 10n \rfloor$  // round to nearest
-
 19.  $\text{else}$ 
-
 20.  $\quad one \gets \lfloor 10n \rfloor + 1$  // round to nearest
-
 21.  $\text{end if}$ 
-
 22.  $\text{if } v \text{ is irregular}$ 
-
 23.  $\quad \text{if } \delta > 2^{q-2} \cdot 10^{-k}$ 
-
 24.  $\quad\quad one \gets \lfloor 10n \rfloor + 1$ 
-
 25.  $\quad \text{end if}$ 
-
 26.  $\quad \text{if } 2^{q-2} \cdot 10^{-k-1} \geq n$ 
-
 27.  $\quad\quad one \gets 0$ 
-
 28.  $\quad \text{end if}$ 
-
 29.  $\text{else}$ 
-
 30.  $\quad \text{if } 2^{q-1} \cdot 10^{-k-1} > n \text{ or } \left( 2^{q-1} \cdot 10^{-k-1} = n \text{ and } c \bmod 2 = 0 \right)$ 
-
 31.  $\quad\quad one \gets 0$  // minimum length
-
 32.  $\quad \text{end if}$ 
-
 33.  $\text{end if}$ 
-
 34.  $\text{if } 2^{q-1} \cdot 10^{-k-1} > 1-n \text{ or } \left( 2^{q-1} \cdot 10^{-k-1} = 1-n \text{ and } c \bmod 2 = 0 \right)$ 
-
 35.  $\quad one \gets 10$  // minimum length
-
 36.  $\text{end if}$ 
-
 37.  $d \gets ten + one$  // information preservation
-
 38.  $\text{return } d, k$ 
 ---
 
