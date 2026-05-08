@@ -86,6 +86,7 @@ def f16_to_decimal(bits: int):
     else:
         one = floor_ten_n + 1
 
+    A = (Fraction(2) ** (q - 1)) * (Fraction(10) ** (-k - 1))
     # Step 22-28: irregular 的特殊处理
     if is_irregular:
         # 2^{q-2} * 10^{-k}
@@ -100,15 +101,11 @@ def f16_to_decimal(bits: int):
     else:
         # Step 30-35: regular 情况下检查是否 one=0 或 one=10 更短
         # 边界值 A = 2^{q-1} * 10^{-k-1}
-        A = (Fraction(2) ** (q - 1)) * (Fraction(10) ** (-k - 1))
-
         # 条件1: one = 0
         if A > n or (A == n and c % 2 == 0):
             one = 0
-        # 条件2: one = 10
-        elif A > (1 - n) or (A == 1 - n and c % 2 == 0):
+    if A > (1 - n) or (A == 1 - n and c % 2 == 0):
             one = 10
-
     # Step 37: d = ten + one
     d = ten + one
 

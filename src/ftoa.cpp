@@ -1682,27 +1682,24 @@ static inline char* xjb80(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
     // todo
     // v = {v_hi16, v_lo64} ; v_hi16 is the highest 16bits, v_lo64 is the lowest 64bits
 
-    // 80 bit = 1 + 15 + 64; sign + exp + sig
+    // 80 bit = 1 + 15 + 1 + 63; sign(1bit) + exp(15bit) + sig(64bit)
     buf[0] = '-';
     buf += v_hi16 >> 15;
     u64 sig = v_lo64;
     u64 exp = v_hi16 & ((1 << 15) - 1);
-    u64 sig_bin_hi64 = 1;  // sig_bin has 65 bit;
-    u64 sig_bin_lo64 = sig;
-    // u64 sig_bin = sig | ((u128)1 << 64); // need u128
+    u64 sig_bin = sig;
     i64 exp_bin = (i64)exp - ((1 << 14) - 1) - 64;
     if (exp == 0) [[unlikely]] {
         if (sig == 0)
             return (char*)memcpy(buf, "0.0\0\0\0\0\0", 8) + 3;
         exp_bin = 1 - ((1 << 14) - 1) - 64;
-        sig_bin_hi64 = 0;
     }
     if (exp == 32767) [[unlikely]]
         return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
-
-    i64 k = 0;  // floor(exp_bin*log10(2))
-    // get_pow10 : 10**(-k-1)
-    // compute m_up and up_down, one;
+    
+    i64 k = (exp_bin * 169464822037455ull) >> 49; // floor(exp_bin*log10(2))
+    //get_pow10 : 10**(-k-1)
+    //compute m_up and up_down, one;
 
     return buf;
 }
@@ -1746,4 +1743,3 @@ char* xjb_ftoa(uint64_t v_hi64, uint64_t v_lo64, char* buf) {
 char* xjb_ftoa(uint64_t* v, char* buf) {
     return xjb::xjb256(v, buf);
 }
-
