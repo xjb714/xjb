@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BUILD_DIR="${SCRIPT_DIR}/build"
 
 echo "=== Configuring ==="
-cmake -S "${SCRIPT_DIR}/test" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Release
+cmake -S "${SCRIPT_DIR}/test" -B "${BUILD_DIR}" -DCMAKE_BUILD_TYPE=Debug
 
 echo "=== Building ==="
 cmake --build "${BUILD_DIR}" -j"$(nproc)"
