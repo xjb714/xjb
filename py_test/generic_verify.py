@@ -13,8 +13,8 @@ type = {
         "float64": (1, 11, 52, 0), 
         "float80": (1, 15, 64, 1), 
         "float128": (1, 15, 112, 0),
-        "float256":(1, 19, 236, 0), # k = 256; round(4*log2(k)) - 13 = 19
-        "float512":(1, 18, 493, 0) # CEA-List VXP
+        # "float256":(1, 19, 236, 0), # k = 256; round(4*log2(k)) - 13 = 19
+        # "float512":(1, 18, 493, 0) # CEA-List VXP
     }
 
 # base formula
@@ -200,7 +200,9 @@ def generic_verify_float_to_string(float_type):
     # min_sig = 1
     # max_sig = (1 << sig_bits) - 1
     # print(f"{float_type}: sign={sign_bits} bits, exponent={exp_bits} bits, significand={sig_bits} bits, explicit_leading_bit={explicit_leading_bit}, exp_bias={exp_bias}, max_exp={max_exp}, min_exp={min_exp}, max_sig={max_sig}")
-    find_min_BIT_calc_m(float_type)
+    
+    #find_min_BIT_calc_m(float_type)
+    find_q_range(float_type)
 
 def verify_float_to_string(float_type, float_bits):
     d, k = generic_float_to_decimal(float_type, float_bits)
@@ -323,6 +325,109 @@ def find_min_BIT_calc_m_impl(float_type):
     # print("")
 
     return (minr,MAX_BIT)
+
+def find_2c_sub_1_range(float_type):
+    sign_bits, exp_bits, sig_bits, explicit_leading_bit = type[float_type]
+    exp_bias = (1 << (exp_bits - 1)) - 1
+    max_exp = (1 << exp_bits) - 1 - exp_bias
+    min_exp = 1 - exp_bias
+    min_sig = 1
+    max_sig = (1 << sig_bits) - 1
+    max_positive_value = (((1 << exp_bits) - 1) << sig_bits) - 1
+
+    for exp in range(min_exp, max_exp + 1):
+        for sig in range(min_sig, max_sig + 1):
+            if explicit_leading_bit == 0:
+                c = sig
+            else:
+                c = (1 << sig_bits) + sig
+            q = exp - exp_bias - sig_bits
+            if c % 2 == 0:
+                print(f"{float_type}: c={c}, q={q} => regular")
+            else:
+                print(f"{float_type}: c={c}, q={q} => irregular")
+
+
+def max_k_s1(b: int) -> int:
+    """
+    返回最大的非负整数 k, 使得存在 c ∈ [2^b+1, 2^(b+1)-1] 满足 5^(k+1) | (2c-1)。
+    若不存在这样的 k, 则返回 -1。
+    """
+    if b <= 0:
+        return -1
+    low = (1 << (b + 1)) + 1   # 2^(b+1)+1
+    high = (1 << (b + 2)) - 3  # 2^(b+2)-3
+    # ---------- 情况：检查是否存在大模数 M = 5^(k+1) 或 3*M=3*5^(k+1) 在 [2^(b+1)+1, 2^(b+2)-3] 中 ----------
+    # 计算候选指数 e = k+1 的近似值: 5^e ≈ 2^(b+1)  ⇒  e ≈ (b+1) / log2(5)
+    log2_5 = math.log2(5)          # ≈ 2.321928094887362
+    e_approx = int((b + 1) / log2_5)
+    # 检查附近几个整数
+    for e in range(e_approx + 2, max(1, e_approx - 2) - 1, -1):
+        M = pow(5, e)              # 5^e
+        if low <= M <= high or low <= 3 * M <= high:
+            return e - 1           # k = e-1
+    print(f"No valid k found for b = {b} in either case.")
+    return -1
+
+def max_k_a1(b: int) -> int:
+    """
+    返回最大的非负整数 k, 使得存在 c ∈ [2^b+1, 2^(b+1)-1] 满足 5^(k+1) | (2c+1)。
+    若不存在这样的 k, 则返回 -1。
+    """
+    if b <= 0:
+        return -1
+    low = (1 << (b + 1)) + 3   # 2^(b+1)+3
+    high = (1 << (b + 2)) - 1  # 2^(b+2)-1
+    # ---------- 情况：检查是否存在大模数 M = 5^(k+1) 或 3*M=3*5^(k+1) 在 [2^(b+1)+3, 2^(b+2)-1] 中 ----------
+    # 计算候选指数 e = k+1 的近似值: 5^e ≈ 2^(b+1)  ⇒  e ≈ (b+1) / log2(5)
+    log2_5 = math.log2(5)          # ≈ 2.321928094887362
+    e_approx = int((b + 1) / log2_5)
+    # 检查附近几个整数
+    for e in range(e_approx + 2, max(1, e_approx - 2) - 1, -1):
+        M = pow(5, e)              # 5^e
+        if low <= M <= high or low <= 3 * M <= high:
+            return e - 1           # k = e-1
+    print(f"No valid k found for b = {b} in either case.")
+    return -1
+
+def find_q_range(float_type):
+    # for normal value
+    # find max k:
+    # (2c - 1) % 5**(k+1) = 0
+    # (2c + 1) % 5**(k+1) = 0
+    sign_bits, exp_bits, sig_bits, explicit_leading_bit = type[float_type]
+    #C = (1 << (sig_bits + 1)) - 1 if explicit_leading_bit == 0 else (1 << sig_bits) - 1
+    if explicit_leading_bit == 0:
+        C_min = (1 << (sig_bits + 0)) + 1
+        C_max = (1 << (sig_bits + 1)) - 1
+    else:
+        C_min = (1 << (sig_bits - 1)) + 1
+        C_max = (1 << (sig_bits + 0)) - 1
+    C2_s1_min = 2 * C_min - 1
+    C2_s1_max = 2 * C_max - 1
+    C2_a1_min = 2 * C_min + 1
+    C2_a1_max = 2 * C_max + 1
+    k_max_s1 = max_k_s1(sig_bits - explicit_leading_bit) # 2c-1 的 c 范围是 [2^b+1, 2^(b+1)-1], b = sig_bits - explicit_leading_bit
+    k_max_a1 = max_k_a1(sig_bits - explicit_leading_bit) # 2c+1 的 c 范围是 [2^b+1, 2^(b+1)-1], b = sig_bits - explicit_leading_bit
+    if(k_max_s1 != k_max_a1):
+        # print("error")
+        print(f"Warning: for {float_type}, max k for s1 is {k_max_s1} but max k for a1 is {k_max_a1}.")
+    k_max = k_max_a1
+    # print(f"{float_type}: C range = [{C_min}, {C_max}], 2C-1 range = [{C2_s1_min}, {C2_s1_max}], 2C+1 range = [{C2_a1_min}, {C2_a1_max}], max k (s1) = {k_max_s1}, max k (a1) = {k_max_a1}")
+    q_max = math.floor((k_max + 1) * math.log2(10)) # k = floor(q*log10(2))
+    print(f"{float_type}: k range = [0, {k_max}], corresponding q range is approximately [2, {q_max}]")
+    return ((0,k_max), (2,q_max))
+    
+def solve_X_and_BIT(float_type):
+    sign_bits, exp_bits, sig_bits, explicit_leading_bit = type[float_type]
+    # X,BIT
+
+    # ( 2**(q+X-2-k) % 5**(k+1) ) / 5**(k+1) + c * 2**(q+X-1-k) / 5**(k+1) * (r - 1) < 1
+    ((k_min, k_max), (q_min, q_max)) = find_q_range(float_type)
+    for q in range(q_min, q_max + 1):
+        k = math.floor(q * math.log10(2))
+        
+        
 
 
 def find_min_BIT_calc_m(float_type):

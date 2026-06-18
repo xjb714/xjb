@@ -387,7 +387,7 @@ struct double_table_t {
     static constexpr int num_pow10 = 323 - (-293) + 1;
     static constexpr int max_first_sig_pos = 5;
     static constexpr int max_one_offset = 17;
-    static constexpr int max_buffer_requirement = XJB_NO_MEMMOVE ? 32 : 33;
+    static constexpr int max_buffer_requirement = 33;
     static constexpr int max_valid_output_len = 24;
     uint64_t pow10_double[num_pow10 * 2] = {};       // 1234 * 8 = 9872 bytes
     uint64_t exp_result_double[324 + 308 + 1] = {};  // 633 * 8 = 5064 bytes
@@ -1696,10 +1696,10 @@ static inline char* xjb80(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
     }
     if (exp == 32767) [[unlikely]]
         return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
-    
-    i64 k = (exp_bin * 169464822037455ull) >> 49; // floor(exp_bin*log10(2))
-    //get_pow10 : 10**(-k-1)
-    //compute m_up and up_down, one;
+
+    i64 k = (exp_bin * 169464822037455ull) >> 49;  // floor(exp_bin*log10(2))
+    // get_pow10 : 10**(-k-1)
+    // compute m_up and up_down, one;
 
     return buf;
 }
