@@ -1241,9 +1241,17 @@ static inline i64 compute_k_double(i64 q) {
 }
 
 static inline void get_pow10(const struct double_table_t* t, const i64 k, u64* pow10_hi, u64* pow10_lo) {
-    const u64* pow10_ptr = t->pow10_double + 323 * 2 + 2;
-    *pow10_hi = pow10_ptr[k * 2 + 0];
-    *pow10_lo = pow10_ptr[k * 2 + 1];
+    const u64* pow10_ptr = t->pow10_double + 323 * 2 + 2 + k * 2;
+#if defined(__x86_64__) && defined(__PIC__) && (defined(__clang__) || defined(__GNUC__))
+    // Under -fPIC this pow10 load sits on the double path's critical dependency
+    // chain. Left as `pow10_double[base + k*2]` it compiles to a scaled-index
+    // load (`movq disp(%base,%idx,8)`) which misses Zen4's fast AGU path and
+    // stalls the chain (~1.5-1.85x slower on Zen4). Folding the index into the
+    // base pointer via an opaque barrier makes it a base+disp load instead.
+    asm("" : "+r"(pow10_ptr));
+#endif
+    *pow10_hi = pow10_ptr[0];
+    *pow10_lo = pow10_ptr[1];
 }
 
 namespace xjb {
@@ -1406,7 +1414,12 @@ static inline char* xjb64(double v, char* buf) {
             memmove(&buf[2], &buf[lz + 1], 16);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
-    u64 exp_result = t->exp_result_double[e10 + 324];
+    const u64* exp_result_ptr = &t->exp_result_double[e10 + 324];
+#if defined(__x86_64__) && defined(__PIC__) && (defined(__clang__) || defined(__GNUC__))
+    // Same as get_pow10: avoid a scaled-index load under -fPIC on Zen4.
+    asm("" : "+r"(exp_result_ptr));
+#endif
+    u64 exp_result = *exp_result_ptr;
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
