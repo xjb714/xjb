@@ -1233,7 +1233,7 @@ static inline i64 compute_k_double(i64 q) {
 
 static inline void get_pow10(const struct double_table_t* t, const i64 k, u64* pow10_hi, u64* pow10_lo) {
     const u64* pow10_ptr = t->pow10_double + 323 * 2 + 2 + k * 2;
-#if not XJB_NO_PIC_MITIGATION
+#if !XJB_NO_PIC_MITIGATION
     // Under -fPIC this pow10 load sits on the double path's critical dependency
     // chain. Left as `pow10_double[base + k*2]` it compiles to a scaled-index
     // load (`movq disp(%base,%idx,8)`) which misses Zen4's fast AGU path and
@@ -1406,7 +1406,7 @@ static inline char* xjb64(double v, char* buf) {
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
     const u64* exp_result_ptr = &t->exp_result_double[e10 + 324];
-#if not XJB_NO_PIC_MITIGATION
+#if !XJB_NO_PIC_MITIGATION
     // Same as get_pow10: avoid a scaled-index load under -fPIC on Zen4.
     // asm("" : "+r"(exp_result_ptr));
 #endif
