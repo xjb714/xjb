@@ -130,8 +130,10 @@
 // But this mitigation is not needed on intel platforms, because intel has a fast AGU path for scaled-index load.
 // Above mitigation is only for Zen4, but we don't have a way to detect Zen4, so we just enable it for all x86-64 under
 // -fPIC. On intel i7 13700k, may cause 4% performance regression.
-#if defined(__x86_64__) && defined(__PIC__) && (defined(__clang__) || defined(__GNUC__))
+#if defined(__x86_64__) && defined(__PIC__) && (defined(__clang__) || defined(__GNUC__)) && !defined(_MSC_VER)
 #    define XJB_NO_PIC_MITIGATION 0
+#else
+#    define XJB_NO_PIC_MITIGATION 1
 #endif
 
 /* Some compiler checks. */
