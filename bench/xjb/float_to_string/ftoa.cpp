@@ -1221,43 +1221,6 @@ static inline char* write_1_to_16_digit(u64 x, char* buf, const struct const_val
         return buf;
     }
 }
-static inline char* process_special_double(const u64 sig, const u64 exp, i64& q, u64& c, bool& is_exit,
-                                           char* const buf) {
-    // 0,5e-324,inf,nan
-    // if( ((exp + 1) & 2047) <= 1)[[unlikely]]
-    {
-        if (exp == 0) [[unlikely]] {
-            if (sig <= 1) {
-                is_exit = true;
-                return (char*)memcpy(buf, sig ? "5e-324\0" : "0.0\0\0\0\0", 8) + (sig ? 6 : 3);
-            }
-            c = sig;
-            q = 1 - 1075;  // -1074
-        }
-        if (exp == 2047) [[unlikely]] {
-            is_exit = true;
-            return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
-        }
-    }
-    return buf;
-}
-static inline char* process_small_int_double(const u64 c, const i64 q, const struct const_value_double* cv,
-                                             bool& is_exit, char* const buf) {
-#define use_fast_path_for_integer_xjb 0
-#if use_fast_path_for_integer_xjb
-#    if XJB_IS_REAL_GCC
-    u64 nq = -q;
-    if (nq <= u64_tz_bits(c)) [[unlikely]]  // use unlikely will generate jmp instruction
-#    else
-    if (nq <= u64_tz_bits(c))  //[[unlikely]]
-#    endif
-    {
-        is_exit = true;
-        return write_1_to_16_digit(c >> nq, buf, cv);  // fast path for integer
-    }
-#endif
-    return buf;
-}
 static inline i64 compute_k_double(i64 q) {
     // return floor(q*log10(2));
 #if defined(__SIZEOF_INT128__) && XJB_IS_AARCH64
@@ -1474,12 +1437,13 @@ static inline char* xjb64(double v, char* buf) {
             memmove(&buf[2], &buf[lz + 1], 16);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
-    const u64* exp_result_ptr = &t->exp_result_double[e10 + 324];
-#if !XJB_NO_PIC_MITIGATION
-    // Same as get_pow10: avoid a scaled-index load under -fPIC on Zen4.
-    // asm("" : "+r"(exp_result_ptr));
-#endif
-    u64 exp_result = *exp_result_ptr;
+//     const u64* exp_result_ptr = &t->exp_result_double[e10 + 324];
+// #if !XJB_NO_PIC_MITIGATION
+//     // Same as get_pow10: avoid a scaled-index load under -fPIC on Zen4.
+//     // asm("" : "+r"(exp_result_ptr));
+// #endif
+//     u64 exp_result = *exp_result_ptr;
+    u64 exp_result = t->exp_result_double[e10 + 324];
     buf += exp_pos;
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
