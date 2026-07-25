@@ -163,6 +163,19 @@
 #    define xjb_assume(cond) ((void)0)  // not use
 #endif
 
+/* Debug-only bounds check against the caller's buffer. */
+#ifdef NDEBUG
+#    define xjb_check_buf(ptr, len, capacity) ((void)0)
+#else
+#    define xjb_check_buf(ptr, len, capacity)                                                    \
+        do {                                                                                     \
+            long long xjb_ofs_ = (long long)((const char*)(ptr) - (const char*)real_origin_buf); \
+            assert(xjb_ofs_ >= 0 && "access before the start of the caller's buffer");           \
+            assert(xjb_ofs_ + (long long)(len) <= (long long)(capacity) &&                       \
+                   "access past the end of the caller's buffer");                                \
+        } while (0)
+#endif
+
 #ifdef _MSC_VER
 #    include <intrin.h>  // __lzcnt64/_umul128/__umulh
 #endif
@@ -397,7 +410,7 @@ struct double_table_t {
     static constexpr int num_pow10 = 323 - (-293) + 1;
     static constexpr int max_first_sig_pos = 5;
     static constexpr int max_one_offset = 17;
-    static constexpr int max_buffer_requirement = 33;
+    static constexpr int max_buffer_requirement = XJB_NO_MEMMOVE ? 33 : 34;
     static constexpr int max_valid_output_len = 24;
     uint64_t pow10_double[num_pow10 * 2] = {};       // 1234 * 8 = 9872 bytes
     uint64_t exp_result_double[324 + 308 + 1] = {};  // 633 * 8 = 5064 bytes
@@ -834,6 +847,7 @@ static inline shortest_ascii16 to_ascii16(char* buf, const uint64_t m, const uin
                                              vld1q_u8(&cv->shuffle_table_neon[(15 + D17) & 16]));  // remove left zero
     int16x8_t ascii16 = vorrq_u64(BCD_little_endian, vdupq_n_s8('0'));
     vst1q_s8((int8_t*)buf, vdupq_n_s8('0'));  // write 32byte '0'
+    vst1q_s8((int8_t*)(buf + 16), vdupq_n_s8('0'));
     uint16x8_t is_not_zero = vcgtzq_s8(BCD_little_endian);
     uint64_t zeroes = vget_lane_u64(vreinterpret_u64_u8(vshrn_n_u16(is_not_zero, 4)), 0);  // zeros != 0
     u32 tz = u64_lz_bits(zeroes) >> 2;
@@ -929,8 +943,7 @@ static inline shortest_ascii8 to_ascii8(const uint64_t m, const uint32_t up_down
     int32x2_t tenthousands = vcreate_u64(m + c->m * ((m * (u128)c->div10000) >> 64));
     int32x2_t hundreds = vmla_n_s32(tenthousands, vqdmulh_s32(tenthousands, vdup_n_s32(c->m32_4[0])), c->m32_4[1]);
     // int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(0xce0)), -10 + 0x100);
-    int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])),
-                                          c->m32_4[3]);
+    int16x4_t BCD_big_endian = vmla_n_s16(hundreds, vqdmulh_s16(hundreds, vdup_n_s16(c->m32_4[2])), c->m32_4[3]);
     u64 hgfedcba_BCD = vget_lane_u64(BCD_big_endian, 0);
     u64 abcdefgh_BCD =
         byteswap64_xjb(vget_lane_u64(BCD_big_endian, 0));  // big_endian to little_endian , reverse 8 bytes
@@ -1306,6 +1319,7 @@ static inline char* xjb64(double v, char* buf) {
 #endif
 
 #if XJB_NO_MEMMOVE
+    xjb_check_buf(buf, 8, double_table_t::max_buffer_requirement);
 #    if XJB_USE_NEON
     // In case the compiler fails to find the optimization chance
     vst1_s8((int8_t*)buf, vdup_n_s8('0'));
@@ -1313,6 +1327,10 @@ static inline char* xjb64(double v, char* buf) {
     memset(buf, '0', 8);
 #    endif
     const u8* move_shuffler = &(t->e10_variable_data[e10_data_ofs][32 + D17 * 16]);
+#endif
+#if !XJB_NO_MEMMOVE
+    // to_ascii16 prefills 32 bytes of the buffer with '0' before returning the digits.
+    xjb_check_buf(buf, 32, double_table_t::max_buffer_requirement);
 #endif
     shortest_ascii16 s = to_ascii16(buf, XJB_NOT_REMOVE_FIRST_ZERO ? m_up : mr, up_down, D17, cv XJB_SHUFFLER_PARAM);
     u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][17 + 0];
@@ -1326,6 +1344,7 @@ static inline char* xjb64(double v, char* buf) {
     char* const buf_origin = buf;
     buf += first_sig_pos;
 
+    xjb_check_buf(buf, 16, double_table_t::max_buffer_requirement);
 #if XJB_USE_NEON_OR_SSE2
     memcpy(buf, &(s.ascii16), 16);  // write m+up to buffer
 #else
@@ -1337,21 +1356,29 @@ static inline char* xjb64(double v, char* buf) {
     // aarch64: 0x30302e30 is not a valid immediate
     one |= 0x30303030;  // "0000"
     // first_sig_pos max = 5, one_offset max = 17, requires at least 21 bytes
+    xjb_check_buf(buf + 16, 4, double_table_t::max_buffer_requirement);
     memcpy(buf + 16, &s.trailing_byte, 4);
+    xjb_check_buf(buf + one_offset, 4, double_table_t::max_buffer_requirement);
     memcpy(buf + one_offset, &one, 4);
+    xjb_check_buf(buf_origin + dot_pos, 1, double_table_t::max_buffer_requirement);
     buf_origin[dot_pos] = '.';
 #elif XJB_NO_MEMMOVE
     one |= 0x30302e30;  // "0.00"
     // first_sig_pos max = 5, one_offset max = 17, requires at least 21 bytes
+    xjb_check_buf(buf + 16, 4, double_table_t::max_buffer_requirement);
     memcpy(buf + 16, &s.trailing_byte, 4);  // write range : [16, 19]
+    xjb_check_buf(buf_origin + dot_pos, 1, double_table_t::max_buffer_requirement);
     buf_origin[dot_pos] = '.';
+    xjb_check_buf(buf + one_offset, 4, double_table_t::max_buffer_requirement);
     memcpy(buf + one_offset, &one, 4);  // one_offset range: [15,17]; write range: [15,20]
 #else
-    one |= 0x30303030;                // "0000"
+    one |= 0x30303030;  // "0000"
+    xjb_check_buf(&buf[15 + D17], 4, double_table_t::max_buffer_requirement);
     memcpy(&buf[15 + D17], &one, 4);  // write one to buffer
+    xjb_check_buf(&buf[dot_pos], 16, double_table_t::max_buffer_requirement);
+    xjb_check_buf(&buf[move_pos], 16, double_table_t::max_buffer_requirement);
     memmove(&buf[move_pos], &buf[dot_pos], 16);
-    // dot_pos+first_sig_pos+sign max = 16+1 = 17; require 17+16=33 bytes
-    assert(dot_pos + first_sig_pos + 1 + 16 <= double_table_t::max_buffer_requirement);
+    xjb_check_buf(buf_origin + dot_pos, 1, double_table_t::max_buffer_requirement);
     buf_origin[dot_pos] = '.';
 #endif
 
@@ -1366,12 +1393,14 @@ static inline char* xjb64(double v, char* buf) {
             lz += 2;
             e10 -= lz - 1;
             buf[0] = buf[lz];
-            assert((buf - real_origin_buf) + (lz + 1) + 16 <= double_table_t::max_buffer_requirement);
+            xjb_check_buf(&buf[lz + 1], 16, double_table_t::max_buffer_requirement);
+            xjb_check_buf(&buf[2], 16, double_table_t::max_buffer_requirement);
             memmove(&buf[2], &buf[lz + 1], 16);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
     u64 exp_result = t->exp_result_double[e10 + 324];
     buf += exp_pos;
+    xjb_check_buf(buf, 8, double_table_t::max_buffer_requirement);
     memcpy(buf, &exp_result, 8);
     u64 exp_len = exp_result >> 56;
     assert((buf + exp_len) - real_origin_buf <= double_table_t::max_valid_output_len);
@@ -1437,6 +1466,7 @@ static inline char* xjb32(float v, char* buf) {
         up_down = m_up > ((hi64 - (half_ulp >> 1)) >> BIT);
     }
     u32 lz = ((u32)m_up < (u32)c->e7) + ((u32)m_up < (u32)c->e6);
+    xjb_check_buf(buf, 16, float_table_t::max_buffer_requirement);
     memset(buf, '0', 16);
     shortest_ascii8 s = to_ascii8(m_up, up_down, lz, c);
     i32 e10 = (i32)k + (8 - lz);
@@ -1450,10 +1480,15 @@ static inline char* xjb32(float v, char* buf) {
     u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len_sub1];
     char* buf_origin = (char*)buf;
     buf += first_sig_pos;
+    xjb_check_buf(buf, 8, float_table_t::max_buffer_requirement);
     memcpy(buf, &(s.ascii), 8);
+    xjb_check_buf(&buf[8 - lz], 4, float_table_t::max_buffer_requirement);
     memcpy(&buf[8 - lz], &one, 4);
+    xjb_check_buf(&buf[dot_pos], 8, float_table_t::max_buffer_requirement);
+    xjb_check_buf(&buf[move_pos], 8, float_table_t::max_buffer_requirement);
     memmove(&buf[move_pos], &buf[dot_pos],
             8);  // the index (first_sig_pos + dot_pos + sign) max = 7+1=8,
+    xjb_check_buf(buf_origin + dot_pos, 1, float_table_t::max_buffer_requirement);
     buf_origin[dot_pos] = '.';
 #if XJB_IS_AARCH64  // for arm64 processor , fewer instructions
     if (exp == 0) [[unlikely]]
@@ -1461,14 +1496,17 @@ static inline char* xjb32(float v, char* buf) {
         if (m_up < 100000) [[unlikely]] {
             u64 lz = 0;
             u64 u;
+            xjb_check_buf(&buf[2], 8, float_table_t::max_buffer_requirement);
             memcpy(&u, &buf[2], 8);
             u = is_little_endian() ? u : byteswap64_xjb(u);
             lz = u64_tz_bits(u & 0x0f0f0f0f0f0f0f0f) / 8;
             lz += 2;
             e10 -= lz - 1;
+            xjb_check_buf(&buf[lz], 1, float_table_t::max_buffer_requirement);
             buf[0] = buf[lz];
+            xjb_check_buf(&buf[lz + 1], 8, float_table_t::max_buffer_requirement);
+            xjb_check_buf(&buf[2], 8, float_table_t::max_buffer_requirement);
             memmove(&buf[2], &buf[lz + 1], 8);
-            assert((buf - real_origin_buf) + (lz + 1) + 8 <= float_table_t::max_buffer_requirement);
             exp_pos = exp_pos - lz + (exp_pos - lz != 1);
         }
     u32 exp_result_u32 = t->exp_result_float[45 + e10];
@@ -1477,8 +1515,8 @@ static inline char* xjb32(float v, char* buf) {
                          ((exp_result_u32 & 0x0000ff00) << 8) | ((exp_result_u32 & 0x000000ff) << 24);
     u64 exp_result_u64 = is_little_endian() ? exp_result_u32 : (u64)exp_result_u32 << 32;
     buf += exp_pos;
+    xjb_check_buf(buf, 8, float_table_t::max_buffer_requirement);
     memcpy(buf, &exp_result_u64, 8);
-    assert((buf - real_origin_buf) + 8 <= float_table_t::max_buffer_requirement);
     assert(buf + (exp_result_u64 & 4) - real_origin_buf <= float_table_t::max_valid_output_len);
     return buf + (exp_result_u64 & 4);  // 'e' is 0b01100101
 }
