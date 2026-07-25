@@ -18,7 +18,7 @@
 // ---------------------------------------------------------------------------
 
 static std::string dtoa(double value) {
-    char buffer[33] = {};
+    char buffer[34] = {};
     char* end = xjb::xjb64(value, buffer);
     return {buffer, static_cast<size_t>(end - buffer)};
 }
@@ -212,6 +212,12 @@ TEST(dtoa_test, no_underrun) {
 }
 
 TEST(dtoa_test, no_overrun) {
+    // The memmove destination is furthest out for negative values with 16
+    // integer digits (e10 == 15, the top of the fixed-notation window), where
+    // dot_pos == 16 and move_pos == 17. Nothing else in this file reaches that
+    // combination, so the buffer-requirement assert never got exercised.
+    EXPECT_EQ(dtoa(-1e15), "-1000000000000000.0");
+    EXPECT_EQ(dtoa(-3855847054452841.5), "-3855847054452841.5");
     EXPECT_EQ(dtoa(-1.2345678901234567e+123), "-1.2345678901234567e+123");
     EXPECT_EQ(dtoa(-1.3588129002659584e-245), "-1.3588129002659584e-245");
 }
