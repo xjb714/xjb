@@ -127,13 +127,15 @@
 #endif
 
 // Fix performance regression on Zen4 under -fPIC.
-// But this mitigation is not needed on intel platforms, because intel has a fast AGU path for scaled-index load.
-// Above mitigation is only for Zen4, but we don't have a way to detect Zen4, so we just enable it for all x86-64 under
-// -fPIC. On intel i7 13700k, may cause 4% performance regression.
-#if defined(__x86_64__) && defined(__PIC__) && (defined(__clang__) || defined(__GNUC__)) && !defined(_MSC_VER)
-#    define XJB_NO_PIC_MITIGATION 0
-#else
-#    define XJB_NO_PIC_MITIGATION 1
+// This mitigation is not needed on Intel platforms, because Intel has a fast AGU path for scaled index loads.
+// The mitigation targets only Zen4, but we have no way to detect Zen4, so we enable it for all x86-64 under
+// -fPIC. On an Intel i7-13700K, this may cause a ~2% performance regression.
+#ifndef XJB_NO_PIC_MITIGATION
+#    if defined(__x86_64__) && defined(__PIC__)
+#        define XJB_NO_PIC_MITIGATION 0
+#    else
+#        define XJB_NO_PIC_MITIGATION 1
+#    endif
 #endif
 
 /* Some compiler checks. */
@@ -1216,7 +1218,7 @@ static inline i64 compute_k_double(i64 q) {
 }
 static inline void get_pow10(const struct double_table_t* t, const i64 k, u64* pow10_hi, u64* pow10_lo) {
     const u64* pow10_ptr = t->pow10_double + 323 * 2 + 2 + k * 2;
-#if !XJB_NO_PIC_MITIGATION
+#if !XJB_NO_PIC_MITIGATION && (defined(__clang__) || defined(__GNUC__))
     // Under -fPIC this pow10 load sits on the double path's critical dependency
     // chain. Left as `pow10_double[base + k*2]` it compiles to a scaled-index
     // load (`movq disp(%base,%idx,8)`) which misses Zen4's fast AGU path and
