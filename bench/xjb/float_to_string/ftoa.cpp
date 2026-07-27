@@ -104,7 +104,7 @@
 #        define XJB_NO_MEMMOVE 0
 #    elif XJB_USE_NEON
 // On other aarch64 implementations the performance characteristics of memmove may differ.
-#        define XJB_NO_MEMMOVE 0
+#        define XJB_NO_MEMMOVE 1
 #    else
 #        define XJB_NO_MEMMOVE 0
 #    endif
@@ -546,11 +546,14 @@ struct float_table_t {
     static const int num_pow10 = 44 - (-32) + 1;
     uint64_t pow10_float_reverse[44 - (-32) + 1] = {};
     uint32_t exp_result_float[45 + 38 + 1] = {};
-    unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][16] = {};
+    unsigned char e10_variable_data[e10_UP - (e10_DN) + 1 + 1][XJB_NO_MEMMOVE ? 32 : 16] = {};
     unsigned char h37[256] = {};
 
     /* Assert size of per line in e10_variable_data is enough. */
     static_assert(16 >= max_dec_sig_len + 3, "");
+#if XJB_NO_MEMMOVE
+    static_assert(32 >= max_dec_sig_len + 3 + 8, "");
+#endif
 
     struct const_value_float constants_float = {
 #if XJB_IS_AARCH64
@@ -613,6 +616,26 @@ struct float_table_t {
                     throw "first_sig_pos + exp_pos + 8 is not larger than max_buffer_requirement";
                 }
             }
+#if XJB_NO_MEMMOVE
+            // Compute no-memmove shuffle pattern for 8 bytes at [16..23]
+            for (int j = 0; j < 8; ++j)
+                current_line[16 + j] = j;
+            if (move_pos > dot_pos) {
+                // Right shift at dot_pos: place gap for '.'
+                current_line[16 + dot_pos] = 0xFF;
+                for (int j = dot_pos + 1; j < 8; ++j)
+                    current_line[16 + j] = j - 1;
+            }
+            // Compute one_offset for lz=0,1,2 at [12..14]
+            // The 'one' value occupies 4 bytes at positions (8-lz) .. (11-lz).
+            // When dot_pos is within this range, the bytes from dot_pos onward
+            // shift right by 1, so the entire one write shifts by 1.
+            for (int lz = 0; lz <= 2; ++lz) {
+                int orig_one_pos = 8 - lz;
+                int one_overlap = (move_pos > dot_pos && (int)dot_pos <= orig_one_pos + 3) ? 1 : 0;
+                current_line[12 + lz] = (unsigned char)(orig_one_pos + one_overlap);
+            }
+#endif
         }
         for (int exp = 0; exp < 256; exp++) {
             int exp_bin = exp - 150 + (exp == 0);
@@ -1393,6 +1416,7 @@ static inline char* xjb32(float v, char* buf) {
     memcpy(&vi, &v, 4);
     buf[0] = '-';
     buf += vi >> 31;
+    //*buf = '1';
     u32 sig = vi & ((1 << 23) - 1);
     u64 exp = (vi << 1) >> 24;
     u64 sig_bin = sig | (1 << 23);
@@ -1482,6 +1506,147 @@ static inline char* xjb32(float v, char* buf) {
     assert(buf + (exp_result_u64 & 4) - real_origin_buf <= float_table_t::max_valid_output_len);
     return buf + (exp_result_u64 & 4);  // 'e' is 0b01100101
 }
+#if 0
+static inline char* xjb32_v2(float v, char* buf) {
+    // require buf size >= 21 byte
+    // no-memmove optimized version for x86-64 with SSSE3+
+#ifndef NDEBUG
+    char* const real_origin_buf = buf;
+#endif
+    const struct float_table_t* t = &float_table;
+    const struct const_value_float* c = &t->constants_float;
+#if XJB_IS_AARCH64 && (defined(__clang__) || defined(__GNUC__))
+    asm("" : "+r"(c));
+#endif
+    u32 vi;
+    memcpy(&vi, &v, 4);
+    buf[0] = '-';
+    buf += vi >> 31;
+    u32 sig = vi & ((1 << 23) - 1);
+    u64 exp = (vi << 1) >> 24;
+    u64 sig_bin = sig | (1 << 23);
+    i64 exp_bin = (i64)exp - 150;
+    if (exp == 0) [[unlikely]] {
+        if (sig == 0)
+            return (char*)memcpy(buf, "0.0", 4) + 3;
+        exp_bin = 1 - 150;
+        sig_bin = sig;
+    }
+    if (exp == 255) [[unlikely]]
+        return (char*)memcpy(buf, sig ? "nan" : "inf", 4) + 3;
+    u32 h37_precalc = t->h37[exp];
+    bool irregular = sig == 0;
+    const int BIT = 36;
+#if defined(__SIZEOF_INT128__) && XJB_IS_AARCH64
+    i64 k = ((i64)exp_bin * (u128)(1233ull << 52)) >> 64;
+#else
+    i64 k = (exp_bin * 1233) >> 12;
+#endif
+    if (irregular) [[unlikely]] {
+        k = (i64)(exp_bin * 1233 - 512) >> 12;
+        h37_precalc = (BIT + 1) + exp_bin + ((k * -1701 + (-1701)) >> 9);
+    }
+    u64 pow10_hi = t->pow10_float_reverse[45 + k];
+    u64 cb = sig_bin << h37_precalc;
+    u64 hi64 = umul128_hi64_xjb(cb, pow10_hi);
+    u64 half_ulp = (pow10_hi >> (65 - h37_precalc)) + ((sig + 1) & 1);
+    u64 dot_one_36bit = hi64 & (((u64)1 << BIT) - 1);
+    u32 m_up = (hi64 + half_ulp) >> BIT;
+    u32 up_down = m_up > (u32)((hi64 - (half_ulp >> 0)) >> BIT);
+#if XJB_IS_AARCH64
+    u32 one =
+        (dot_one_36bit * 10 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT);
+#else
+    u32 one = (dot_one_36bit * 5 + c->c1 + (dot_one_36bit >> (BIT - 4))) >> (BIT - 1);
+#endif
+    if (irregular) [[unlikely]] {
+        if ((exp_bin == 31 - 150) | (exp_bin == 214 - 150) | (exp_bin == 217 - 150))
+            ++one;
+        up_down = m_up > ((hi64 - (half_ulp >> 1)) >> BIT);
+    }
+    u32 lz = ((u32)m_up < (u32)c->e7) + ((u32)m_up < (u32)c->e6);
+    memset(buf, '0', 16);
+    shortest_ascii8 s = to_ascii8(m_up, up_down, lz, c);
+    i32 e10 = (i32)k + (8 - lz);
+    const i64 e10_DN = t->e10_DN, e10_UP = t->e10_UP;
+    const u64 interval = e10_UP - e10_DN + 1;
+    u32 e10_3 = e10 + (-e10_DN);
+    u32 e10_data_ofs = e10_3 < interval ? e10_3 : interval;
+    u64 first_sig_pos = t->e10_variable_data[e10_data_ofs][9 + 0];
+    u64 dot_pos = t->e10_variable_data[e10_data_ofs][9 + 1];
+    u64 exp_pos = t->e10_variable_data[e10_data_ofs][s.dec_sig_len_sub1];
+    char* buf_origin = (char*)buf;
+    buf += first_sig_pos;
+
+#if XJB_NO_MEMMOVE && XJB_USE_SSSE3
+    // No-memmove path: use SSSE3 shuffle to place 8 BCD bytes with dot gap
+    __m128i shuf_mask = _mm_loadu_si128((const __m128i*)&(t->e10_variable_data[e10_data_ofs][16]));
+    __m128i bcd_src = _mm_cvtsi64_si128(s.ascii);
+    __m128i shuffled = _mm_shuffle_epi8(bcd_src, shuf_mask);
+    _mm_storel_epi64((__m128i*)buf, shuffled);
+    // Place the dot before writing 'one', so 'one' can be placed around it
+    buf_origin[dot_pos] = '.';
+    // Write 'one' at (8-lz), splitting around dot position if needed
+    {
+        u64 move_pos = t->e10_variable_data[e10_data_ofs][9 + 2];
+        u64 one_pos = 8 - lz;
+        if (move_pos > dot_pos) {
+            if (one_pos < dot_pos) {
+                // One is before dot: split write
+                int n_before = (int)dot_pos - (int)one_pos;
+                if (n_before > 4) n_before = 4;
+                if (n_before > 0) memcpy(buf + one_pos, &one, n_before);
+                if (n_before < 4) memcpy(buf + one_pos + n_before + 1, (char*)&one + n_before, 4 - n_before);
+            } else {
+                // One at or after dot: shift the entire write by 1
+                memcpy(buf + one_pos + 1, &one, 4);
+                // If the one write doesn't cover all 9 positions after dot,
+                // place the last BCD byte at the gap left by src[7] not being in the shuffle
+                if (one_pos + 1 > 8) {
+                    buf[8] = ((char*)&s.ascii)[7];
+                }
+            }
+        } else {
+            // No dot insertion
+            memcpy(buf + one_pos, &one, 4);
+        }
+    }
+#else
+    // Original memmove path
+    u64 move_pos = t->e10_variable_data[e10_data_ofs][9 + 2];
+    memcpy(buf, &(s.ascii), 8);
+    memcpy(&buf[8 - lz], &one, 4);
+    memmove(&buf[move_pos], &buf[dot_pos], 8);
+    buf_origin[dot_pos] = '.';
+#endif
+
+#if XJB_IS_AARCH64
+    if (exp == 0) [[unlikely]]
+#endif
+        if (m_up < 100000) [[unlikely]] {
+            u64 sub_lz = 0;
+            while (buf[2 + sub_lz] == '0' || buf[2 + sub_lz] == '\0') sub_lz++;
+            sub_lz += 2;
+            e10 -= sub_lz - 1;
+            buf[0] = buf[sub_lz];
+            memmove(&buf[2], &buf[sub_lz + 1], 8);
+            assert((buf - real_origin_buf) + (sub_lz + 1) + 8 <= float_table_t::max_buffer_requirement);
+            exp_pos = exp_pos - sub_lz + (exp_pos - sub_lz != 1);
+        }
+    u32 exp_result_u32 = t->exp_result_float[45 + e10];
+    if (!is_little_endian())
+        exp_result_u32 = ((exp_result_u32 & 0xff000000) >> 24) | ((exp_result_u32 & 0x00ff0000) >> 8) |
+                         ((exp_result_u32 & 0x0000ff00) << 8) | ((exp_result_u32 & 0x000000ff) << 24);
+    u64 exp_result_u64 = is_little_endian() ? exp_result_u32 : (u64)exp_result_u32 << 32;
+    buf += exp_pos;
+    memcpy(buf, &exp_result_u64, 8);
+    assert((buf - real_origin_buf) + 8 <= float_table_t::max_buffer_requirement);
+    assert(buf + (exp_result_u64 & 4) - real_origin_buf <= float_table_t::max_valid_output_len);
+    return buf + (exp_result_u64 & 4);  // 'e' is 0b01100101
+}
+#endif
+
+#if 0
 static inline char* xjb16(uint16_t bits, char* buf) {
     // this function is not a final version, not optimized for performance.
     // same result as str(numpy.float16(v)) in python.
@@ -1628,27 +1793,30 @@ static inline char* xjb256(uint64_t* v, char* buf) {
 
     return buf;
 }
+#endif
 }  // end of namespace xjb
 
 /*==============================================================================
  * Export
  *============================================================================*/
 
-char* xjb_ftoa(uint16_t bits, char* buf) {
-    return xjb::xjb16(bits, buf);
-}
+
 char* xjb_ftoa(float v, char* buf) {
     return xjb::xjb32(v, buf);
 }
 char* xjb_ftoa(double v, char* buf) {
     return xjb::xjb64(v, buf);
 }
-char* xjb_ftoa(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
-    return xjb::xjb80(v_hi16, v_lo64, buf);
-}
-char* xjb_ftoa(uint64_t v_hi64, uint64_t v_lo64, char* buf) {
-    return xjb::xjb128(v_hi64, v_lo64, buf);
-}
-char* xjb_ftoa(uint64_t* v, char* buf) {
-    return xjb::xjb256(v, buf);
-}
+
+// char* xjb_ftoa(uint16_t bits, char* buf) {
+//     return xjb::xjb16(bits, buf);
+// }
+// char* xjb_ftoa(uint16_t v_hi16, uint64_t v_lo64, char* buf) {
+//     return xjb::xjb80(v_hi16, v_lo64, buf);
+// }
+// char* xjb_ftoa(uint64_t v_hi64, uint64_t v_lo64, char* buf) {
+//     return xjb::xjb128(v_hi64, v_lo64, buf);
+// }
+// char* xjb_ftoa(uint64_t* v, char* buf) {
+//     return xjb::xjb256(v, buf);
+// }

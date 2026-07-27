@@ -60,7 +60,7 @@ const u64 N_double = N;  // double data size
 const u64 N_float = N;   // float data size
 
 // double
-double *data;
+double *data_double;
 unsigned long long *dec;
 int *e10;
 // dec * 10^e10
@@ -146,14 +146,14 @@ void init_double()
 {
     auto t1 = getns();
 
-    data = (double *)malloc(N_double * sizeof(double));
+    data_double = (double *)malloc(N_double * sizeof(double));
     dec = (unsigned long long *)malloc(N_double * sizeof(unsigned long long));
     e10 = (int *)malloc(N_double * sizeof(int));
 
     // #pragma omp parallel for
     for (int i = 0; i < (N_double); ++i)
     {
-        data[i] = gen_double_filter_NaN_Inf();
+        data_double[i] = gen_double_filter_NaN_Inf();
     }
     printf("generate random data finish\n");
     fflush(stdout);
@@ -250,13 +250,13 @@ void init_float()
 }
 void free_double()
 {
-    if (data)
-        free(data);
+    if (data_double)
+        free(data_double);
     if (dec)
         free(dec);
     if (e10)
         free(e10);
-    data = nullptr;
+    data_double = nullptr;
     dec = nullptr;
     e10 = nullptr;
 }
@@ -308,7 +308,7 @@ void bench_double_single_impl(int i)
             {                                       \
                 unsigned long long d;               \
                 int k;                              \
-                name##_f64_to_dec(data[j], &d, &k); \
+                name##_f64_to_dec(data_double[j], &d, &k); \
                 sum_final += d;                     \
             }                                       \
         };
@@ -335,7 +335,7 @@ void bench_double_single_impl(int i)
         {                                                                     \
             for (u64 u = 0; u < LOOP_UNROLL; u++)                             \
             {                                                                 \
-                sum_final += name##_f64_to_str(data[j + u], buffer) - buffer; \
+                sum_final += name##_f64_to_str(data_double[j + u], buffer) - buffer; \
             }                                                                 \
         };
 
