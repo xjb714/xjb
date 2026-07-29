@@ -4,11 +4,13 @@
 char *zmij_f64_to_str(double value, char *buffer)
 {
     char *buf = zmij::detail::write(value, buffer);
+    *buf = '\0';  // Null-terminate the string
     return buf;
 }
 char *zmij_f32_to_str(float value, char *buffer)
 {
     char *buf = zmij::detail::write(value, buffer);
+    *buf = '\0';  // Null-terminate the string
     return buf;
 }
 static inline void zmij_f64_to_dec(double v, unsigned long long *dec, int *e10)
