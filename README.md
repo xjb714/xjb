@@ -220,4 +220,4 @@ Contributions are welcome! Please feel free to submit issues or pull requests to
 
 ## 12. License
 
-[MIT License](LICENSE)
+[Apache 2.0 License](LICENSE)
